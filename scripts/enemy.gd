@@ -36,6 +36,10 @@ var _special_timer := 0.0
 var _anim_t := 0.0
 
 const FLY_HEIGHT := 1.6
+## Fliers ignore the road: they fly a straight line from their road end to the castle, cruising at FLY_ALT
+## (above the highest raised ground) after climbing for FLY_CLIMB world units.
+const FLY_ALT := 5.0
+const FLY_CLIMB := 6.0
 ## Height of the road surface (Kenney road tiles sit slightly below the grass).
 static var GROUND_Y := 0.0
 
@@ -72,7 +76,7 @@ func setup(g: Game, id: String, r: PackedVector3Array, hp_mult: float, start_pro
 	_base_scale = _body.scale.x
 	_anim = m.get("anim")
 	_death_anim = m.get("death", "")
-	_bar_height = float(data.get("h", 1.5)) + 0.3 + (FLY_HEIGHT if flying else 0.0)
+	_bar_height = float(data.get("h", 1.5)) + 0.3
 	_make_bar()
 	_set_progress(start_progress)
 
@@ -102,6 +106,8 @@ func _set_progress(p: float) -> void:
 	_advance(p)
 
 
+## Distance left to the castle along the way this enemy actually travels: the road for walkers, a straight
+## line for fliers. Both are world units, so towers can compare them in one targeting pool.
 func remaining() -> float:
 	return route_len - progress
 
@@ -202,7 +208,8 @@ func _process(delta: float) -> void:
 	# animation
 	var y := _pp.y + GROUND_Y
 	if flying:
-		y = _pp.y + FLY_HEIGHT + sin(_anim_t * 3.0) * 0.15
+		var lift := clampf(progress / FLY_CLIMB, 0.0, 1.0)
+		y = lerpf(_pp.y + FLY_HEIGHT, FLY_ALT, lift * lift * (3.0 - 2.0 * lift)) + sin(_anim_t * 3.0) * 0.15
 	if _anim:
 		# imported, rigged model: drive its walk cycle by how fast we're actually moving
 		_anim.speed_scale = mult * (1.4 if speed > 3.0 else 1.0)

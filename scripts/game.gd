@@ -51,6 +51,7 @@ var diggers := 0            # items: each lowers one
 var talents := {}           # castle talent id -> rank
 var _keep_cd := 0.0
 var _range_mm: MultiMeshInstance3D
+var _flight_mi: MeshInstance3D
 var _range_key := ""
 var enemies: Array = []
 var towers: Array = []
@@ -678,6 +679,8 @@ func sfx(n: String, pos: Variant = null) -> void:
 func _clear_world() -> void:
 	for c in world.get_children():
 		c.queue_free()
+	if _flight_mi:
+		_flight_mi.visible = false
 	enemies.clear()
 	towers.clear()
 	spawn_queue.clear()
@@ -968,6 +971,7 @@ func _enter_build() -> void:
 	var fronts := board.battlefronts()
 	var label := "Start Wave %d  [Space]" % (wave + 1)
 	hud.set_start(true, label, WaveBuilder.summary(next_wave_list) + "\nFrom %d road end%s" % [fronts, "" if fronts == 1 else "s"])
+	_show_flight_lines(_wave_has_fliers(next_wave_list))
 	hud.refresh_intel()
 	_refresh_ui()
 
@@ -992,6 +996,7 @@ func start_wave() -> void:
 				wave_port_cycle.append(pc)
 	state = S.WAVE
 	hud.set_start(false)
+	_show_flight_lines(false)
 	var boss: String = boss_plan.get(wave, "")
 	var arriving := ""
 	for t in threats:
@@ -1937,6 +1942,8 @@ func spawn_enemy(type_id: String, r: PackedVector3Array, progress := 0.0) -> Ene
 	var e := Enemy.new()
 	world.add_child(e)
 	var d: Dictionary = GameData.ENEMIES[type_id]
+	if d.get("flying", false) and r.size() > 2:
+		r = flight_route(r)
 	var mult := WaveBuilder.hp_mult(wave)
 	if d.get("boss", false):
 		mult = float(BOSS_HP.get(wave, float(d["hp"]) * (1.0 + 0.02 * wave))) / float(d["hp"])
@@ -1946,6 +1953,65 @@ func spawn_enemy(type_id: String, r: PackedVector3Array, progress := 0.0) -> Ene
 	if progress <= 0.0:
 		FX.burst(world, r[0] + Vector3(0, 1.0, 0), Color(0.7, 0.3, 1.0), 0.8, 0.3)
 	return e
+
+
+## Fliers skip the road: straight from where the road starts to the castle.
+func flight_route(r: PackedVector3Array) -> PackedVector3Array:
+	return PackedVector3Array([r[0], r[r.size() - 1]])
+
+
+## Points every couple of units along every flight line (road end -> castle), for the bot and the preview.
+func _flight_points() -> Array:
+	var out: Array = []
+	var cpos := board.cell_to_world(board.center)
+	for pc in board.open_ports:
+		var a: Vector3 = board.route_from(pc)[0]
+		var n := int(ceil(Vector2(a.x - cpos.x, a.z - cpos.z).length() / 2.0))
+		for i in n + 1:
+			out.append(a.lerp(cpos, float(i) / maxf(1.0, n)))
+	return out
+
+
+func _wave_has_fliers(list: Array) -> bool:
+	for e in list:
+		if GameData.ENEMIES[e["type"]].get("flying", false):
+			return true
+	return false
+
+
+## Build phase: dashed lines at flying height from every road end to the castle when the next wave has fliers.
+func _show_flight_lines(on: bool) -> void:
+	if _flight_mi == null:
+		_flight_mi = MeshInstance3D.new()
+		_flight_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var m := Models.mat(Color(1.0, 0.55, 0.35), 0.6, 0.55)
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_flight_mi.material_override = m
+		overlay.add_child(_flight_mi)
+	_flight_mi.visible = on
+	if not on:
+		return
+	var im := ImmediateMesh.new()
+	im.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	var cpos := board.cell_to_world(board.center)
+	for pc in board.open_ports:
+		var a: Vector3 = board.route_from(pc)[0]
+		var flat := Vector3(cpos.x - a.x, 0, cpos.z - a.z)
+		var length := flat.length()
+		if length < 1.0:
+			continue
+		var dir := flat / length
+		var side := Vector3(-dir.z, 0, dir.x) * 0.14
+		var t := Enemy.FLY_CLIMB
+		while t < length - 2.0:
+			var p0 := Vector3(a.x, Enemy.FLY_ALT, a.z) + dir * t
+			var p1 := p0 + dir * 1.1
+			for v in [p0 - side, p0 + side, p1 + side, p0 - side, p1 + side, p1 - side]:
+				im.surface_add_vertex(v)
+			t += 2.0
+	im.surface_end()
+	_flight_mi.mesh = im
 
 
 func enemy_killed(e: Enemy) -> void:
@@ -2705,8 +2771,15 @@ func _auto_build() -> void:
 		var choices: Array = owned.keys().filter(func(k): return int(owned[k]) > 0 and gold >= tower_cost(k))
 		var tid: String = choices[rng.randi() % choices.size()]
 		# like a player would: cover as much road as possible, favoring the least-defended road end
-		var route := _auto_weakest_route()
+		var route: Array = Array(_auto_weakest_route())
 		var d: Dictionary = GameData.TOWERS[tid]
+		if d.get("air", false):
+			var fly_soon := _wave_has_fliers(next_wave_list) or threats.any(func(t): return threat_known(t) \
+				and GameData.ENEMIES[GameData.THREATS[t["id"]]["enemy"]].get("flying", false))
+			if not d.get("ground", false):
+				route = _flight_points()
+			elif fly_soon:
+				route.append_array(_flight_points())
 		var r: float = float(d["range"]) * GameData.TILE
 		var arc := GameData.arc_of(tid)
 		var roads: Array = board.path_cells.keys()
