@@ -26,6 +26,11 @@ var arc := 360.0        # firing cone in degrees
 var _base_scale := 1.0
 var _fitted := false    # the model was built to fill the whole footprint
 var water_bonus := 0.0  # Blue's Tidebound: extra damage next to water
+var line_w := 0.0       # breath towers: width of the straight line they hit (world units); 0 = normal reach
+var thralls: Array = [] # Necromancer: its zombies that are still up
+
+## Sounds for attack kinds that borrow another's.
+const ATTACK_SFX := {"breath": "fire", "smite": "boom", "grasp": "slam"}
 
 var head: Node3D
 var _model: Node3D
@@ -48,6 +53,8 @@ func setup(g: Game, tid: String, anchor: Vector2i, facing_ := 4) -> void:
 	muzzles = GameData.muzzle_cells(tid, anchor, facing)
 	arc = GameData.arc_of(tid)
 	reach = GameData.reach_offset(tid)
+	line_w = float(data.get("line", 0.0)) * GameData.TILE
+	target_mode = int(data.get("target", 0))
 	var m := Models.tower(tid, data["color"])
 	_model = m["root"]
 	head = m["head"]
@@ -66,6 +73,11 @@ func setup(g: Game, tid: String, anchor: Vector2i, facing_ := 4) -> void:
 func reaches(p: Vector3, from: Vector3, r: float) -> bool:
 	var dx := p.x - from.x
 	var dz := p.z - from.z
+	if line_w > 0.0:
+		# a straight line ahead, line_w wide and r long
+		var fd0 := Hex.dir_world(facing)
+		var along := dx * fd0.x + dz * fd0.z
+		return along >= -0.5 and along <= r and absf(dx * fd0.z - dz * fd0.x) <= line_w * 0.5
 	if dx * dx + dz * dz > r * r:
 		return false
 	if arc >= 359.0:
@@ -215,6 +227,8 @@ func make_packet() -> Dictionary:
 		"shred": data.get("shred", false) or fx.get("shred", false),
 		"push": fx.get("push", data.get("push", [])),
 		"pct": fxf("pct", float(data.get("pct", 0.0))),
+		"vuln": fx.get("vuln", data.get("vuln", [])),
+		"boss_bonus": float(data.get("boss_bonus", 0.0)),
 		"tower": self,
 	}
 
@@ -257,9 +271,10 @@ func _process(delta: float) -> void:
 	var t := find_target()
 	if t == null:
 		return
-	var to := t.position - global_position
-	var want := atan2(-to.x, -to.z) - _model.rotation.y
-	head.rotation.y = lerp_angle(head.rotation.y, want, min(1.0, delta * 12.0))
+	if not data.get("static", false):
+		var to := t.position - global_position
+		var want := atan2(-to.x, -to.z) - _model.rotation.y
+		head.rotation.y = lerp_angle(head.rotation.y, want, min(1.0, delta * 12.0))
 	if cooldown <= 0.0:
 		cooldown = 1.0 / fire_rate()
 		_fire(t)
@@ -291,7 +306,7 @@ func _pulse() -> void:
 			FX.burst(game.world, m + fwd * r * (0.3 + 0.3 * k), data["color"], 0.5 + 0.3 * k, 0.3)
 	else:
 		FX.ring(game.world, position + Vector3(0, 0.15, 0), data["color"], r, 0.45)
-	game.sfx("fire" if id == "dwarf_flame" else "pulse", global_position)
+	game.sfx("fire" if id == "dwarf_flame" else ("slam" if id == "mammoth" else "pulse"), global_position)
 
 
 func _muzzle() -> Vector3:
@@ -310,6 +325,13 @@ func _muzzle_world(i: int) -> Vector3:
 
 func _fire(t: Enemy) -> void:
 	var r := range_world()
+	match attack():
+		"breath":
+			_breathe(r)
+			return
+		"grasp":
+			_grasp(t, r)
+			return
 	for i in muzzles.size():
 		_fire_at(t, _muzzle_world(i))
 	# Volley / Barrage / Swarm specializations: extra shots at the next-best targets
@@ -322,7 +344,42 @@ func _fire(t: Enemy) -> void:
 		others.sort_custom(func(a, b): return a.remaining() < b.remaining())
 		for i in mini(extra, others.size()):
 			_fire_at(others[i], _muzzle_world(0))
-	game.sfx(attack(), global_position)
+	game.sfx(ATTACK_SFX.get(attack(), attack()), global_position)
+
+
+## Fat Dragon: fire along the whole line ahead, burning everything in it.
+func _breathe(r: float) -> void:
+	var pkt := make_packet()
+	for e in game.enemies.duplicate():
+		if not e.dead and can_hit(e) and reaches(e.position, position, r):
+			game.apply_hit(pkt, e)
+	var fd := Hex.dir_world(facing)
+	var mouth := position + fd * reach + Vector3(0, 0.7, 0)
+	var n := 6
+	for k in n:
+		var f := (k + 1.0) / n
+		FX.burst(game.world, mouth + fd * (r - reach) * f, data["color"].lerp(Color(1, 0.85, 0.3), f * 0.5), 0.5 + 0.5 * f, 0.3)
+	_recoil = 1.0
+	game.sfx("fire", global_position)
+
+
+## Kraken: seize the target and the next ones along (up to "grasp"), crushing and holding them.
+func _grasp(t: Enemy, r: float) -> void:
+	var victims: Array = [t]
+	var others: Array = game.enemies.filter(func(e): return e != t and not e.dead and can_hit(e) and reaches(e.position, position, r))
+	others.sort_custom(func(a, b): return a.remaining() < b.remaining())
+	var n := int(data.get("grasp", 3)) + int(fxf("grasp"))
+	for e in others:
+		if victims.size() >= n:
+			break
+		victims.append(e)
+	var pkt := make_packet()
+	for e in victims:
+		game.apply_hit(pkt, e)
+		FX.burst(game.world, e.aim_pos(), data["color"], 0.7, 0.3)
+		FX.ring(game.world, e.ground_pos() + Vector3(0, 0.1, 0), data["color"], 0.9, 0.35)
+	_recoil = 1.0
+	game.sfx("slam", global_position)
 
 
 func _fire_at(t: Enemy, from: Vector3) -> void:
@@ -350,6 +407,15 @@ func _fire_at(t: Enemy, from: Vector3) -> void:
 			p.setup_lob(game, pkt, from, t.predict(flight), flight, col)
 		"chain":
 			game.chain_lightning(pkt, t, int(data.get("chain", 3)) + int(fxf("chain")), from, col)
+		"smite":
+			# a pillar of light straight down on the target
+			var sp := t.position
+			for e in game.enemies.duplicate():
+				if not e.dead and can_hit(e) and _flat_dist(e.position, sp) <= maxf(pkt["splash"], 0.6):
+					game.apply_hit(pkt, e)
+			FX.burst(game.world, sp + Vector3(0, 2.5, 0), Color(1, 0.95, 0.7), 1.0, 0.35)
+			FX.burst(game.world, sp + Vector3(0, 0.6, 0), col, 1.6, 0.35)
+			FX.ring(game.world, t.ground_pos() + Vector3(0, 0.15, 0), col, maxf(pkt["splash"], 1.0), 0.4)
 		"slam":
 			var gp := t.ground_pos()
 			for e in game.enemies.duplicate():

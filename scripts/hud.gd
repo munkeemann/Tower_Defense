@@ -528,7 +528,10 @@ func show_tower_info(t: Tower) -> void:
 	else:
 		s += "Damage: %d %s\n" % [int(t.damage()), "magic" if d.get("dtype", "") == "magic" else "physical"]
 		s += "Attacks/sec: %.2f\n" % t.fire_rate()
-		s += "Range: %.1f tiles%s\n" % [t.range_world() / GameData.TILE, "" if t.arc >= 359.0 else ", %d degree arc" % int(t.arc)]
+		var shape := "" if t.arc >= 359.0 else ", %d degree arc" % int(t.arc)
+		if t.line_w > 0.0:
+			shape = ", in a straight line ahead"
+		s += "Range: %.1f tiles%s\n" % [t.range_world() / GameData.TILE, shape]
 		if t.buff_dmg > 0.0 or t.buff_rate > 0.0:
 			s += "Aura bonus: +%d%% dmg, +%d%% speed\n" % [int(t.buff_dmg * 100), int(t.buff_rate * 100)]
 		if t.on_ley:

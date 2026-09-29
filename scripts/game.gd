@@ -675,7 +675,7 @@ func _show_range(mi: MeshInstance3D, pos: Vector3, r: float, arc: float, facing:
 
 ## Range as the actual hexes a tower reaches on your tiles, measured from its footprint's centroid: road hexes
 ## (where enemies walk) bright, other ground faint. Towers with a firing arc only light the hexes in front.
-func _show_range_cells(key: String, center: Vector3, r: float, arc: float, facing: int, col: Color) -> void:
+func _show_range_cells(key: String, center: Vector3, r: float, arc: float, facing: int, col: Color, line_w := 0.0) -> void:
 	if key == _range_key:
 		return
 	_range_key = key
@@ -692,7 +692,11 @@ func _show_range_cells(key: String, center: Vector3, r: float, arc: float, facin
 		var v := Vector2(cw.x - center.x, cw.z - center.z)
 		if v.length() > r:
 			continue
-		if arc < 359.0 and v.length() > 0.1 and v.normalized().dot(Vector2(fd.x, fd.z)) < cos_half - 0.001:
+		if line_w > 0.0:
+			var along := v.x * fd.x + v.y * fd.z
+			if along < -0.5 or absf(v.x * fd.z - v.y * fd.x) > line_w * 0.5:
+				continue
+		elif arc < 359.0 and v.length() > 0.1 and v.normalized().dot(Vector2(fd.x, fd.z)) < cos_half - 0.001:
 			continue
 		var road := board.path_cells.has(c)
 		var y := board.road_y(c) + 0.05 if road else board.surface_y(c) + 0.06
@@ -1132,6 +1136,8 @@ func start_wave() -> void:
 
 
 func _wave_complete() -> void:
+	for th in get_tree().get_nodes_in_group("thralls"):
+		(th as Thrall).crumble()
 	var supply := 0
 	for c in board.neutrals:
 		if board.neutrals[c]["kind"] == "supply":
@@ -2163,7 +2169,28 @@ func enemy_killed(e: Enemy) -> void:
 			var s := spawn_enemy(sp["into"], e.route, max(0.0, e.progress - 0.5 * i))
 			if e.mod_trait != "":
 				s.set_trait(e.mod_trait)
-	e.play_death()
+	if _try_raise(e):
+		e.queue_free()   # it gets back up as a zombie instead of lying down
+	else:
+		e.play_death()
+
+
+## Necromancers raise walkers (not bosses) that die in their reach as zombies (Thrall), up to their cap.
+func _try_raise(e: Enemy) -> bool:
+	if e.is_boss or e.flying or state == S.OVER:
+		return false
+	for t in towers:
+		if not t.data.has("raise") or not t.reaches(e.position, t.position, t.range_world()):
+			continue
+		t.thralls = t.thralls.filter(func(x): return is_instance_valid(x) and not x.is_queued_for_deletion())
+		if t.thralls.size() >= int(t.data["raise"]["max"]) + int(t.fxf("raise_max")):
+			continue
+		var th := Thrall.new()
+		world.add_child(th)
+		th.setup(self, e, t)
+		t.thralls.append(th)
+		return true
+	return false
 
 
 func enemy_leaked(e: Enemy) -> void:
@@ -2208,7 +2235,7 @@ func apply_hit(pkt: Dictionary, e: Enemy) -> void:
 	if e.camo:
 		dmg *= 1.0 + float(mods["vs_camo"])
 	if e.is_boss:
-		dmg *= 1.0 + float(mods["vs_boss"])
+		dmg *= (1.0 + float(mods["vs_boss"])) * (1.0 + float(pkt.get("boss_bonus", 0.0)))
 	var pct: float = float(pkt.get("pct", 0.0))
 	if pct > 0.0:
 		dmg += e.hp * pct * (0.3 if e.is_boss else 1.0)
@@ -2227,6 +2254,9 @@ func apply_hit(pkt: Dictionary, e: Enemy) -> void:
 	var stun: Array = pkt["stun"]
 	if stun.size() == 2 and not e.flying and rng.randf() < float(stun[0]):
 		e.apply_stun(stun[1])
+	var vuln: Array = pkt.get("vuln", [])
+	if vuln.size() == 2:
+		e.apply_vuln(float(vuln[0]), float(vuln[1]))
 	var push: Array = pkt.get("push", [])
 	if push.size() == 2 and not e.flying and rng.randf() < float(push[0]):
 		e.push_back(float(push[1]) * GameData.TILE)
@@ -2416,7 +2446,8 @@ func _update_ghost() -> void:
 	var nb := 0.2 if "relay" in board.neutrals_near(cells) else 0.0
 	var r: float = float(d["range"]) * GameData.TILE * mods["range"] * (1.0 + GameData.ELEVATION_RANGE * board.level_at(hover_cell)) * (1.0 + nb) \
 		+ GameData.reach_offset(placing)
-	_show_range_cells("g|%s|%s|%d|%s" % [placing, hover_cell, place_facing, ok], ctr, r, GameData.arc_of(placing), place_facing, col)
+	_show_range_cells("g|%s|%s|%d|%s" % [placing, hover_cell, place_facing, ok], ctr, r, GameData.arc_of(placing), place_facing, col,
+		float(d.get("line", 0.0)) * GameData.TILE)
 
 
 ## Raise Ground: like Tower Dominion's platforms. Works on empty tiles and under towers.
@@ -2569,7 +2600,7 @@ func _update_sel_range() -> void:
 		return
 	var t := selected
 	_show_range_cells("s|%d|%d|%d|%.2f" % [t.get_instance_id(), t.level, t.elevation, t.range_world()], t.position,
-		t.range_world(), t.arc, t.facing, Color(1.0, 0.9, 0.45))
+		t.range_world(), t.arc, t.facing, Color(1.0, 0.9, 0.45), t.line_w)
 	_show_outline(_sel_outline, t.cells)
 
 

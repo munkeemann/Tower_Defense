@@ -1017,7 +1017,8 @@
    "prompt": "A royal artillery fort: a low stone bastion with two round gun turrets at the front-left and front-right corners, each holding a huge black iron bombard cannon pointing forward, and a powder magazine with stacked cannonballs across the back. Pale grey stone with gold trim and royal blue banners. Seen from above it is a broad block slightly wider than it is deep, filled edge to edge.",
    "concept_task": "01a0ef41-adc3-721d-bba6-21c1fa20ed2a",
    "concept_done": true,
-   "model_task": "01a0ef4c-3a26-708a-a547-c8ff37aee2e0"
+   "model_task": "01a0ef4c-3a26-708a-a547-c8ff37aee2e0",
+   "model_done": true
   },
   {
    "name": "fp2_gryphon",
@@ -1306,7 +1307,8 @@
    "prompt": "A necromancer's ritual circle: a hooded skeletal necromancer in dark purple robes holding a skull staff glowing green, standing on a stone altar in the center, and four bone obelisks with violet flames at the ends of four arms reaching to the four corners, glowing green runes on the ground connecting them. Bone, dark purple stone and eerie violet-green ghost light. Seen from above it is a big X: a center with four arms reaching diagonally to the four corners, a little wider than it is deep.",
    "concept_task": "01a0ef42-3ac8-778c-88d6-a3f439095aa0",
    "concept_done": true,
-   "model_task": "01a0ef4c-4275-73e9-8002-61e41d725fb7"
+   "model_task": "01a0ef4c-4275-73e9-8002-61e41d725fb7",
+   "model_done": true
   }
  ]
 }

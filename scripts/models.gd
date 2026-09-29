@@ -385,7 +385,7 @@ const FOOTPRINT_ART_V2 := true
 const FOOTPRINT_ART := {
 	"ballista": ["fp2_ballista", 270.0, 4.5, 1.3],
 	"trebuchet": ["fp2_trebuchet", 270.0, 4.5, 1.3],
-	"bombard": ["fp2_bombard", 0.0, 4.5, 1.3],
+	"bombard": ["fp2_bombard", 180.0, 4.5, 1.3],
 	"gryphon": ["fp2_gryphon", 0.0, 4.5, 1.3],
 	"arcane": ["fp2_arcane", 90.0, 4.5, 1.3],
 	"chapel": ["fp2_chapel", 0.0, 4.5, 1.3],
@@ -405,6 +405,18 @@ const FOOTPRINT_ART := {
 	"plague_cauldron": ["fp2_plague_cauldron", 180.0, 4.5, 1.3],
 	"soul_obelisk": ["fp2_soul_obelisk", 0.0, 4.5, 1.3],
 	"hex_tomb": ["fp2_hex_tomb", 180.0, 4.5, 1.3],
+	# creatures (a 5th entry: tilt / spin in degrees, for models that came out standing up or turned 45 degrees, and
+	# grow, which makes up for the loose bounds a 45 degree spin measures)
+	"seraph": ["fp2_seraph", 180.0, 5.0, 1.3],
+	"archangel": ["fp2_archangel", 180.0, 6.0, 1.3],
+	"dire_bear": ["fp2_dire_bear", 180.0, 4.5, 1.3],
+	"mammoth": ["fp2_mammoth", 180.0, 5.5, 1.6],
+	"magma_golem": ["fp2_magma_golem", 180.0, 4.5, 1.3],
+	"fat_dragon": ["fp2_fat_dragon", 180.0, 4.5, 1.3],
+	"snapjaw_crab": ["fp2_snapjaw_crab", 180.0, 4.5, 1.3],
+	"kraken": ["fp2_kraken", 0.0, 4.5, 1.3, {"tilt": -90.0}],
+	"mass_grave": ["fp2_mass_grave", 90.0, 4.5, 1.3],
+	"necromancer": ["fp2_necromancer", 0.0, 4.5, 1.3, {"spin": 45.0, "grow": 1.75}],
 }
 const FOOTPRINT_ART_V1 := {
 	"ballista": ["fp_ballista", 270.0, 2.6, 1.15],
@@ -466,6 +478,12 @@ static func _fp_tower(id: String, root: Node3D, head: Node3D) -> bool:
 	var n := asset(CUSTOM + art[0] + ".glb")
 	if n == null:
 		return false
+	if art.size() > 4:
+		# lay a model flat (tilt, about X) or turn it on the spot (spin, about Y) before it's measured and fitted
+		var turn := Node3D.new()
+		turn.add_child(n)
+		n.rotation_degrees = Vector3(float(art[4].get("tilt", 0.0)), float(art[4].get("spin", 0.0)), 0.0)
+		n = turn
 	var spin := Node3D.new()
 	spin.add_child(n)
 	var yaw: float = art[1]
@@ -476,6 +494,8 @@ static func _fp_tower(id: String, root: Node3D, head: Node3D) -> bool:
 	var wz := bb.size.x if turned else bb.size.z
 	var box := footprint_box(id)
 	var sc: float = minf(minf(box.size.x * 0.97 / maxf(wx, 0.001), box.size.y * 0.97 / maxf(wz, 0.001)), float(art[2]) / maxf(bb.size.y, 0.001))
+	if art.size() > 4:
+		sc *= float(art[4].get("grow", 1.0))
 	var c := bb.get_center()
 	# stretch toward the footprint's full width (v1: across the facing only; v2: whichever axis has room too)
 	var widen: float = clampf(box.size.x * 0.95 / maxf(wx * sc, 0.001), 1.0, float(art[3]))
