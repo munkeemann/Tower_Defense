@@ -26,10 +26,19 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
      merges them.
 3. **Build** towers on your own tiles, then press **Start Wave** (Space).
    Every tower needs a **blueprint copy**: building one uses a copy, selling it gives the copy back.
-   Towers take 1 to 7 hexes, all clear and level. Press **R** while placing to turn them. Some fire all around;
-   directional ones (Ballista, Trebuchet, Flame Belcher, Coral Harpooner...) only fire inside an arc in front of
-   them, and a few fire from two hexes at once. The tooltip on each build button shows the footprint and arc.
-   While placing or selecting a tower, the **hexes it reaches light up** (road hexes brighter).
+   Towers take 1 to 7 hexes, all clear and level, and a multi-hex tower is one model shaped to fill its hexes.
+   Press **R** while placing to turn them. Some fire all around; directional ones (Ballista, Trebuchet, Flame
+   Belcher, Coral Harpooner...) only fire inside an arc in front of them, and the Fat Dragon only in a straight
+   line. Towers aim and measure range from the middle of their footprint. The placement preview marks each hex
+   green or red on its own; a selected tower gets a gold outline and a hovered one a white outline. While placing
+   or selecting a tower, the **hexes it reaches light up** (road hexes brighter).
+   - **Tiers**: towers are Tier I, II or III. Later tiers cost a lot more and hit much harder. Tier II blueprints
+     can be offered from wave 4, Tier III from wave 10 (`GameData.TIER_WAVE`); your starting towers are always
+     available.
+   - **Waves** arrive spread over a spawn window, 2 s for the smallest waves up to 10 s for the biggest, with the
+     enemy types mixed (`WaveBuilder.SPAWN_WINDOW`). Enemies split evenly across road ends.
+   - **Fliers ignore the road**: they fly straight from their road end to the castle, high over everything. The
+     build phase shows their flight lines (dashed) when the next wave has fliers.
 4. **After each wave**: pick one of 3 **pairs** of rewards. Cards show only icons; hover one to see what's in it.
    Items: tower blueprints (1 to 3 copies), doctrines (global boons), masterworks (+30% damage for one tower
    type), Builders, Diggers, gold and Runes. Rerolling costs 1 Rune. You get +1 Rune per wave, plus 1 more for
@@ -37,6 +46,8 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
 5. **Level III specializations**: upgrading a tower to level III makes you choose one of two specializations
    (for example Archer: Longbow or Volley).
 6. Bosses arrive on waves 10, 20 and 30, in a random order each run. Survive 30 waves to win.
+7. **Menu** sets the run aside, frozen, and the main menu offers **Resume**. Starting a new run abandons it (it
+   doesn't survive quitting the game).
 
 ### The color pie
 
@@ -49,11 +60,15 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
 | **Black**: The Bone Legion | Skeletons | Attrition, poison, % health damage vs big enemies | Poisoned enemies burst on death (15% of their max health) |
 
 Each color has its own towers plus a shared pool (Archer, Ballista, Trebuchet, Royal Bombard), its own ability
-(F) and its own commanders. Red's towers: Flame Belcher (fire cone), Runic Hammer (stun + shield shred), Siege
-Mortar (huge range and splash), Flak Battery (anti-air). Blue's: Tide Spire (slow + detection), Coral Harpooner
-(piercing, slowing), Whirlpool Shrine (drags enemies back down the road), Siren Rock (chain stun). Black's: Bone
-Crypt (cheap archers), Plague Cauldron (poison splash), Soul Obelisk (rips out % of current health), Hex Tomb
-(curses enemies to take +25% damage from everything).
+(F) and its own commanders. Every color also has two **creatures** (one Tier II, one Tier III):
+
+| Color | Towers | Creatures |
+|---|---|---|
+| White | Arcane Spire, Chapel of Dawn, War Banner, Gryphon Roost | **Seraph** (spears of light, +75% vs flyers, sees camo), **Archangel** (smites the strongest enemy: stun + splash, +50% vs bosses) |
+| Green | Thornspitter, Spore Mound, Briar Thicket, Elder Treant, Stormcaller Oak, Wasp Hive, Moonwell, Rootbinder Shrine | **Dire Bear** (mauls and bleeds), **Ancient Mammoth** (stomps: damages and stuns everything around it) |
+| Red | Flame Belcher, Runic Hammer, Siege Mortar, Flak Battery | **Magma Golem** (burning boulders), **Fat Dragon** (too heavy to move: breathes fire in a straight line where it faces) |
+| Blue | Tide Spire, Coral Harpooner, Whirlpool Shrine, Siren Rock | **Snapjaw Crab** (two claws; cracked shells take +25% damage), **Kraken** (seizes and holds up to 3 enemies) |
+| Black | Bone Crypt, Plague Cauldron, Soul Obelisk, Hex Tomb | **Mass Grave** (a trench of grasping hands that slows), **Necromancer** (walkers dying in its reach rise as zombies that shamble back down the road and grab the next enemy) |
 
 ### Castle talents (C)
 
@@ -99,12 +114,12 @@ health), or on unlocking heroes.
 
 ### The map is your tiles
 
-A run starts with just the castle tile on a flat meadow. Every tile you place becomes part of the map: a raised
-hex block with rounded edges that brings its own terrain (roads, height, plateaus, trees, rocks, ley crystals,
+A run starts with just the castle tile, a raised board over plain grass. Every tile you place becomes part of the
+map: a raised hex block with rounded edges and earthen sides that brings its own terrain (roads, height, plateaus, trees, rocks, ley crystals,
 neutral buildings and sometimes a pond, which the road may cross on a bridge). Some tile cards are **raised** (one
 level above the road they join) or **lowland** (one level below). Where a new tile touches an old one, the edge
-hexes copy the old tile's height so the seam is flat. The meadow around your tiles is only backdrop with a few
-trees. The biome (Greenvale, Highlands, Lakelands,
+hexes copy the old tile's height so the seam is flat. The grass around your tiles is only backdrop, with a tree
+line on the horizon. The biome (Greenvale, Highlands, Lakelands,
 Deepwood) changes how often tiles are raised and how many ponds they carry.
 
 - A tower gets **+15% range per level** of ground it stands on.
@@ -125,18 +140,22 @@ Deepwood) changes how often tiles are raised and how many ponds they carry.
 | B (or G) / N then click | Builder raises ground (high ground = more range) / Digger lowers it |
 | C | Castle talents |
 | Space / V / P / M | Start wave / game speed / pause / sound on-off |
+| Menu button | Set the run aside; Resume it from the main menu |
 | Esc or right-click | Cancel |
 
 ## Look
 
 The visual style follows Tower Dominion's clean readability:
-- **Spotlight:** light pools on your tiles and the world beyond fades into dark diagonal stripes. This is the
-  `Board` decal (`spotlight`, `SPOT_FALLOFF`, `SPOT_DARK`) plus stripes in `shaders/terrain.gdshader`.
+- **Raised board on plain grass:** the grass outside your tiles is a muted, untextured green shaded by value
+  noise (`backdrop_col` in `shaders/terrain.gdshader`), 1.6 units below the board (`Board.BACKDROP_Y`), and the
+  board's walls are drawn as a stone lip over earth (`edge_lip`, `edge_soil`). The old spotlight decal is still
+  there behind `Board.spotlight`.
 - **Calm ground and roads:** flat colors with only a hint of texture (`detail`, `shaders/road.gdshader`), and
   sparse grass and flowers.
 - **Color coding:** your towers get a rim light in your color's accent (`shaders/rim.gdshader`), and enemies are
   darkened with a hot rim (`shaders/foe.gdshader`) so they stand out.
-- **Camera:** a long, narrow lens (`CameraRig.FOV` 32) under a warm key light with soft shadows.
+- **Camera:** a long, narrow lens (`CameraRig.FOV` 32) under a warm key light with soft shadows. Hexes read
+  big on screen: the opening view and the closest zoom sit `CameraRig.CELL_ZOOM` (1.35x) nearer.
 - **UI:** Windows' built-in Bahnschrift font, loaded from the system and not bundled (other systems fall back to
   Godot's font). Panels are near-black, buttons are slanted, and titles are bold and italic.
 
@@ -168,10 +187,13 @@ Everything is data in `scripts/game_data.gd`:
   pie/race/strengths/weakness texts, a `passive` fx dict, starting blueprints (`start_copies`) and an ability.
 - **Castle talent**: add a node to a path in `TALENTS` and its effect in `Game._apply_talent`.
 - **Reward item**: weights are `REWARD_KINDS`; rolling and granting are `Game._roll_item` / `Game._grant`.
-- **Tower**: add an entry to `TOWERS`, a footprint to `FOOTPRINTS` (shape from `SHAPES` + firing arc) and two
-  specializations to `SPECS`. The attack kinds are `arrow`, `bolt`,
-  `orb`, `lob`, `chain`, `slam`, `aura_dmg`, `aura_buff` and `aura_curse`. Flags and extras: `detect`, `shred`,
-  `push` ([chance, tiles]), `pct` (share of current health), `curse`.
+- **Tower**: add an entry to `TOWERS` (with its `tier` and blueprint `copies`), a footprint to `FOOTPRINTS`
+  (shape from `SHAPES` + firing arc) and two specializations to `SPECS`. The attack kinds are `arrow`, `bolt`,
+  `orb`, `lob`, `chain`, `slam`, `smite` (a strike on the target with splash), `breath` (a fixed straight line
+  ahead; `line` is its width in tiles, `static` towers never turn), `grasp` (seizes `grasp` enemies at once),
+  `aura_dmg`, `aura_buff` and `aura_curse`. Flags and extras: `detect`, `shred`, `push` ([chance, tiles]), `pct`
+  (share of current health), `curse`, `vuln` ([extra damage taken, seconds]), `boss_bonus`, `target` (default
+  targeting mode) and `raise` (Necromancer zombies, `scripts/thrall.gd`).
 - **Hero**: add to `HEROES` (faction, cost, portrait, two power texts, and `fx`).
 - **Threat**: add to `THREATS` (enemy id, optional trait `shield` / `camo` / `swift`).
 - **Terrain tiles** are rolled in code (`Board.make_tile`): entrance count from `ENTRANCE_ODDS`, winding roads,
@@ -184,9 +206,11 @@ Everything is data in `scripts/game_data.gd`:
 3D models come from CC0 packs by Kenney, Quaternius and KayKit, plus Meshy-generated towers, enemies, props,
 neutral buildings, discoveries and hero portraits. See `assets/CREDITS.md`. `scripts/models.gd` maps each
 tower and enemy to its model, and falls back to simple shapes if a file is missing. Multi-hex towers with their
-own footprint-shaped models (Ballista, Gryphon Roost, Trebuchet, Royal Bombard, Briar Thicket, Rootbinder Shrine)
-are listed in `Models.FOOTPRINT_ART` and fitted to the whole footprint; `--fpshot --faction=<id> --shotdir=<dir>`
-photographs every multi-hex tower of a faction for checking new art.
+own footprint-shaped model (the `fp2_*` set: one per multi-hex tower, each drawn to fill its footprint's silhouette)
+are listed in `Models.FOOTPRINT_ART` with a yaw, a height cap and a stretch allowance (plus optional tilt / spin /
+grow for models that came out standing up or turned); set `Models.FOOTPRINT_ART_V2 = false` to go back to the
+first set. `tools/fp_preview.gd` renders them on their footprints from above and at an angle for checking facing,
+and `--fpshot --faction=<id> --shotdir=<dir>` photographs every multi-hex tower of a faction in a real run.
 
 Map dressing: terrain edges are rounded wherever the ground drops (`Board._bevel_at`: tile rims, cliffs, plateaus,
 pond shores), roads are smooth cobbled lanes with dirt verges (`Board._rebuild_roads`), ponds have sand shores and
