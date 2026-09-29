@@ -1416,6 +1416,11 @@ func _open_front() -> void:
 
 # ------------------------------------------------------------------ blueprints & doctrines
 
+## Blueprints of a tier can be offered once the coming wave reaches GameData.TIER_WAVE (or if you own the tower).
+func tier_open(tid: String) -> bool:
+	return owned.has(tid) or wave + 1 >= int(GameData.TIER_WAVE[GameData.tier_of(tid)])
+
+
 func _copies_for(tid: String) -> int:
 	return GameData.copies_for(tid) + int(hero_fx.get("bonus_copies", {}).get(tid, 0)) + int(mods["extra_copies"])
 
@@ -1448,9 +1453,9 @@ func _roll_kind(exclude: Array) -> String:
 func _roll_item(kind: String, used: Dictionary) -> Dictionary:
 	match kind:
 		"blueprint":
-			var pool: Array = run_towers().filter(func(t): return not used.has(t))
+			var pool: Array = run_towers().filter(func(t): return not used.has(t) and tier_open(t))
 			if pool.is_empty():
-				pool = run_towers()
+				pool = run_towers().filter(func(t): return tier_open(t))
 			var w: Array = []
 			var total := 0.0
 			for tid in pool:
@@ -1559,7 +1564,7 @@ func _enter_blueprint() -> void:
 
 
 func _roll_blueprints(n: int) -> Array:
-	var pool: Array = run_towers()
+	var pool: Array = run_towers().filter(func(t): return tier_open(t))
 	var out: Array = []
 	while out.size() < n and pool.size() > 0:
 		var total := 0.0
@@ -1833,9 +1838,9 @@ func _process_claims() -> void:
 				mine_income += 20
 				msg = "Abandoned Mine: +20 gold after every wave"
 			"ruins":
-				var pool: Array = run_towers().filter(func(t): return not owned.has(t))
+				var pool: Array = run_towers().filter(func(t): return not owned.has(t) and tier_open(t))
 				if pool.is_empty():
-					pool = run_towers()
+					pool = run_towers().filter(func(t): return tier_open(t))
 				var tid: String = pool[rng.randi() % pool.size()]
 				owned[tid] = int(owned.get(tid, 0)) + 2
 				hud.build_tower_bar()
@@ -1872,8 +1877,8 @@ func tower_stat_line(tid: String) -> String:
 		hits.append("ground")
 	if d.get("air", false):
 		hits.append("air")
-	var s := "%d %s dmg, %.2f/s, range %.1f, hits %s" % [d["dmg"], "magic" if d.get("dtype", "") == "magic" else "phys",
-		d["rate"], d["range"], " + ".join(hits)]
+	var s := "Tier %s. %d %s dmg, %.2f/s, range %.1f, hits %s" % [GameData.TIER_NAMES[GameData.tier_of(tid)], d["dmg"],
+		"magic" if d.get("dtype", "") == "magic" else "phys", d["rate"], d["range"], " + ".join(hits)]
 	if d.get("detect", false):
 		s += ", detects camo"
 	if d.get("shred", false):

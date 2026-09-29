@@ -139,94 +139,94 @@ static func run_towers(fid: String) -> Array:
 ## aura_dmg (pulses around tower), aura_buff (boosts nearby towers)
 const TOWERS := {
 	# ---------------- Aurelian Crown ----------------
-	"archer": {"name": "Archer Tower", "cost": 60, "attack": "arrow", "dmg": 10.0, "rate": 1.6, "range": 3.6,
+	"archer": {"name": "Archer Tower", "tier": 1, "copies": 3, "cost": 60, "attack": "arrow", "dmg": 10.0, "rate": 1.6, "range": 3.6,
 		"dtype": "phys", "air": true, "ground": true, "color": Color(0.35, 0.55, 0.9),
 		"desc": "Cheap, reliable, hits air and ground."},
-	"ballista": {"name": "Ballista", "cost": 110, "attack": "bolt", "dmg": 48.0, "rate": 0.55, "range": 6.2,
+	"ballista": {"name": "Ballista", "tier": 2, "copies": 2, "cost": 160, "attack": "bolt", "dmg": 82.0, "rate": 0.55, "range": 6.2,
 		"dtype": "phys", "air": true, "ground": true, "pierce": true, "color": Color(0.6, 0.42, 0.25),
 		"desc": "Heavy bolts that pierce through every enemy in a line."},
-	"arcane": {"name": "Arcane Spire", "cost": 125, "attack": "orb", "dmg": 26.0, "rate": 0.9, "range": 4.2,
+	"arcane": {"name": "Arcane Spire", "tier": 2, "copies": 2, "cost": 170, "attack": "orb", "dmg": 46.0, "rate": 0.9, "range": 4.2,
 		"dtype": "magic", "air": true, "ground": true, "splash": 0.6, "shred": true, "color": Color(0.65, 0.4, 1.0),
 		"desc": "Magic orbs that ignore armor and burst on impact."},
-	"trebuchet": {"name": "Trebuchet", "cost": 150, "attack": "lob", "dmg": 66.0, "rate": 0.33, "range": 8.5,
+	"trebuchet": {"name": "Trebuchet", "tier": 3, "copies": 1, "cost": 270, "attack": "lob", "dmg": 150.0, "rate": 0.33, "range": 9.4,
 		"dtype": "phys", "air": false, "ground": true, "splash": 1.4, "color": Color(0.55, 0.45, 0.35),
 		"desc": "Enormous range. Boulders crush whole groups. Can't hit flyers."},
-	"chapel": {"name": "Chapel of Dawn", "cost": 115, "attack": "aura_dmg", "dmg": 12.0, "rate": 1.0, "range": 2.4,
+	"chapel": {"name": "Chapel of Dawn", "tier": 2, "copies": 2, "cost": 160, "attack": "aura_dmg", "dmg": 21.0, "rate": 1.0, "range": 2.4,
 		"dtype": "magic", "air": true, "ground": true, "slow": [0.3, 1.2], "detect": true, "color": Color(1.0, 0.92, 0.6),
 		"desc": "Radiant pulses burn and slow everything nearby."},
-	"banner": {"name": "War Banner", "cost": 120, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.6,
-		"buff": {"dmg": 0.25}, "color": Color(0.85, 0.2, 0.2),
-		"desc": "Nearby towers deal +25% damage (scales with level)."},
-	"gryphon": {"name": "Gryphon Roost", "cost": 150, "attack": "arrow", "dmg": 24.0, "rate": 1.3, "range": 5.5,
+	"banner": {"name": "War Banner", "tier": 2, "copies": 2, "cost": 160, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.6,
+		"buff": {"dmg": 0.35}, "color": Color(0.85, 0.2, 0.2),
+		"desc": "Nearby towers deal +35% damage (scales with level)."},
+	"gryphon": {"name": "Gryphon Roost", "tier": 3, "copies": 1, "cost": 260, "attack": "arrow", "dmg": 58.0, "rate": 1.3, "range": 6.1,
 		"dtype": "phys", "air": true, "ground": false, "air_bonus": 1.5, "detect": true, "color": Color(0.9, 0.75, 0.45),
 		"desc": "Anti-air specialist. Massive damage to flying enemies only."},
-	"bombard": {"name": "Royal Bombard", "cost": 200, "attack": "lob", "dmg": 58.0, "rate": 0.4, "range": 4.4,
+	"bombard": {"name": "Royal Bombard", "tier": 3, "copies": 1, "cost": 320, "attack": "lob", "dmg": 140.0, "rate": 0.4, "range": 4.8,
 		"dtype": "phys", "air": false, "ground": true, "splash": 1.1, "stun": [0.25, 0.7], "color": Color(0.3, 0.3, 0.35),
 		"desc": "Short-range cannon. Big splash, may stun."},
 	# ---------------- Verdant Circle ----------------
-	"thorn": {"name": "Thornspitter", "cost": 55, "attack": "arrow", "dmg": 6.0, "rate": 2.6, "range": 3.4,
+	"thorn": {"name": "Thornspitter", "tier": 1, "copies": 3, "cost": 55, "attack": "arrow", "dmg": 6.0, "rate": 2.6, "range": 3.4,
 		"dtype": "phys", "air": true, "ground": true, "color": Color(0.4, 0.75, 0.3),
 		"desc": "Rapid-fire thorns. Hits air and ground."},
-	"spore": {"name": "Spore Mound", "cost": 100, "attack": "lob", "dmg": 14.0, "rate": 0.6, "range": 4.2,
-		"dtype": "magic", "air": false, "ground": true, "splash": 1.3, "dot": [12.0, 4.0], "color": Color(0.6, 0.35, 0.7),
+	"spore": {"name": "Spore Mound", "tier": 2, "copies": 2, "cost": 140, "attack": "lob", "dmg": 22.0, "rate": 0.6, "range": 4.2,
+		"dtype": "magic", "air": false, "ground": true, "splash": 1.3, "dot": [20.0, 4.0], "color": Color(0.6, 0.35, 0.7),
 		"desc": "Lobs spore pods that poison groups over time."},
-	"briar": {"name": "Briar Thicket", "cost": 80, "attack": "aura_dmg", "dmg": 7.0, "rate": 1.2, "range": 2.0,
+	"briar": {"name": "Briar Thicket", "tier": 1, "copies": 3, "cost": 80, "attack": "aura_dmg", "dmg": 7.0, "rate": 1.2, "range": 2.0,
 		"dtype": "phys", "air": false, "ground": true, "slow": [0.45, 1.0], "color": Color(0.35, 0.5, 0.2),
 		"desc": "Thorny vines heavily slow and scratch passing ground enemies."},
-	"treant": {"name": "Elder Treant", "cost": 150, "attack": "slam", "dmg": 72.0, "rate": 0.55, "range": 2.6,
+	"treant": {"name": "Elder Treant", "tier": 3, "copies": 1, "cost": 260, "attack": "slam", "dmg": 135.0, "rate": 0.55, "range": 2.9,
 		"dtype": "phys", "air": false, "ground": true, "splash": 1.0, "stun": [0.2, 0.8], "color": Color(0.45, 0.3, 0.18),
 		"desc": "Slams the ground at short range. Crushing splash, may stun."},
-	"storm": {"name": "Stormcaller Oak", "cost": 165, "attack": "chain", "dmg": 34.0, "rate": 0.7, "range": 4.6,
+	"storm": {"name": "Stormcaller Oak", "tier": 3, "copies": 1, "cost": 280, "attack": "chain", "dmg": 75.0, "rate": 0.7, "range": 5.1,
 		"dtype": "magic", "air": true, "ground": true, "chain": 4, "shred": true, "color": Color(0.4, 0.6, 1.0),
 		"desc": "Lightning that arcs between up to 5 enemies."},
-	"hive": {"name": "Wasp Hive", "cost": 120, "attack": "arrow", "dmg": 5.0, "rate": 5.0, "range": 4.0,
+	"hive": {"name": "Wasp Hive", "tier": 2, "copies": 2, "cost": 165, "attack": "arrow", "dmg": 8.5, "rate": 5.0, "range": 4.0,
 		"dtype": "phys", "air": true, "ground": true, "air_bonus": 2.0, "detect": true, "color": Color(0.95, 0.8, 0.2),
 		"desc": "A swarm of stingers. Double damage to flyers; the swarm sniffs out camouflaged enemies."},
-	"moonwell": {"name": "Moonwell", "cost": 110, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.6,
-		"buff": {"rate": 0.25}, "detect": true, "color": Color(0.5, 0.9, 1.0),
-		"desc": "Nearby towers attack 25% faster (scales with level)."},
-	"rootbinder": {"name": "Rootbinder Shrine", "cost": 170, "attack": "orb", "dmg": 26.0, "rate": 0.5, "range": 5.2,
+	"moonwell": {"name": "Moonwell", "tier": 2, "copies": 2, "cost": 150, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.6,
+		"buff": {"rate": 0.35}, "detect": true, "color": Color(0.5, 0.9, 1.0),
+		"desc": "Nearby towers attack 35% faster (scales with level)."},
+	"rootbinder": {"name": "Rootbinder Shrine", "tier": 3, "copies": 1, "cost": 280, "attack": "orb", "dmg": 62.0, "rate": 0.5, "range": 5.7,
 		"dtype": "magic", "air": false, "ground": true, "stun": [1.0, 1.1], "color": Color(0.3, 0.9, 0.5),
 		"desc": "Every hit roots a ground enemy in place."},
 	# ---------------- Red: the Deep Forge (dwarves) ----------------
-	"dwarf_flame": {"name": "Flame Belcher", "cost": 85, "attack": "aura_dmg", "dmg": 10.0, "rate": 2.2, "range": 2.8,
+	"dwarf_flame": {"name": "Flame Belcher", "tier": 1, "copies": 2, "cost": 85, "attack": "aura_dmg", "dmg": 10.0, "rate": 2.2, "range": 2.8,
 		"dtype": "magic", "air": true, "ground": true, "dot": [8.0, 2.0], "color": Color(1.0, 0.45, 0.15),
 		"desc": "Breathes fire in a cone in front of it, burning everything it touches."},
-	"dwarf_hammer": {"name": "Runic Hammer", "cost": 150, "attack": "slam", "dmg": 95.0, "rate": 0.5, "range": 2.6,
+	"dwarf_hammer": {"name": "Runic Hammer", "tier": 2, "copies": 1, "cost": 175, "attack": "slam", "dmg": 110.0, "rate": 0.5, "range": 2.6,
 		"dtype": "phys", "air": false, "ground": true, "splash": 1.2, "stun": [0.35, 1.0], "shred": true, "color": Color(0.8, 0.45, 0.3),
 		"desc": "A rune-powered steam hammer. Crushes groups, stuns, and shatters shields."},
-	"dwarf_mortar": {"name": "Siege Mortar", "cost": 190, "attack": "lob", "dmg": 120.0, "rate": 0.25, "range": 9.5,
+	"dwarf_mortar": {"name": "Siege Mortar", "tier": 3, "copies": 1, "cost": 320, "attack": "lob", "dmg": 270.0, "rate": 0.25, "range": 10.5,
 		"dtype": "phys", "air": false, "ground": true, "splash": 1.9, "color": Color(0.45, 0.4, 0.36),
 		"desc": "Colossal range and blast radius. Can't hit flyers."},
-	"dwarf_gyro": {"name": "Flak Battery", "cost": 135, "attack": "arrow", "dmg": 16.0, "rate": 2.4, "range": 5.8,
+	"dwarf_gyro": {"name": "Flak Battery", "tier": 2, "copies": 1, "cost": 180, "attack": "arrow", "dmg": 24.0, "rate": 2.4, "range": 5.8,
 		"dtype": "phys", "air": true, "ground": false, "air_bonus": 1.5, "color": Color(0.85, 0.62, 0.3),
 		"desc": "Twin rotary flak guns that shred flyers. Can't hit the ground."},
 	# ---------------- Blue: the Tidal Court (merfolk) ----------------
-	"mer_tide": {"name": "Tide Spire", "cost": 90, "attack": "aura_dmg", "dmg": 8.0, "rate": 0.8, "range": 2.8,
+	"mer_tide": {"name": "Tide Spire", "tier": 1, "copies": 2, "cost": 90, "attack": "aura_dmg", "dmg": 8.0, "rate": 0.8, "range": 2.8,
 		"dtype": "magic", "air": true, "ground": true, "slow": [0.4, 1.5], "detect": true, "color": Color(0.35, 0.78, 0.95),
 		"desc": "Pulses of tidewater slow everything nearby. Senses camouflaged enemies."},
-	"mer_harpoon": {"name": "Coral Harpooner", "cost": 120, "attack": "bolt", "dmg": 36.0, "rate": 0.7, "range": 6.0,
+	"mer_harpoon": {"name": "Coral Harpooner", "tier": 2, "copies": 2, "cost": 165, "attack": "bolt", "dmg": 60.0, "rate": 0.7, "range": 6.0,
 		"dtype": "phys", "air": true, "ground": true, "pierce": true, "slow": [0.3, 1.2], "color": Color(0.95, 0.55, 0.55),
 		"desc": "Barbed harpoons pierce a whole line and slow every enemy they hit."},
-	"mer_whirl": {"name": "Whirlpool Shrine", "cost": 160, "attack": "aura_dmg", "dmg": 14.0, "rate": 0.5, "range": 2.5,
+	"mer_whirl": {"name": "Whirlpool Shrine", "tier": 3, "copies": 1, "cost": 270, "attack": "aura_dmg", "dmg": 34.0, "rate": 0.5, "range": 2.8,
 		"dtype": "magic", "air": false, "ground": true, "push": [0.3, 1.6], "color": Color(0.3, 0.55, 0.95),
 		"desc": "A swirling vortex that drags ground enemies back along the road."},
-	"mer_siren": {"name": "Siren Rock", "cost": 150, "attack": "chain", "dmg": 24.0, "rate": 0.6, "range": 5.0,
+	"mer_siren": {"name": "Siren Rock", "tier": 3, "copies": 1, "cost": 260, "attack": "chain", "dmg": 55.0, "rate": 0.6, "range": 5.5,
 		"dtype": "magic", "air": true, "ground": true, "chain": 3, "stun": [0.25, 0.9], "color": Color(0.6, 0.85, 1.0),
 		"desc": "A siren's song arcs between enemies and can leave them spellbound."},
 	# ---------------- Black: the Bone Legion (skeletons) ----------------
-	"bone_crypt": {"name": "Bone Crypt", "cost": 50, "attack": "arrow", "dmg": 8.5, "rate": 1.9, "range": 3.5,
+	"bone_crypt": {"name": "Bone Crypt", "tier": 1, "copies": 3, "cost": 50, "attack": "arrow", "dmg": 8.5, "rate": 1.9, "range": 3.5,
 		"dtype": "phys", "air": true, "ground": true, "color": Color(0.88, 0.86, 0.76),
 		"desc": "Cheap skeleton archers. Hits air and ground."},
-	"plague_cauldron": {"name": "Plague Cauldron", "cost": 105, "attack": "lob", "dmg": 10.0, "rate": 0.55, "range": 4.2,
-		"dtype": "magic", "air": false, "ground": true, "splash": 1.4, "dot": [16.0, 4.0], "color": Color(0.5, 0.85, 0.3),
+	"plague_cauldron": {"name": "Plague Cauldron", "tier": 2, "copies": 2, "cost": 145, "attack": "lob", "dmg": 16.0, "rate": 0.55, "range": 4.2,
+		"dtype": "magic", "air": false, "ground": true, "splash": 1.4, "dot": [26.0, 4.0], "color": Color(0.5, 0.85, 0.3),
 		"desc": "Hurls bubbling plague that poisons whole groups."},
-	"soul_obelisk": {"name": "Soul Obelisk", "cost": 165, "attack": "orb", "dmg": 20.0, "rate": 0.45, "range": 5.0,
-		"dtype": "magic", "air": true, "ground": true, "pct": 0.09, "color": Color(0.65, 0.35, 0.95),
-		"desc": "Rips out 9% of a target's current health with every hit. Bosses resist."},
-	"hex_tomb": {"name": "Hex Tomb", "cost": 140, "attack": "aura_curse", "dmg": 0.0, "rate": 0.0, "range": 2.8,
-		"curse": 0.25, "air": true, "ground": true, "color": Color(0.55, 0.3, 0.7),
-		"desc": "Curses nearby enemies: they take +25% damage from everything (scales with level)."},
+	"soul_obelisk": {"name": "Soul Obelisk", "tier": 3, "copies": 1, "cost": 280, "attack": "orb", "dmg": 44.0, "rate": 0.45, "range": 5.5,
+		"dtype": "magic", "air": true, "ground": true, "pct": 0.12, "color": Color(0.65, 0.35, 0.95),
+		"desc": "Rips out 12% of a target's current health with every hit. Bosses resist."},
+	"hex_tomb": {"name": "Hex Tomb", "tier": 2, "copies": 1, "cost": 185, "attack": "aura_curse", "dmg": 0.0, "rate": 0.0, "range": 2.8,
+		"curse": 0.35, "air": true, "ground": true, "color": Color(0.55, 0.3, 0.7),
+		"desc": "Curses nearby enemies: they take +35% damage from everything (scales with level)."},
 }
 
 ## speed is in tiles per second.
@@ -469,7 +469,7 @@ const SPECS := {
 		{"name": "Grave Arrows", "desc": "Arrows poison: 10 damage/s for 3s.", "fx": {"dot": [10.0, 3.0]}}],
 	"plague_cauldron": [{"name": "Black Death", "desc": "Poison deals 80% more.", "fx": {"dot_mult": 1.8}},
 		{"name": "Miasma", "desc": "Much bigger splash.", "fx": {"splash": 0.8}}],
-	"soul_obelisk": [{"name": "Soul Harvest", "desc": "Rips out 14% of current health.", "fx": {"pct": 0.14}},
+	"soul_obelisk": [{"name": "Soul Harvest", "desc": "Rips out 18% of current health.", "fx": {"pct": 0.18}},
 		{"name": "Twin Souls", "desc": "Hits one extra enemy.", "fx": {"multishot": 1}}],
 	"hex_tomb": [{"name": "Doom", "desc": "The curse is 15% stronger.", "fx": {"curse": 0.15}},
 		{"name": "Withering", "desc": "Cursed enemies are also slowed 25%.", "fx": {"slow": [0.25, 1.0]}}],
@@ -486,8 +486,20 @@ const START_RECON := 2
 const REROLL_COST := 1
 
 
+## Tower tiers: later tiers cost more and hit much harder. A tier's blueprints can be offered from this wave on
+## (towers you start with are always yours to build).
+const TIER_WAVE := {1: 1, 2: 4, 3: 10}
+const TIER_NAMES := ["", "I", "II", "III"]
+
+
+static func tier_of(tid: String) -> int:
+	return int(TOWERS[tid].get("tier", 1))
+
+
 ## How many copies a blueprint pick grants (cheap towers come in bundles).
 static func copies_for(tid: String) -> int:
+	if TOWERS[tid].has("copies"):
+		return int(TOWERS[tid]["copies"])
 	var cost: int = TOWERS[tid]["cost"]
 	if cost <= 80:
 		return 3
