@@ -222,7 +222,7 @@ func _build_top() -> void:
 	pause_btn = _button("Pause [P]", func(): game.toggle_pause())
 	mute_btn = _button("Sound [M]", func(): game.toggle_mute())
 	var help_btn := _button("Help [H]", func(): help_panel.visible = not help_panel.visible)
-	var menu_btn := _button("Menu", func(): game.to_menu())
+	var menu_btn := _button("Menu", func(): game.open_menu())
 	for b in [speed_btn, pause_btn, mute_btn, help_btn, menu_btn]:
 		h.add_child(b)
 
@@ -976,6 +976,22 @@ func hide_choices() -> void:
 	choice_root.visible = false
 
 
+## Hides the run's pop-up panels (reward pick, tile, castle talents) while the run is parked; returns what was open.
+func park_panels() -> Dictionary:
+	var open := {}
+	for n in [choice_root, tile_panel, castle_root, choice_detail]:
+		if n:
+			open[n] = n.visible
+			n.visible = false
+	return open
+
+
+func unpark_panels(open: Dictionary) -> void:
+	for n in open:
+		if is_instance_valid(n):
+			n.visible = open[n]
+
+
 # ------------------------------------------------------------------ threat intel + placement hint
 
 func _build_intel() -> void:
@@ -1280,7 +1296,16 @@ func show_menu(stats: Dictionary) -> void:
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 18)
 	v.add_child(gap)
-	var pick := _label("Choose your color", 20, TEXT_C)
+	if game.can_resume():
+		var f: Dictionary = GameData.FACTIONS[game.faction]
+		var res := _button("Resume run:  %s, wave %d" % [f["name"], maxi(1, game.wave)], func(): game.resume_run(), 22)
+		res.custom_minimum_size = Vector2(460, 54)
+		res.add_theme_color_override("font_color", GOLD_C)
+		res.tooltip_text = "Pick up exactly where you left off. Starting a new run abandons this one."
+		var rc := CenterContainer.new()
+		rc.add_child(res)
+		v.add_child(rc)
+	var pick := _label("Choose your color" if not game.can_resume() else "...or start a new run (abandons the current one)", 20, TEXT_C)
 	pick.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pick.add_theme_constant_override("outline_size", 8)
 	v.add_child(pick)

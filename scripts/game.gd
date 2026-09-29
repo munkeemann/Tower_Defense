@@ -24,6 +24,7 @@ const CASTLE_DETECT := 3.0     # tiles around the castle where camouflage fails
 const SCOUT_DETECT := 4.0
 
 var state := S.MENU
+var _parked := {}           # a run set aside by the Menu button (state, speed, camera, open panels); empty if none
 var faction := "crown"
 var hero := ""
 var hero_fx := {}
@@ -753,7 +754,60 @@ func _clear_world() -> void:
 	_steps.clear()
 
 
+## The in-run Menu button: set the run aside, frozen exactly as it is, and show the main menu with Resume.
+## Starting a new run discards it; so does losing or winning.
+func open_menu() -> void:
+	if state == S.MENU or state == S.OVER:
+		to_menu()
+		return
+	_set_paused(false)
+	cancel_placing()
+	deselect()
+	_parked = {"state": state, "speed": speed, "cam_pos": cam.position, "yaw": cam._target_yaw, "dist": cam._target_dist,
+		"panels": hud.park_panels()}
+	state = S.MENU
+	world.process_mode = Node.PROCESS_MODE_DISABLED   # enemies, towers and shots stop where they are
+	Engine.time_scale = 1.0
+	cam.auto_orbit = true
+	cam.focus(board.cell_to_world(board.center))
+	cam._target_dist = 58.0
+	hud.show_menu(stats)
+	audio.start_music()
+
+
+func can_resume() -> bool:
+	return not _parked.is_empty()
+
+
+## Back into the parked run, exactly where it was left.
+func resume_run() -> void:
+	if _parked.is_empty():
+		return
+	var p := _parked
+	_parked = {}
+	hud.hide_menu()
+	hud.set_game_ui_visible(true)
+	hud.unpark_panels(p["panels"])
+	world.process_mode = Node.PROCESS_MODE_INHERIT
+	state = p["state"]
+	speed = p["speed"]
+	Engine.time_scale = speed
+	cam.auto_orbit = false
+	cam.focus(p["cam_pos"])
+	cam._target_yaw = p["yaw"]
+	cam._target_dist = p["dist"]
+	audio.start_music(faction)
+	_refresh_ui()
+
+
+func _drop_parked() -> void:
+	_parked = {}
+	if world:
+		world.process_mode = Node.PROCESS_MODE_INHERIT
+
+
 func to_menu() -> void:
+	_drop_parked()
 	_set_paused(false)
 	Engine.time_scale = 1.0
 	speed = 1.0
@@ -810,6 +864,7 @@ func default_hero(fid: String) -> String:
 
 
 func start_run(fid: String, hero_id := "") -> void:
+	_drop_parked()
 	hud.hide_menu()
 	hud.hide_end()
 	_set_paused(false)
