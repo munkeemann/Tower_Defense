@@ -909,7 +909,7 @@ func start_run(fid: String, hero_id := "") -> void:
 	thumbs.queue_faction(fid)
 	cam.auto_orbit = false
 	cam.focus(Vector3(0, 0, -8))
-	cam._target_dist = 44.0
+	cam._target_dist = 44.0 / CameraRig.CELL_ZOOM
 	cam._target_yaw = 0.0
 	hud.set_game_ui_visible(true)
 	hud.help_panel.visible = int(stats.get("runs", 0)) < 2 and OS.get_cmdline_user_args().is_empty()
