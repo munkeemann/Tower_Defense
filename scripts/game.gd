@@ -56,7 +56,8 @@ var _range_key := ""
 var enemies: Array = []
 var towers: Array = []
 var spawn_queue: Array = []
-var spawn_timer := 0.0
+var wave_clock := 0.0       # game seconds since the wave started (spawn times count from here)
+var _spawned := 0           # enemies spawned this wave (road ends take turns by this count)
 var next_wave_list: Array = []
 var wave_routes := {}       # port cell -> route (this wave)
 var wave_port_cycle: Array = []
@@ -982,7 +983,8 @@ func start_wave() -> void:
 	wave += 1
 	_wave_leaks.clear()
 	spawn_queue = next_wave_list.duplicate()
-	spawn_timer = 0.3
+	wave_clock = -0.3
+	_spawned = 0
 	wave_routes.clear()
 	wave_port_cycle.clear()
 	# enemies split evenly across every open road end; a road end that opened just now gets a lighter share
@@ -1886,16 +1888,16 @@ func _process(delta: float) -> void:
 		if _detect_timer <= 0.0:
 			_detect_timer = 0.15
 			_update_detection()
-		spawn_timer -= delta
-		while spawn_timer <= 0.0 and not spawn_queue.is_empty():
+		wave_clock += delta
+		while not spawn_queue.is_empty() and float(spawn_queue[0]["t"]) <= wave_clock:
 			var e: Dictionary = spawn_queue.pop_front()
-			var pc: Vector2i = wave_port_cycle[int(e["group"]) % wave_port_cycle.size()]
+			var pc: Vector2i = wave_port_cycle[_spawned % wave_port_cycle.size()]
+			_spawned += 1
 			if GameData.ENEMIES[e["type"]].get("boss", false):
 				pc = wave_port_cycle[rng.randi() % wave_port_cycle.size()]
 			var en := spawn_enemy(e["type"], wave_routes[pc])
 			if String(e.get("trait", "")) != "":
 				en.set_trait(e["trait"])
-			spawn_timer += float(e["gap"])
 		if spawn_queue.is_empty() and enemies.is_empty():
 			_wave_complete()
 
