@@ -1,0 +1,8 @@
+# Godot cache
+.godot/
+# Art and audio binaries (~900 MB) stay out of git; the Meshy pipeline state is tracked
+assets/**
+!assets/*/
+!assets/CREDITS.md
+!assets/custom/manifest.json
+tools/__pycache__/

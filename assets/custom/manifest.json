@@ -1,0 +1,994 @@
+{
+ "_death_action": null,
+ "assets": [
+  {
+   "name": "archer_tower",
+   "kind": "static",
+   "prompt": "A round grey stone archer tower with a crenellated wooden lookout platform on top, a small blue conical roof, and blue and gold royal banners hanging from the walls.",
+   "concept_task": "01a0d14c-a2cb-7531-9503-75b50d2810ad",
+   "concept_done": true,
+   "model_task": "01a0d14f-861b-7120-8779-3d88f71022e1",
+   "model_done": true
+  },
+  {
+   "name": "siege_base",
+   "kind": "static",
+   "prompt": "A low square fortified stone platform for a siege weapon, grey stone blocks with gold trim and a flat empty wooden deck on top. Nothing on the deck.",
+   "concept_task": "01a0d14c-a7b4-7146-9fb0-8ff1e2ea644d",
+   "concept_done": true,
+   "model_task": "01a0d14f-95cd-709a-b599-c3e29b518dd1",
+   "model_done": true
+  },
+  {
+   "name": "ballista_head",
+   "kind": "static",
+   "prompt": "A large wooden ballista siege crossbow with a loaded steel bolt, gold metal fittings and a rotating mount, pointing forward. The weapon only, no platform.",
+   "concept_task": "01a0d14c-acb1-7108-abaa-af6aa77c6ae9",
+   "concept_done": true,
+   "model_task": "01a0d14f-9d8d-7646-b592-587d3ca2009b",
+   "model_done": true
+  },
+  {
+   "name": "cannon_head",
+   "kind": "static",
+   "prompt": "A heavy black iron royal cannon on a short wooden swivel carriage with gold lion ornaments, barrel pointing forward. The cannon only, no platform.",
+   "concept_task": "01a0d14c-b1aa-71f7-906c-f7256e0e31be",
+   "concept_done": true,
+   "model_task": "01a0d14f-a541-700b-bd15-ba7d179dc52d",
+   "model_done": true
+  },
+  {
+   "name": "trebuchet",
+   "kind": "static",
+   "prompt": "A wooden trebuchet siege engine with a big stone counterweight, a throwing arm and small blue pennants, on a flat wooden frame.",
+   "concept_task": "01a0d14c-b691-768a-9c5f-e15c4af9ea49",
+   "concept_done": true,
+   "model_task": "01a0d14f-acbf-71e0-86c4-5eb57a153933",
+   "model_done": true
+  },
+  {
+   "name": "arcane_spire",
+   "kind": "static",
+   "prompt": "A slender white stone mage tower with violet crystal shards and gold rings, and an open crystal cradle at the very top waiting to hold a floating orb.",
+   "concept_task": "01a0d14c-bb6e-714c-b430-8bc5a1a0a2ed",
+   "concept_done": true,
+   "model_task": "01a0d14f-b42f-778e-9e03-53b6ba8ca68c",
+   "model_done": true
+  },
+  {
+   "name": "chapel",
+   "kind": "static",
+   "prompt": "A small white stone chapel with a golden roof spire, a round stained glass window, and warm holy light glowing from its doorway.",
+   "concept_task": "01a0d14c-c05e-76ec-9e70-58887c737e09",
+   "concept_done": true,
+   "model_task": "01a0d14f-bbe9-74db-9d53-4e15c2eb2b5b",
+   "model_done": true
+  },
+  {
+   "name": "war_banner",
+   "kind": "static",
+   "prompt": "A tall royal war banner on a stone plinth: a red and gold heraldic flag with a lion emblem, with shields and spears leaning against the plinth.",
+   "concept_task": "01a0d14c-c558-705f-bb2e-34c5344ace1a",
+   "concept_done": true,
+   "model_task": "01a0d14f-c3f8-7020-84f1-1cbeb832951f",
+   "model_done": true
+  },
+  {
+   "name": "gryphon_roost",
+   "kind": "static",
+   "prompt": "A tall round stone roost tower with blue and gold trim and a big empty twig nest on top.",
+   "concept_task": "01a0d14c-ca30-707d-8d28-4101e5cdffed",
+   "concept_done": true,
+   "model_task": "01a0d14f-cb51-76da-ab7c-990a27110dae",
+   "model_done": true
+  },
+  {
+   "name": "gryphon",
+   "kind": "static",
+   "prompt": "A small gryphon creature with an eagle head and wings and a lion body, golden and white feathers, wings half spread, facing forward.",
+   "concept_task": "01a0d14c-cf16-70a9-b618-ca0f3d95a142",
+   "concept_done": true,
+   "model_task": "01a0d14f-d296-7794-841d-b590c0d7b72b",
+   "model_done": true
+  },
+  {
+   "name": "thornspitter",
+   "kind": "static",
+   "prompt": "A carnivorous thorn-spitting plant: a bulbous green pod with a spiky mouth on a curved stem, growing from a clump of leaves and roots.",
+   "concept_task": "01a0d14c-d417-7302-bb85-75af11d774e9",
+   "concept_done": true,
+   "model_task": "01a0d150-f5f4-77cc-8dc0-f952ea3bad78",
+   "model_done": true
+  },
+  {
+   "name": "spore_mound",
+   "kind": "static",
+   "prompt": "A cluster of giant purple and red spotted mushrooms growing from a mossy earth mound, with glowing spores.",
+   "concept_task": "01a0d14c-d902-766f-b028-53d1deb9f9e0",
+   "concept_done": true,
+   "model_task": "01a0d150-fdbb-7245-ba81-afc182a4eaa7",
+   "model_done": true
+  },
+  {
+   "name": "briar_thicket",
+   "kind": "static",
+   "prompt": "A dense thorny briar bush with long dark red thorns, tangled green vines and small red berries.",
+   "concept_task": "01a0d14c-ddf8-72f4-ac58-7ab251735dac",
+   "concept_done": true,
+   "model_task": "01a0d151-0637-74fb-9384-9281371f2775",
+   "model_done": true
+  },
+  {
+   "name": "treant",
+   "kind": "static",
+   "prompt": "An ancient treant: a living tree creature with mossy bark body, a leafy crown, glowing yellow eyes and thick branch arms, standing on root legs.",
+   "concept_task": "01a0d14c-e2d8-7060-b8a4-b529a0be3b41",
+   "concept_done": true,
+   "model_task": "01a0d151-0e27-77a9-9e15-43716db45bca",
+   "model_done": true
+  },
+  {
+   "name": "storm_oak",
+   "kind": "static",
+   "prompt": "A gnarled dark oak tree with glowing blue runes carved in the bark and crackling blue lightning between its branches.",
+   "concept_task": "01a0d14d-2571-70cb-aa75-171af28d94e9",
+   "concept_done": true,
+   "model_task": "01a0d151-8493-71f4-9d7f-a8136c5869e6",
+   "model_done": true
+  },
+  {
+   "name": "wasp_hive",
+   "kind": "static",
+   "prompt": "A giant yellow and brown striped paper wasp hive hanging from a twisted dead tree stump.",
+   "concept_task": "01a0d14d-2a57-74c7-8338-ccd5af0bb14b",
+   "concept_done": true,
+   "model_task": "01a0d151-8c88-77c2-ace6-2b1c555e2e49",
+   "model_done": true
+  },
+  {
+   "name": "rootbinder_shrine",
+   "kind": "static",
+   "prompt": "A mossy stone druid shrine wrapped in thick twisting tree roots, with a glowing green rune stone on top.",
+   "concept_task": "01a0d14d-420d-7247-b578-c59d896ebd29",
+   "concept_done": true,
+   "model_task": "01a0d151-94ac-77da-8b52-54adaedefeed",
+   "model_done": true
+  },
+  {
+   "name": "castle",
+   "kind": "static",
+   "polys": 15000,
+   "prompt": "A fantasy royal castle keep: a tall central sandstone keep with a blue pointed roof, four round corner towers with blue conical roofs, stone walls, a wooden gate and blue and gold flags.",
+   "concept_task": "01a0d14d-46f6-749c-8440-37e36186f1d7",
+   "concept_done": true,
+   "model_task": "01a0d151-9c12-7326-ac30-df5945ad060b",
+   "model_done": true
+  },
+  {
+   "name": "portal",
+   "kind": "static",
+   "prompt": "A dark magic summoning portal: a ring of jagged purple crystal standing stones around a swirling violet vortex on a round stone floor.",
+   "concept_task": "01a0d14d-4bef-70f7-a7cf-c07e9e16c1bb",
+   "concept_done": true,
+   "model_task": "01a0d151-a34a-77e3-bd9e-02e0e73d664e",
+   "model_done": true
+  },
+  {
+   "name": "goblin",
+   "kind": "humanoid",
+   "polys": 10000,
+   "height": 1.1,
+   "prompt": "A small green goblin warrior with big ears, a crude rusty dagger and patched leather armor.",
+   "concept_task": "01a0d14d-50f0-7333-a095-1b65fcbe6e84",
+   "concept_done": true,
+   "model_task": "01a0d151-aad7-7317-b1c9-0e27ceb72871",
+   "model_done": true,
+   "rig_task": "01a0d157-6f13-70c6-a659-d2420c2f9757",
+   "rig_done": true,
+   "rig_keys": [
+    "rigged_character_fbx_url",
+    "rigged_character_glb_url",
+    "basic_animations"
+   ],
+   "death_task": "01a0d158-19d0-7143-942d-8153eedc4459",
+   "death_done": true
+  },
+  {
+   "name": "orc_brute",
+   "kind": "humanoid",
+   "polys": 10000,
+   "height": 2.0,
+   "prompt": "A big muscular green orc brute with tusks, a spiked wooden club and iron shoulder armor.",
+   "concept_task": "01a0d14d-5812-76de-9787-00752bb652ef",
+   "concept_done": true,
+   "model_task": "01a0d154-0377-7280-afda-a42950ca253b",
+   "model_done": true,
+   "rig_task": "01a0d157-800c-731c-ac43-f747e06c4cd0",
+   "rig_done": true,
+   "rig_keys": [
+    "rigged_character_fbx_url",
+    "rigged_character_glb_url",
+    "basic_animations"
+   ],
+   "death_task": "01a0d158-f562-70c7-bab7-42bdcd58f1ac",
+   "death_done": true
+  },
+  {
+   "name": "goblin_shaman",
+   "kind": "humanoid",
+   "polys": 10000,
+   "height": 1.2,
+   "prompt": "A goblin shaman with a bone mask, a feathered hooded robe and a staff topped with a glowing green crystal.",
+   "concept_task": "01a0d14d-5f54-7255-8975-b42880eb9596",
+   "concept_done": true,
+   "model_task": "01a0d154-0b13-7679-bdd1-32483a6ec809",
+   "model_done": true,
+   "rig_task": "01a0d157-90e0-7685-bea3-c73b634221a3",
+   "rig_done": true,
+   "rig_keys": [
+    "rigged_character_fbx_url",
+    "rigged_character_glb_url",
+    "basic_animations"
+   ],
+   "death_task": "01a0d158-8178-75bb-95ba-8bb627c15b03",
+   "death_done": true
+  },
+  {
+   "name": "hexguard",
+   "kind": "humanoid",
+   "polys": 10000,
+   "height": 1.9,
+   "prompt": "A dark knight in purple and black armor with glowing magenta runes, a horned helmet and a tall tower shield.",
+   "concept_task": "01a0d14d-669d-766c-af25-ad7f12ebc95b",
+   "concept_done": true,
+   "rig_keys": [
+    "rigged_character_fbx_url",
+    "rigged_character_glb_url",
+    "basic_animations"
+   ],
+   "model_task": "01a0d15d-0909-76b5-9bcb-fbe8cfa7cbc3",
+   "model_done": true,
+   "rig_task": "01a0d15e-d2b4-74cc-886e-30a0c15d1baa",
+   "rig_done": true,
+   "death_task": "01a0d15f-e8b3-77d0-a612-5d098fdaa448",
+   "death_done": true
+  },
+  {
+   "name": "ironclad",
+   "kind": "humanoid",
+   "polys": 10000,
+   "height": 2.0,
+   "prompt": "A hulking orc in thick full steel plate armor with rivets and a huge war hammer.",
+   "concept_task": "01a0d14d-6eb4-7220-a36f-1ddf230c3492",
+   "concept_done": true,
+   "model_task": "01a0d154-8091-71e5-8f84-8625e08b6ed2",
+   "model_done": true,
+   "rig_task": "01a0d157-b3e2-76cc-a80f-4ab3e5db701d",
+   "rig_done": true,
+   "rig_keys": [
+    "rigged_character_fbx_url",
+    "rigged_character_glb_url",
+    "basic_animations"
+   ],
+   "death_task": "01a0d158-fb89-7576-b465-276962483df0",
+   "death_done": true
+  },
+  {
+   "name": "frost_imp",
+   "kind": "humanoid",
+   "polys": 10000,
+   "height": 1.3,
+   "prompt": "A small blue ice imp demon with crystal horns, frosty claws, a pointed tail and small bat wings folded on its back.",
+   "concept_task": "01a0d14d-767a-771e-a4d3-f64a88a577e4",
+   "concept_done": true,
+   "model_task": "01a0d154-886e-7664-96eb-0ed646d4929f",
+   "model_done": true,
+   "rig_task": "01a0d157-c311-72d2-b4c5-4c59e6c73fd6",
+   "rig_done": true,
+   "rig_keys": [
+    "rigged_character_fbx_url",
+    "rigged_character_glb_url",
+    "basic_animations"
+   ],
+   "death_task": "01a0d158-8d8f-756c-a01f-f26801491afd",
+   "death_done": true
+  },
+  {
+   "name": "skeleton",
+   "kind": "humanoid",
+   "polys": 10000,
+   "height": 1.6,
+   "prompt": "A skeleton warrior with a rusty sword, a broken round wooden shield and a dented iron helmet.",
+   "concept_task": "01a0d14d-7deb-7689-abab-f1156d6c4052",
+   "concept_done": true,
+   "model_task": "01a0d154-908c-701f-a9ad-c54fc5f7133d",
+   "model_done": true,
+   "rig_task": "01a0d157-d4ba-77dd-bd3f-b3c103c1953f",
+   "rig_done": true,
+   "rig_keys": [
+    "rigged_character_fbx_url",
+    "rigged_character_glb_url",
+    "basic_animations"
+   ],
+   "death_task": "01a0d158-93b7-728b-9a8b-ce76ed0b07b9",
+   "death_done": true
+  },
+  {
+   "name": "frost_troll",
+   "kind": "humanoid",
+   "polys": 15000,
+   "height": 3.0,
+   "prompt": "A huge frost troll with pale blue skin, shaggy white fur, big tusks and a giant ice-covered club.",
+   "concept_task": "01a0d14d-8537-71d5-a8f3-3699851c4b01",
+   "concept_done": true,
+   "model_task": "01a0d154-9a13-77eb-93bd-b027c6ea4130",
+   "model_done": true,
+   "rig_task": "01a0d157-e732-70a2-b683-34af82417553",
+   "rig_done": true,
+   "rig_keys": [
+    "rigged_character_fbx_url",
+    "rigged_character_glb_url",
+    "basic_animations"
+   ],
+   "death_task": "01a0d159-db9d-7313-8a32-204f7c57a4db",
+   "death_done": true
+  },
+  {
+   "name": "lich_king",
+   "kind": "humanoid",
+   "polys": 15000,
+   "height": 2.6,
+   "prompt": "An undead lich king: a skeletal sorcerer in a tattered dark purple robe with a golden crown, glowing blue eyes and a staff topped with a blue soul flame.",
+   "concept_task": "01a0d14d-9093-749f-b738-dc02744d68f9",
+   "concept_done": true,
+   "model_task": "01a0d154-a262-72b8-8cfd-4da3094ba52c",
+   "model_done": true,
+   "rig_task": "01a0d157-f878-76a4-96e7-845d0816736e",
+   "rig_done": true,
+   "rig_keys": [
+    "rigged_character_fbx_url",
+    "rigged_character_glb_url",
+    "basic_animations"
+   ],
+   "death_task": "01a0d159-4d70-73a5-af47-6497c3ff3bcc",
+   "death_done": true
+  },
+  {
+   "name": "tex_grass",
+   "kind": "texture",
+   "prompt": "Stylized hand-painted fantasy meadow grass seen straight from above: lush green with soft yellow-green variation, painterly brush strokes and a few tiny flowers. Flat top-down game texture, seamless and tileable, even soft lighting, no shadows, no perspective, fills the entire image edge to edge, no objects, no text.",
+   "concept_task": "01a0d169-0801-73c1-84e1-c5d201786295",
+   "concept_done": true
+  },
+  {
+   "name": "tex_dirt",
+   "kind": "texture",
+   "prompt": "Stylized hand-painted fantasy dirt road seen straight from above: warm brown packed earth with small pebbles and faint wheel ruts, painterly brush strokes. Flat top-down game texture, seamless and tileable, even soft lighting, no shadows, no perspective, fills the entire image edge to edge, no objects, no text.",
+   "concept_task": "01a0d169-0d01-71e9-ac41-00780806d631",
+   "concept_done": true
+  },
+  {
+   "name": "tex_cliff",
+   "kind": "texture",
+   "prompt": "Stylized hand-painted fantasy rock cliff face seen from the front: layered warm grey and tan stone strata with cracks and a few moss patches, painterly brush strokes. Flat top-down game texture, seamless and tileable, even soft lighting, no shadows, no perspective, fills the entire image edge to edge, no objects, no text.",
+   "concept_task": "01a0d169-11f2-71bf-b44c-37f7e32d0426",
+   "concept_done": true
+  },
+  {
+   "name": "prop_oak",
+   "kind": "static",
+   "polys": 3000,
+   "prompt": "A single stylized fantasy oak tree with a round lush green canopy and a thick twisted brown trunk.",
+   "concept_task": "01a0d169-16ca-73eb-838d-6350f8c8c453",
+   "concept_done": true,
+   "model_task": "01a0d16a-5d98-7533-ada3-cea992d8caef",
+   "model_done": true
+  },
+  {
+   "name": "prop_pine",
+   "kind": "static",
+   "polys": 2500,
+   "prompt": "A single stylized fantasy pine tree with tall layered dark green conical foliage and a short brown trunk.",
+   "concept_task": "01a0d169-1bc5-7572-81a0-992ccff29cc2",
+   "concept_done": true,
+   "model_task": "01a0d16a-6531-7592-ba1e-6229d5570ed3",
+   "model_done": true
+  },
+  {
+   "name": "prop_birch",
+   "kind": "static",
+   "polys": 2500,
+   "prompt": "A single stylized fantasy birch tree with white bark and a bright yellow-green leafy crown.",
+   "concept_task": "01a0d169-209c-73f8-8051-84a726cfcbaa",
+   "concept_done": true,
+   "model_task": "01a0d16a-6bdc-7684-99f0-5a104597d9a1",
+   "model_done": true
+  },
+  {
+   "name": "prop_rock",
+   "kind": "static",
+   "polys": 2000,
+   "prompt": "A cluster of three stylized grey boulders with patches of green moss.",
+   "concept_task": "01a0d169-257e-7596-8d4b-2874d9c2aa5b",
+   "concept_done": true,
+   "model_task": "01a0d16a-7356-7702-a6c4-e3cedd50f491",
+   "model_done": true
+  },
+  {
+   "name": "prop_crystal",
+   "kind": "static",
+   "polys": 2000,
+   "prompt": "A cluster of glowing cyan and pink magic ley crystals growing out of a small mossy rock.",
+   "concept_task": "01a0d169-2a6f-71ac-85ae-d794d5ebcc39",
+   "concept_done": true,
+   "model_task": "01a0d16a-7a78-7719-be2d-e3fae5940f93",
+   "model_done": true
+  },
+  {
+   "name": "prop_bush",
+   "kind": "static",
+   "polys": 2000,
+   "prompt": "A round stylized flowering bush with small pink and white flowers and green leaves.",
+   "concept_task": "01a0d169-2f6a-70b3-9d6d-0aaf752f4c9c",
+   "concept_done": true,
+   "model_task": "01a0d16a-81cd-7655-86ad-437145313b93",
+   "model_done": true
+  },
+  {
+   "name": "prop_ruin",
+   "kind": "static",
+   "polys": 2000,
+   "prompt": "A crumbling ancient stone pillar ruin with a fallen block and green ivy.",
+   "concept_task": "01a0d169-345e-768a-bb80-12e0f254a358",
+   "concept_done": true,
+   "model_task": "01a0d16a-89b2-726a-8e34-b58d1ca99ff4",
+   "model_done": true
+  },
+  {
+   "name": "icon_war_chest",
+   "kind": "icon",
+   "prompt": "Icon of an open wooden treasure chest overflowing with gold coins. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d169-3938-76fd-bef2-a718da2ea5a1",
+   "concept_done": true
+  },
+  {
+   "name": "icon_whetstone",
+   "kind": "icon",
+   "prompt": "Icon of a whetstone sharpening a glowing steel sword blade with orange sparks. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d169-3e0e-7390-adb7-cd5c70e5dfa7",
+   "concept_done": true
+  },
+  {
+   "name": "icon_attune",
+   "kind": "icon",
+   "prompt": "Icon of a glowing violet arcane rune circle with floating purple crystals. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d169-a746-7327-8d43-a698b4f6a8b0",
+   "concept_done": true
+  },
+  {
+   "name": "icon_range",
+   "kind": "icon",
+   "prompt": "Icon of a stone watchtower with a golden spyglass and a far-reaching beam of light. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d169-ac29-764b-b86e-6089677b848c",
+   "concept_done": true
+  },
+  {
+   "name": "icon_rate",
+   "kind": "icon",
+   "prompt": "Icon of a war drum with crossed arrows and swift motion streaks. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d169-b114-7118-b35b-d66f2647a51d",
+   "concept_done": true
+  },
+  {
+   "name": "icon_discount",
+   "kind": "icon",
+   "prompt": "Icon of a merchant guild wax seal with a stack of coins and a price tag. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d169-b601-7495-beb9-c205831a69fa",
+   "concept_done": true
+  },
+  {
+   "name": "icon_bounty",
+   "kind": "icon",
+   "prompt": "Icon of a wanted poster with a goblin face pinned next to a bag of gold. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d169-bafd-77f4-91e0-2604b34be947",
+   "concept_done": true
+  },
+  {
+   "name": "icon_masons",
+   "kind": "icon",
+   "prompt": "Icon of a stonemason's hammer and chisel over sturdy castle wall bricks. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d169-bfe4-76a6-8a16-000703c5f76f",
+   "concept_done": true
+  },
+  {
+   "name": "icon_treasury",
+   "kind": "icon",
+   "prompt": "Icon of a royal treasury with stacked gold bars and a jeweled crown. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d169-c4e4-77ea-bd9b-c47a53b05c49",
+   "concept_done": true
+  },
+  {
+   "name": "icon_ley",
+   "kind": "icon",
+   "prompt": "Icon of glowing cyan ley crystals pulsing with magical energy. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d16a-43f1-71e6-ab48-d7ffc1569b7e",
+   "concept_done": true
+  },
+  {
+   "name": "icon_crit",
+   "kind": "icon",
+   "prompt": "Icon of a gleaming arrowhead with a bright red critical strike burst. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d16a-48df-7364-8525-bb7c49400bec",
+   "concept_done": true
+  },
+  {
+   "name": "icon_execute",
+   "kind": "icon",
+   "prompt": "Icon of an executioner's axe with a skull emblem. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d16a-4ddd-7659-9489-316a8798a9fc",
+   "concept_done": true
+  },
+  {
+   "name": "icon_ability",
+   "kind": "icon",
+   "prompt": "Icon of a commander's golden helmet surrounded by a radiant aura. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d16a-52bc-7595-acde-679d85f5f3cc",
+   "concept_done": true
+  },
+  {
+   "name": "icon_masterwork",
+   "kind": "icon",
+   "prompt": "Icon of a golden anvil and hammer with a glowing masterwork star. Fantasy strategy game reward icon, stylized hand-painted, bold readable shapes, centered subject, rich saturated colors, soft dark vignette background, square composition, no text, no border, no frame.",
+   "concept_task": "01a0d16a-57a1-70ed-b2d0-b3964cc184fb",
+   "concept_done": true
+  },
+  {
+   "name": "bld_ammo_depot",
+   "kind": "static",
+   "polys": 3000,
+   "prompt": "A small wooden ammunition depot: stacked crates, barrels of arrows and cannonballs under a canvas awning.",
+   "concept_task": "01a0d514-2ace-7674-9c5c-4cbbce0dc259",
+   "concept_done": true,
+   "model_task": "01a0d514-e79b-724e-8283-b6af9c8b6080",
+   "model_done": true
+  },
+  {
+   "name": "bld_relay",
+   "kind": "static",
+   "polys": 3000,
+   "prompt": "A tall wooden signal relay tower with a brass horn and a fluttering blue banner on top.",
+   "concept_task": "01a0d514-2fca-7678-afac-091e60c89ead",
+   "concept_done": true,
+   "model_task": "01a0d515-8111-71fc-9fdf-8e86c80e6e4a",
+   "model_done": true
+  },
+  {
+   "name": "bld_scout",
+   "kind": "static",
+   "polys": 3000,
+   "prompt": "A small hidden scout hideout: a camouflaged leafy lean-to hut with a spyglass on a tripod.",
+   "concept_task": "01a0d514-34e7-77b9-9b59-ee39f5bb29a2",
+   "concept_done": true,
+   "model_task": "01a0d514-f2a8-72c0-be64-7e556a52f41a",
+   "model_done": true
+  },
+  {
+   "name": "bld_supply",
+   "kind": "static",
+   "polys": 3000,
+   "prompt": "A supply point: a small wooden cart loaded with sacks of grain, gold coins and supplies next to a tent.",
+   "concept_task": "01a0d514-39d4-749e-b18a-72613366d0ff",
+   "concept_done": true,
+   "model_task": "01a0d514-f9dd-717e-abc1-55c7c2b921d2",
+   "model_done": true
+  },
+  {
+   "name": "poi_chest",
+   "kind": "static",
+   "polys": 2500,
+   "prompt": "An ornate wooden treasure chest with gold trim, slightly open with glowing gold coins inside.",
+   "concept_task": "01a0d514-3ebc-70c1-9ff0-797bd24b844a",
+   "concept_done": true,
+   "model_task": "01a0d515-0098-7372-875a-591debbafc95",
+   "model_done": true
+  },
+  {
+   "name": "poi_shrine",
+   "kind": "static",
+   "polys": 3000,
+   "prompt": "An ancient mossy stone shrine altar with a glowing golden rune orb floating above it.",
+   "concept_task": "01a0d514-43a6-7521-8a0d-f20c90997259",
+   "concept_done": true,
+   "model_task": "01a0d515-88e4-7710-bb96-90170da0d79a",
+   "model_done": true
+  },
+  {
+   "name": "poi_mine",
+   "kind": "static",
+   "polys": 3000,
+   "prompt": "An abandoned gold mine entrance in a small rocky hill, with wooden support beams, a minecart and gold ore.",
+   "concept_task": "01a0d514-4891-7382-a2dd-5e4d68672bea",
+   "concept_done": true,
+   "model_task": "01a0d515-07d9-76f6-a8a3-c4e55e36552c",
+   "model_done": true
+  },
+  {
+   "name": "poi_cache",
+   "kind": "static",
+   "polys": 2500,
+   "prompt": "A scout's cache: a small tent with rolled maps, a lantern and a spyglass on a wooden crate.",
+   "concept_task": "01a0d514-4d7b-766e-bb22-41dc4aa71b0c",
+   "concept_done": true,
+   "model_task": "01a0d515-0fdb-7050-9122-9d4f5e574bc7",
+   "model_done": true
+  },
+  {
+   "name": "hero_aldric",
+   "kind": "icon",
+   "prompt": "Portrait of a noble grey-bearded human lord marshal in gleaming gold and blue plate armor with a crowned helm under his arm. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0d514-526d-7250-a43d-ba9faf8e06a3",
+   "concept_done": true
+  },
+  {
+   "name": "hero_seraphine",
+   "kind": "icon",
+   "prompt": "Portrait of a regal female archmage with silver hair, violet robes with gold embroidery and a glowing arcane crystal. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0d514-5748-7114-a72e-ceb4f1fb1602",
+   "concept_done": true
+  },
+  {
+   "name": "hero_brann",
+   "kind": "icon",
+   "prompt": "Portrait of a burly red-bearded siege engineer captain with goggles, leather apron and a brass spyglass. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0d514-5c33-7542-bc7a-b957e816b8e1",
+   "concept_done": true
+  },
+  {
+   "name": "hero_elsa",
+   "kind": "icon",
+   "prompt": "Portrait of a sharp-eyed female scout captain in a green hooded cloak with a longbow over her shoulder. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0d514-611c-71aa-8768-7f45273a7fb8",
+   "concept_done": true
+  },
+  {
+   "name": "hero_thornwood",
+   "kind": "icon",
+   "prompt": "Portrait of an ancient druid elder with a mossy beard, antler crown and bark-textured skin. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0d514-65f0-769a-8d32-155a5280762e",
+   "concept_done": true
+  },
+  {
+   "name": "hero_lira",
+   "kind": "icon",
+   "prompt": "Portrait of a serene elven moon priestess with pale blue hair, a crescent moon circlet and glowing silver eyes. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0d514-d806-724a-ade8-a76bc668ba2a",
+   "concept_done": true
+  },
+  {
+   "name": "hero_oma",
+   "kind": "icon",
+   "prompt": "Portrait of a wise old gnome grovekeeper woman with mushrooms growing on her wide hat and a gnarled staff. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0d514-dcfa-761d-9eab-8db16e2ed197",
+   "concept_done": true
+  },
+  {
+   "name": "hero_hunt",
+   "kind": "icon",
+   "prompt": "Portrait of a fierce wild huntress with a wolf pelt hood, green war paint and a bone spear. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0d514-e1e9-747e-a4d4-14607853ce59",
+   "concept_done": true
+  },
+  {
+   "name": "fp_ballista",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A long narrow siege ballista emplacement, three times longer than it is wide, seen from the side at a three-quarter angle so its whole length is visible. At the front end a huge wooden ballista crossbow with a loaded steel bolt aims straight forward; behind it a long wooden carriage deck with a big winch, racks of spare giant bolts and a stack of crates at the back end. Everything stands on one long, narrow grey stone foundation with gold trim and blue royal banners.",
+   "concept_task": "01a0de73-2aa6-75fd-9214-63ae21924c87",
+   "concept_done": true,
+   "model_task": "01a0de74-6f1b-76a9-9e5f-e01f1b00f70c",
+   "model_done": true
+  },
+  {
+   "name": "fp_gryphon",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A wide V-shaped gryphon aerie, twice as wide as it is deep: a low curved grey stone wall bent into a wide chevron. At each of the two front tips of the V stands a round stone roost tower topped with a big straw nest and a golden gryphon with raised wings. At the back point of the V is a small stone gatehouse with a blue and gold banner. The two roosts are far apart at the left and right ends.",
+   "concept_task": "01a0de73-2f8d-73ca-bab4-ac652e48bfbe",
+   "concept_done": true,
+   "model_task": "01a0de74-78af-76f7-bd3d-1a933b8b035c",
+   "model_done": true
+  },
+  {
+   "name": "fp_trebuchet",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A huge wooden trebuchet siege engine on an arrow-shaped stone platform. The platform has a pointed front, wide shoulders just behind the point where the tall wooden A-frame of the trebuchet stands, and a long narrow tail running straight back where the long throwing arm and a massive iron-bound counterweight box extend. Piles of round boulders sit on the two shoulders. Grey stone with gold trim.",
+   "concept_task": "01a0de73-3478-77db-b8fd-8efa7eeedb83",
+   "concept_done": true,
+   "model_task": "01a0de74-8057-71f4-875e-d433fb50754e",
+   "model_done": true
+  },
+  {
+   "name": "fp_bombard",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A heavy royal cannon battery: a low, wide, six-sided fortified stone bastion, about as deep as it is wide. Two big black iron cannons are mounted on the two front corners, both pointing forward, with a notch in the front wall between them. Pyramids of cannonballs and gunpowder barrels fill the middle, and a blue and gold flag stands at the back. Grey stone blocks with gold trim.",
+   "concept_task": "01a0de73-397b-73a8-84fc-80f7775d2836",
+   "concept_done": true,
+   "model_task": "01a0de74-8796-7524-a854-303962a31127",
+   "model_done": true
+  },
+  {
+   "name": "fp_briar",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A long straight wall of dark green magical thorny briar hedge, four times longer than it is wide and knee high, seen from the side at a three-quarter angle so its full length is visible. Twisting woody vines with huge sharp thorns, a few red berries and glowing green buds, growing in one straight line over low mossy stones.",
+   "concept_task": "01a0de73-3e68-72bf-b5c8-33eabf597d89",
+   "concept_done": true,
+   "model_task": "01a0de74-8ee5-7622-a271-1614d94f6bd6",
+   "model_done": true
+  },
+  {
+   "name": "fp_rootbinder",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A large round druid grove shrine on a wide round mossy platform: a ring of six standing stones with glowing green runes surrounds an ancient twisted tree in the center. The tree's huge roots spread across the whole circle and wrap around every standing stone. A glowing emerald crystal is set in the tree's trunk. Round and wide, the roots fill the circle.",
+   "concept_task": "01a0de73-4355-74ab-9980-4c287bdd029d",
+   "concept_done": true,
+   "model_task": "01a0de74-95fb-743e-8206-bd7e11253397",
+   "model_done": true
+  },
+  {
+   "name": "tex_road",
+   "kind": "texture",
+   "prompt": "Stylized hand-painted fantasy cobbled road seen straight from above: worn rounded grey-brown cobblestones set in packed warm earth, some stones missing, tufts of grass in the gaps, painterly brush strokes. Flat top-down game texture, seamless and tileable, even soft lighting, no shadows, no perspective, fills the entire image edge to edge, no objects, no text.",
+   "concept_task": "01a0de8b-aa12-751b-a33f-e0fcc3fd5492",
+   "concept_done": true
+  },
+  {
+   "name": "tex_sand",
+   "kind": "texture",
+   "prompt": "Stylized hand-painted fantasy beach sand seen straight from above: only pale golden sand with small scattered pebbles and soft ripples, painterly brush strokes, no water anywhere. Flat top-down game texture, seamless and tileable, even soft lighting, no shadows, no perspective, fills the entire image edge to edge, no objects, no text.",
+   "concept_task": "01a0de8e-9462-751a-9cab-735abd619ac6",
+   "concept_done": true
+  },
+  {
+   "name": "tex_stone",
+   "kind": "texture",
+   "prompt": "Stylized hand-painted fantasy mossy flagstone paving seen straight from above: large irregular grey stone slabs with green moss in the cracks, painterly brush strokes. Flat top-down game texture, seamless and tileable, even soft lighting, no shadows, no perspective, fills the entire image edge to edge, no objects, no text.",
+   "concept_task": "01a0de8b-b42f-7341-930c-4ebd9aa51a04",
+   "concept_done": true
+  },
+  {
+   "name": "prop_grass",
+   "kind": "static",
+   "polys": 800,
+   "prompt": "A single clump of tall stylized grass blades in fresh green and yellow-green, with a few seed heads.",
+   "concept_task": "01a0de8b-b905-7114-b1ab-ca276fcd44e3",
+   "concept_done": true,
+   "model_task": "01a0de8d-d212-73fd-9d9c-f8f7678e5c46",
+   "model_done": true
+  },
+  {
+   "name": "prop_flowers",
+   "kind": "static",
+   "polys": 1200,
+   "prompt": "A small round patch of stylized wildflowers: purple, yellow and white blossoms on green stems and leaves.",
+   "concept_task": "01a0de8b-bdd2-7287-958c-dd09872b5c40",
+   "concept_done": true,
+   "model_task": "01a0de8d-d9e3-7577-b1fa-298b43574066",
+   "model_done": true
+  },
+  {
+   "name": "prop_mushrooms",
+   "kind": "static",
+   "polys": 1500,
+   "prompt": "A cluster of stylized red-capped and brown mushrooms of different sizes growing on a small mossy mound.",
+   "concept_task": "01a0de8b-c2b6-7496-9efc-d382c462f0f5",
+   "concept_done": true,
+   "model_task": "01a0de8d-e0fc-73fd-be27-4f386c769bef",
+   "model_done": true
+  },
+  {
+   "name": "prop_log",
+   "kind": "static",
+   "polys": 2500,
+   "prompt": "A fallen mossy tree log lying on the ground next to a short cut tree stump, with a few small ferns.",
+   "concept_task": "01a0de8b-c7a1-7095-9447-2719e8dc0919",
+   "concept_done": true,
+   "model_task": "01a0de8d-e847-7414-9195-7ca019b7174c",
+   "model_done": true
+  },
+  {
+   "name": "prop_reeds",
+   "kind": "static",
+   "polys": 1200,
+   "prompt": "A clump of stylized cattail reeds and tall water grass with brown seed heads, growing from a little mud.",
+   "concept_task": "01a0de8b-cc99-76ce-9e9e-4acea82ca303",
+   "concept_done": true,
+   "model_task": "01a0de8d-ef48-700c-a9f1-da7fcc88958b",
+   "model_done": true
+  },
+  {
+   "name": "prop_signpost",
+   "kind": "static",
+   "polys": 2000,
+   "prompt": "A wooden roadside signpost with two arrow-shaped direction boards and a small iron lantern with a warm glowing candle hanging from an arm.",
+   "concept_task": "01a0de8b-d19d-7089-9ca1-6890d2c10f14",
+   "concept_done": true,
+   "model_task": "01a0de8d-f68f-70e9-9022-a74bb306d20a",
+   "model_done": true
+  },
+  {
+   "name": "prop_bridge",
+   "kind": "static",
+   "polys": 4000,
+   "prompt": "A short straight arched wooden plank footbridge with rope railings on both sides and small stone footings at each end, seen from the side at a three-quarter angle.",
+   "concept_task": "01a0de8b-d684-7217-ab7b-bb0cb6d8ee00",
+   "concept_done": true,
+   "model_task": "01a0de8d-fed0-7463-85d9-12eba84632aa",
+   "model_done": true
+  },
+  {
+   "name": "prop_wall",
+   "kind": "static",
+   "polys": 2500,
+   "prompt": "A short straight segment of a crumbling low grey stone wall with a broken wooden fence section on top and some ivy, seen from the side at a three-quarter angle.",
+   "concept_task": "01a0de8c-0cdc-7141-a9db-4c23bb7915e2",
+   "concept_done": true,
+   "model_task": "01a0de8e-05e3-7612-86b7-b9087d34c93b",
+   "model_done": true
+  },
+  {
+   "name": "prop_outcrop",
+   "kind": "static",
+   "polys": 2500,
+   "prompt": "A jagged grey granite rock outcrop with sharp slanted slabs, patches of purple heather and green moss.",
+   "concept_task": "01a0de8c-492a-74ac-96ea-d8ecf7927994",
+   "concept_done": true,
+   "model_task": "01a0de8e-0cdb-70d8-9350-883ce285f21b",
+   "model_done": true
+  },
+  {
+   "name": "fp_dwarf_flame",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A dwarven flamethrower turret, twice as long as it is wide, seen from the side at a three-quarter angle: at the front a big bronze nozzle cannon belching a small flame, at the back a squat riveted iron fuel tank furnace with pipes connecting them, on one long narrow stone base. Dwarven craftsmanship: dark iron, bronze, rune-carved grey stone, red banners and glowing orange forge light.",
+   "concept_task": "01a0e886-d76b-76bd-94c0-9a703c5950e8",
+   "concept_done": true,
+   "model_task": "01a0e889-d88c-7059-a9b2-4ec6dc20cc08",
+   "model_done": true
+  },
+  {
+   "name": "fp_dwarf_hammer",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A triangular dwarven war machine: a triangle-shaped rune-carved stone platform with a giant mechanical steam hammer on a tall iron arm at the front point, and brass gears and a steam boiler on the two back corners. Dwarven craftsmanship: dark iron, bronze, rune-carved grey stone, red banners and glowing orange forge light.",
+   "concept_task": "01a0e886-dc5d-75dd-9067-ee32d4b3d694",
+   "concept_done": true,
+   "model_task": "01a0e889-e6cb-74c0-8d4f-5f7b09569b28",
+   "model_done": true
+  },
+  {
+   "name": "fp_dwarf_mortar",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A wide fan-shaped dwarven artillery pit, shaped like a quarter circle: low curved stone walls around a huge squat black iron mortar pointing up in the middle, stacks of round bombs and powder kegs on both wings. Dwarven craftsmanship: dark iron, bronze, rune-carved grey stone, red banners and glowing orange forge light.",
+   "concept_task": "01a0e886-e13c-75d5-aa20-a838d0a50d24",
+   "concept_done": true,
+   "model_task": "01a0e889-ef55-7728-ace0-5b24f595c9b7",
+   "model_done": true
+  },
+  {
+   "name": "fp_dwarf_gyro",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A V-shaped dwarven anti-air battery, twice as wide as it is deep: at each of the two front tips of the V a tall rotary flak gun turret pointing at the sky, and a brass steam engine with a smokestack at the back point joining them. Dwarven craftsmanship: dark iron, bronze, rune-carved grey stone, red banners and glowing orange forge light.",
+   "concept_task": "01a0e886-e60f-70ae-ac23-ee0169cda57e",
+   "concept_done": true,
+   "model_task": "01a0e889-f6ac-7028-87f2-35dc539e81a9",
+   "model_done": true
+  },
+  {
+   "name": "fp_mer_tide",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A slender spiral seashell tower made of pearly coral, with a glowing blue water orb floating at the top and water trickling down its sides into a small shell basin at its foot. Merfolk craftsmanship: pearly white coral, teal and turquoise shells, seafoam, pearls and flowing water.",
+   "concept_task": "01a0e886-eae4-7394-a90f-5801c9d0e9d5",
+   "concept_done": true,
+   "model_task": "01a0e889-fe73-7491-a3f0-5d2e21eff973",
+   "model_done": true
+  },
+  {
+   "name": "fp_mer_harpoon",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A long narrow merfolk harpoon launcher, three times longer than it is wide, seen from the side at a three-quarter angle: a giant coral and driftwood harpoon crossbow at the front with a barbed harpoon loaded, and a coiled rope spool and racks of spare harpoons running along the back. Merfolk craftsmanship: pearly white coral, teal and turquoise shells, seafoam, pearls and flowing water.",
+   "concept_task": "01a0e886-efd8-73d0-aed9-1dabd2c39612",
+   "concept_done": true,
+   "model_task": "01a0e88a-065f-73fd-9172-81ed454b0594",
+   "model_done": true
+  },
+  {
+   "name": "fp_mer_whirl",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A triangular merfolk whirlpool shrine: three tall coral pillars at the corners of a triangle around a sunken basin of glowing swirling water spiraling down like a whirlpool. Merfolk craftsmanship: pearly white coral, teal and turquoise shells, seafoam, pearls and flowing water.",
+   "concept_task": "01a0e886-f4bf-710e-9450-0bb6706dbb1e",
+   "concept_done": true,
+   "model_task": "01a0e88a-0f2e-728a-ae91-7e2827c65b7c",
+   "model_done": true
+  },
+  {
+   "name": "fp_mer_siren",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A sea rock shrine twice as long as it is wide: at the front a tall jagged sea rock with a stone statue of a singing mermaid siren on top and glowing blue music runes, at the back a smaller rock with shells, pearls and a tiny waterfall. Merfolk craftsmanship: pearly white coral, teal and turquoise shells, seafoam, pearls and flowing water.",
+   "concept_task": "01a0e886-f99d-735d-bac4-83e2e9e66ccd",
+   "concept_done": true,
+   "model_task": "01a0e88a-16dc-71d1-8c9a-d75bebfeaf5f",
+   "model_done": true
+  },
+  {
+   "name": "fp_bone_crypt",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A small crooked watchtower built from bones and black stone, topped with a big horned skull, a skeleton archer standing guard on the top platform, and green ghost-flame lanterns hanging from the sides. Undead craftsmanship: old bones and skulls, cracked black stone, rusted iron, sickly green and purple ghost glow.",
+   "concept_task": "01a0e886-fe93-7537-96a3-b8187de3a25d",
+   "concept_done": true,
+   "model_task": "01a0e88a-1eca-714b-abd6-3d8f9dc957d3",
+   "model_done": true
+  },
+  {
+   "name": "fp_plague_cauldron",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A plague catapult station twice as long as it is wide: at the front a huge rusted iron cauldron bubbling with glowing green poison on a bone stand, at the back a bone crane arm and a pile of skull-marked barrels. Undead craftsmanship: old bones and skulls, cracked black stone, rusted iron, sickly green and purple ghost glow.",
+   "concept_task": "01a0e887-037e-73c3-a90c-9bb9f4738a62",
+   "concept_done": true,
+   "model_task": "01a0e88a-277a-7690-9d59-061f9f167e7d",
+   "model_done": true
+  },
+  {
+   "name": "fp_soul_obelisk",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A soul obelisk shrine twice as long as it is wide: at the front a tall black obsidian obelisk carved with glowing purple soul runes with purple wisps orbiting it, at the back a small bone altar with candles and skulls. Undead craftsmanship: old bones and skulls, cracked black stone, rusted iron, sickly green and purple ghost glow.",
+   "concept_task": "01a0e887-6ab3-7299-9f47-cbe3d550ebfa",
+   "concept_done": true,
+   "model_task": "01a0e88b-a963-76a6-b894-c238ac3db740",
+   "model_done": true
+  },
+  {
+   "name": "fp_hex_tomb",
+   "kind": "static",
+   "polys": 12000,
+   "prompt": "A wide fan-shaped necropolis, shaped like a quarter circle: a dark stone mausoleum with a skull door at the back point, and three leaning gravestones and skull pillars fanned out across the front edge, purple mist curling between them. Undead craftsmanship: old bones and skulls, cracked black stone, rusted iron, sickly green and purple ghost glow.",
+   "concept_task": "01a0e887-6f8a-7283-b499-3f002107910c",
+   "concept_done": true,
+   "model_task": "01a0e88b-b0ce-73c8-b79d-5ce9a1c6a873",
+   "model_done": true
+  },
+  {
+   "name": "hero_durgan",
+   "kind": "icon",
+   "prompt": "Portrait of a stout dwarf thane with a thick braided fiery red beard, a horned iron helm with glowing orange runes and a great forge hammer resting on his shoulder. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0e887-745f-7585-b86c-b32729ae7be5",
+   "concept_done": true
+  },
+  {
+   "name": "hero_nerissa",
+   "kind": "icon",
+   "prompt": "Portrait of a regal merfolk queen with sea-green scales on her cheeks, flowing teal hair, a pink coral crown and a pearl-tipped trident. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0e887-7938-75e7-84cb-29a648723ef0",
+   "concept_done": true
+  },
+  {
+   "name": "hero_mortis",
+   "kind": "icon",
+   "prompt": "Portrait of a skeletal lich lord with a cracked bone crown, glowing green eye sockets and tattered black and purple robes, holding a staff topped with a skull. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
+   "concept_task": "01a0e887-7e2a-733d-8958-28e8491ee659",
+   "concept_done": true
+  }
+ ]
+}
