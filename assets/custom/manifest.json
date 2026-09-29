@@ -989,6 +989,324 @@
    "prompt": "Portrait of a skeletal lich lord with a cracked bone crown, glowing green eye sockets and tattered black and purple robes, holding a staff topped with a skull. Fantasy strategy game hero portrait, stylized hand-painted, head and shoulders, three-quarter view, rich saturated colors, dramatic soft rim light, dark painted background, no text, no border, no frame.",
    "concept_task": "01a0e887-7e2a-733d-8958-28e8491ee659",
    "concept_done": true
+  },
+  {
+   "name": "fp2_ballista",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A long royal ballista emplacement on a stone deck with low walls along both long sides. At the front end a huge wooden ballista crossbow with a loaded steel bolt aims straight forward; along the middle a big winch and racks of giant bolts; at the back end a small square stone guardhouse. Pale grey stone with gold trim and royal blue banners. The whole thing is long and narrow, three times longer than it is wide, and fills that long strip edge to edge.",
+   "concept_task": "01a0ef41-a3f2-760a-a159-cf7f68401c06",
+   "concept_done": true,
+   "model_task": "01a0ef45-3c35-740b-bfa3-d05549dfe459",
+   "model_done": true
+  },
+  {
+   "name": "fp2_trebuchet",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A huge wooden trebuchet on an arrow-shaped stone bastion. The tall A-frame stands across the wide shoulders, the long throwing arm and a massive iron-bound counterweight run down the tail, and piles of round boulders fill both shoulders. Pale grey stone with gold trim and royal blue banners. Seen from above it is an arrow: a pointed front, broad wide shoulders just behind the point, and a long narrow tail running straight back, about as long as it is wide.",
+   "concept_task": "01a0ef41-a8e4-71af-8440-e1a7487df597",
+   "concept_done": true,
+   "model_task": "01a0ef45-49ed-75df-b41f-c389170f24c8",
+   "model_done": true
+  },
+  {
+   "name": "fp2_bombard",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A royal artillery fort: a low stone bastion with two round gun turrets at the front-left and front-right corners, each holding a huge black iron bombard cannon pointing forward, and a powder magazine with stacked cannonballs across the back. Pale grey stone with gold trim and royal blue banners. Seen from above it is a broad block slightly wider than it is deep, filled edge to edge.",
+   "concept_task": "01a0ef41-adc3-721d-bba6-21c1fa20ed2a",
+   "concept_done": true,
+   "model_task": "01a0ef4c-3a26-708a-a547-c8ff37aee2e0"
+  },
+  {
+   "name": "fp2_gryphon",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A gryphon aerie: a thick curved stone wall bent into a V. At each of the two front tips stands a round stone roost tower topped with a big straw nest and a golden gryphon with raised wings; at the back point a small gatehouse. Pale grey stone with gold trim and royal blue banners. Seen from above it is a wide V opening forward: a base at the back center and two arms reaching forward to the front-left and front-right, twice as wide as it is deep.",
+   "concept_task": "01a0ef41-b2a7-75bc-b507-5c0111dee728",
+   "concept_done": true,
+   "model_task": "01a0ef45-5977-73c1-8809-5b4301fa07c4",
+   "model_done": true
+  },
+  {
+   "name": "fp2_arcane",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A wizard's arcane spire complex: a tall slender tower with a violet cone roof at the front end, topped by a floating glowing purple crystal, joined by a stone bridge to a lower round library tower with a dome at the back end. Pale stone, gold trim and glowing violet runes. The whole thing is a compact oblong twice as long (front to back) as it is wide, and it fills that oblong edge to edge.",
+   "concept_task": "01a0ef41-b779-739c-a643-4f0ad6537dc2",
+   "concept_done": true,
+   "model_task": "01a0ef45-6122-7028-a767-2b1acb473521",
+   "model_done": true
+  },
+  {
+   "name": "fp2_chapel",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A holy chapel of white stone: a small round apse at the narrow back, widening to a broad front with three gabled chapel wings side by side and a golden bell tower rising in the middle, warm light glowing in the windows. White stone, gold roofs. Seen from above it is a wide fan: narrow at the back and three times as wide at the front, a little wider than it is deep.",
+   "concept_task": "01a0ef41-bc51-746e-9a0d-45b49a5c8611",
+   "concept_done": true,
+   "model_task": "01a0ef45-6855-7230-b8f4-2399a28ae1e5",
+   "model_done": true
+  },
+  {
+   "name": "fp2_spore",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A giant spore mound: a lumpy mossy earth mound covered in clusters of huge purple and red spotted mushrooms, the tallest mushroom at the front puffing glowing green spores, smaller mushrooms and roots at the back. Living wood, moss, leaves and glowing green elven runes. The whole thing is a compact oblong twice as long (front to back) as it is wide, and it fills that oblong edge to edge.",
+   "concept_task": "01a0ef41-c11e-7282-888d-aed721d4624e",
+   "concept_done": true,
+   "model_task": "01a0ef45-6fb7-733a-bb89-9a7fbf97b583",
+   "model_done": true
+  },
+  {
+   "name": "fp2_briar",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A long hedge of thorny briar vines: a dense wall of twisted dark green brambles with long sharp brown thorns and a few red berries, even in height along its whole length, with a thicker knot of vines in the middle. Living wood, moss, leaves and glowing green elven runes. The whole thing is very long and narrow, four times longer than it is wide, and fills that strip edge to edge.",
+   "concept_task": "01a0ef41-c5f3-75a6-89d5-77bae7418d4a",
+   "concept_done": true,
+   "model_task": "01a0ef45-781b-72e8-aad9-c27b4088df68",
+   "model_done": true
+  },
+  {
+   "name": "fp2_treant",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "An ancient treant guardian: a huge gnarled oak tree creature with a craggy bark face and glowing yellow eyes standing in the center, four massive twisting roots reaching out to the four corners, ferns between them. Living wood, moss, leaves and glowing green elven runes. Seen from above it is a big X: a center with four arms reaching diagonally to the four corners, a little wider than it is deep.",
+   "concept_task": "01a0ef41-cad0-774f-9f10-8db9e1d250be",
+   "concept_done": true,
+   "model_task": "01a0ef45-7ed9-72e0-b7ab-10fb6735c4b5",
+   "model_done": true
+  },
+  {
+   "name": "fp2_storm",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A stormcaller grove: a tall dark twisted oak at the front point with crackling blue lightning in its crown, and two smaller gnarled trees holding blue crystal lanterns at the back-left and back-right, linked by arching roots. Living wood, moss, leaves and glowing green elven runes. Seen from above it is a wide chevron pointing forward: one point at the front center and two broad wings sweeping back to the back-left and back-right, twice as wide as it is deep.",
+   "concept_task": "01a0ef41-cfbb-73c4-b893-db189e01da56",
+   "concept_done": true,
+   "model_task": "01a0ef45-86d2-70d4-a331-379d2f9cf3c9",
+   "model_done": true
+  },
+  {
+   "name": "fp2_hive",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A giant wasp hive colony: a huge yellow and brown striped paper wasp nest on a fallen hollow log at the front, a second smaller nest at the back end, many round holes and a few giant wasps flying around. The whole thing is a compact oblong twice as long (front to back) as it is wide, and it fills that oblong edge to edge.",
+   "concept_task": "01a0ef41-d48d-765b-9474-8ea42c8a469e",
+   "concept_done": true,
+   "model_task": "01a0ef45-9001-73d5-93cd-8be7a1a412b8",
+   "model_done": true
+  },
+  {
+   "name": "fp2_rootbinder",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A round druid shrine: a ring of standing stones wrapped in thick glowing green roots around a central stone altar with a floating green orb, roots radiating out to the edge of the circle, moss and ferns filling the ring. Living wood, moss, leaves and glowing green elven runes. Seen from above it is round, a full circle filled edge to edge.",
+   "concept_task": "01a0ef41-d967-7495-b0b1-6fda7cf46c53",
+   "concept_done": true,
+   "model_task": "01a0ef45-986a-72d5-b0ed-1b03ddd72fb6",
+   "model_done": true
+  },
+  {
+   "name": "fp2_dwarf_flame",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A dwarven flamethrower bunker: a squat armored bunker with a big brass flamethrower nozzle at the front spouting a small flame, fat fuel tanks and pipes along the back, glowing vents. Dark stone, riveted iron and brass with glowing orange fire. The whole thing is a compact oblong twice as long (front to back) as it is wide, and it fills that oblong edge to edge.",
+   "concept_task": "01a0ef41-de41-759a-b446-d018448da928",
+   "concept_done": true,
+   "model_task": "01a0ef45-a045-7203-acf3-aeec618b8832",
+   "model_done": true
+  },
+  {
+   "name": "fp2_dwarf_hammer",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A dwarven runic steam hammer forge: at the front point a massive iron trip hammer with glowing blue runes raised over an anvil, and two squat stone smokestacks with glowing furnaces at the back-left and back-right, joined by brass pipes. Dark stone, riveted iron and brass with glowing orange fire. Seen from above it is a wide chevron pointing forward: one point at the front center and two broad wings sweeping back to the back-left and back-right, twice as wide as it is deep.",
+   "concept_task": "01a0ef41-e31e-759d-8f4e-ae230e5023f0",
+   "concept_done": true,
+   "model_task": "01a0ef45-a7ef-71ad-987a-76bfebff8d23",
+   "model_done": true
+  },
+  {
+   "name": "fp2_dwarf_mortar",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A dwarven siege mortar emplacement: a huge black iron mortar with brass bands in the middle of the wide front aiming up, stacks of big iron bombs and powder barrels to its left and right, a small stone bunker at the narrow back. Dark stone, riveted iron and brass with glowing orange fire. Seen from above it is a wide fan: narrow at the back and three times as wide at the front, a little wider than it is deep.",
+   "concept_task": "01a0ef41-e7fb-71f0-ad5b-cd2e6ba6fb66",
+   "concept_done": true,
+   "model_task": "01a0ef45-b078-7238-8492-f0d3200f60c9",
+   "model_done": true
+  },
+  {
+   "name": "fp2_dwarf_gyro",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A dwarven flak battery: two brass rotary flak cannons on round iron turrets at the front-left and front-right tips pointing up at the sky, joined by a low armored wall to an ammunition bunker at the back point. Dark stone, riveted iron and brass with glowing orange fire. Seen from above it is a wide V opening forward: a base at the back center and two arms reaching forward to the front-left and front-right, twice as wide as it is deep.",
+   "concept_task": "01a0ef41-ecd2-740d-aa6b-fec3bfd3c336",
+   "concept_done": true,
+   "model_task": "01a0ef45-b8c9-76ab-bbc8-89e9b490240e",
+   "model_done": true
+  },
+  {
+   "name": "fp2_mer_harpoon",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A merfolk harpoon battery on a coral reef ledge: a giant harpoon launcher of whalebone and coral at the front aiming forward, racks of barbed harpoons and coiled ropes along the middle, a tall coral spire at the back. Pink and orange coral, seashells, pearls and glowing turquoise water. The whole thing is long and narrow, three times longer than it is wide, and fills that long strip edge to edge.",
+   "concept_task": "01a0ef41-f1b5-729d-8920-f9539fb78623",
+   "concept_done": true,
+   "model_task": "01a0ef45-bfe5-7207-9a6d-ec02ecb50bc4",
+   "model_done": true
+  },
+  {
+   "name": "fp2_mer_whirl",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A whirlpool shrine: a swirling glowing blue whirlpool pool at the front point ringed by curved coral pillars, and two tall spiral seashell towers at the back-left and back-right. Pink and orange coral, seashells, pearls and glowing turquoise water. Seen from above it is a wide chevron pointing forward: one point at the front center and two broad wings sweeping back to the back-left and back-right, twice as wide as it is deep.",
+   "concept_task": "01a0ef41-f69a-779d-aad8-6bad2178fe0e",
+   "concept_done": true,
+   "model_task": "01a0ef45-c802-7454-928a-403864b39f90",
+   "model_done": true
+  },
+  {
+   "name": "fp2_mer_siren",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A siren rock: a tall jagged sea rock at the front with a merfolk siren with long blue hair sitting on top, singing, a glowing blue crystal beside her, and a lower rocky tail at the back with seaweed and tide pools. Pink and orange coral, seashells, pearls and glowing turquoise water. The whole thing is a compact oblong twice as long (front to back) as it is wide, and it fills that oblong edge to edge.",
+   "concept_task": "01a0ef41-fb89-7131-b198-728fc064bdbe",
+   "concept_done": true,
+   "model_task": "01a0ef45-d012-75d3-8daa-edae1db34aa2",
+   "model_done": true
+  },
+  {
+   "name": "fp2_plague_cauldron",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A plague cauldron: a huge black iron cauldron bubbling with glowing green plague at the front on a fire of bones, stacked skulls, bone racks and a tattered purple banner behind it. Bone, dark purple stone and eerie violet-green ghost light. The whole thing is a compact oblong twice as long (front to back) as it is wide, and it fills that oblong edge to edge.",
+   "concept_task": "01a0ef42-0063-7568-b73d-85c5de4720f5",
+   "concept_done": true,
+   "model_task": "01a0ef45-d88c-72ce-94eb-b6a74a24c3e5",
+   "model_done": true
+  },
+  {
+   "name": "fp2_soul_obelisk",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A soul obelisk shrine: a tall black obelisk at the front with a glowing violet soul crystal and swirling ghostly wisps, a low bone altar with skulls and candles at the back. Bone, dark purple stone and eerie violet-green ghost light. The whole thing is a compact oblong twice as long (front to back) as it is wide, and it fills that oblong edge to edge.",
+   "concept_task": "01a0ef42-053b-75ff-90da-d80e3a7d0d9f",
+   "concept_done": true,
+   "model_task": "01a0ef45-e09c-72b4-894d-dc09ace3bb3b",
+   "model_done": true
+  },
+  {
+   "name": "fp2_hex_tomb",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A cursed hex tomb: a dark stone mausoleum with a glowing violet sigil at the narrow back, three cracked tombstones and a row of purple candles spread across the wide front, a low iron fence. Bone, dark purple stone and eerie violet-green ghost light. Seen from above it is a wide fan: narrow at the back and three times as wide at the front, a little wider than it is deep.",
+   "concept_task": "01a0ef42-0a3a-742a-a183-9a78ba8ed1af",
+   "concept_done": true,
+   "model_task": "01a0ef45-e960-75f2-b574-146ae3c8045c",
+   "model_done": true
+  },
+  {
+   "name": "fp2_seraph",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A seraph shrine: a radiant armored angel warrior holding a glowing spear of light, hovering above a white marble pedestal at the front point, her huge white feathered wings sweeping back so the wing tips rest on two small golden pillars at the back-left and back-right. White marble, gold, soft golden glow. Seen from above it is a wide chevron pointing forward: one point at the front center and two broad wings sweeping back to the back-left and back-right, twice as wide as it is deep.",
+   "concept_task": "01a0ef42-0f13-74d1-ab40-d0289febc566",
+   "concept_done": true,
+   "model_task": "01a0ef45-f13c-7603-ab62-f30af8b1e96e",
+   "model_done": true
+  },
+  {
+   "name": "fp2_archangel",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "An archangel monument: a huge armored archangel raising a flaming golden sword, standing on a marble dais at the narrow back, with four enormous white feathered wings spread forward and outward over the whole wide front. White marble, gold armor, radiant golden light. Seen from above it is a wide fan: narrow at the back and three times as wide at the front, a little wider than it is deep.",
+   "concept_task": "01a0ef42-13ef-7452-8511-86100603273e",
+   "concept_done": true,
+   "model_task": "01a0ef45-f8d4-7754-936c-f76d6f0694d1",
+   "model_done": true
+  },
+  {
+   "name": "fp2_dire_bear",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "An enormous dire bear: a huge brown grizzly bear with glowing green druid runes painted on its fur, standing on all fours and roaring toward the front, on a mossy rock with a hollow-log den behind it. Living wood, moss, leaves and glowing green elven runes. The whole thing is a compact oblong twice as long (front to back) as it is wide, and it fills that oblong edge to edge.",
+   "concept_task": "01a0ef42-18cc-70fa-8ce9-56a7020d0560",
+   "concept_done": true,
+   "model_task": "01a0ef46-01d1-72b5-9cfd-a42c975898ba",
+   "model_done": true
+  },
+  {
+   "name": "fp2_mammoth",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "An ancient war mammoth: a colossal shaggy woolly mammoth facing forward, its enormous curling ivory tusks spreading wide to the front-left and front-right, a small elven wooden howdah with green banners on its back, vines and leaves in its fur. Living wood, moss, leaves and glowing green elven runes. Seen from above it is a broad block slightly wider than it is deep, filled edge to edge.",
+   "concept_task": "01a0ef42-1daf-732a-afae-d734f0917f45",
+   "concept_done": true,
+   "model_task": "01a0ef46-0970-70e5-bfb1-96682dc7c97c",
+   "model_done": true
+  },
+  {
+   "name": "fp2_magma_golem",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A magma golem: a hulking golem of black volcanic rock with glowing lava cracks crouching at the front point with a molten boulder in its fist, and two smoking lava vents with iron braziers at the back-left and back-right. Black basalt, glowing orange lava, dwarven iron. Seen from above it is a wide chevron pointing forward: one point at the front center and two broad wings sweeping back to the back-left and back-right, twice as wide as it is deep.",
+   "concept_task": "01a0ef42-228b-7272-808f-1cadd3a97d2e",
+   "concept_done": true,
+   "model_task": "01a0ef46-1160-74ef-8ea9-8175cd83253d",
+   "model_done": true
+  },
+  {
+   "name": "fp2_fat_dragon",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A very fat, lazy red dragon lying flat on its belly on a pile of gold coins, too heavy to move. Its head rests at the front point with smoke curling from its nostrils, its huge round belly and small folded wings spread across the wide shoulders, and its long tail runs straight back behind it. Red scales, cream belly, gold coins. Seen from above it is an arrow: a pointed front, broad wide shoulders just behind the point, and a long narrow tail running straight back, about as long as it is wide.",
+   "concept_task": "01a0ef42-276a-7345-b39d-0bca770692dc",
+   "concept_done": true,
+   "model_task": "01a0ef46-18da-71e2-94da-f84e4b357c1c",
+   "model_done": true
+  },
+  {
+   "name": "fp2_snapjaw_crab",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A giant armored crab facing forward: its body at the back point and its two enormous snapping claws reaching forward to the front-left and front-right tips. Blue and orange shell with barnacles, coral and shells on its back. Seen from above it is a wide V opening forward: a base at the back center and two arms reaching forward to the front-left and front-right, twice as wide as it is deep.",
+   "concept_task": "01a0ef42-2c46-7368-8b16-c3396a4bbd7c",
+   "concept_done": true,
+   "model_task": "01a0ef46-2010-71fc-aaa4-30852016b7a8",
+   "model_done": true
+  },
+  {
+   "name": "fp2_kraken",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A kraken rising from a round turquoise sea pool: a huge purple octopus head with golden eyes in the center and eight thick tentacles spreading out in every direction to the rim of the pool, coral and rocks around the edge. Pink and orange coral, seashells, pearls and glowing turquoise water. Seen from above it is round, a full circle filled edge to edge.",
+   "concept_task": "01a0ef42-311f-7063-99c3-0eb4e7d9f4c4",
+   "concept_done": true,
+   "model_task": "01a0ef46-2778-7515-870e-519f92d83cb9",
+   "model_done": true
+  },
+  {
+   "name": "fp2_mass_grave",
+   "kind": "static",
+   "polys": 8000,
+   "prompt": "A long open mass grave: a trench of dark earth lined with bones and broken coffins, many green-skinned zombie arms and hands reaching up out of the ground along its whole length, crooked tombstones and a lantern with a violet flame at the back end. Bone, dark purple stone and eerie violet-green ghost light. The whole thing is very long and narrow, four times longer than it is wide, and fills that strip edge to edge.",
+   "concept_task": "01a0ef42-35f7-742d-861a-155ec37ee8c7",
+   "concept_done": true,
+   "model_task": "01a0ef46-2f89-771b-83ea-c221bcd0a66e",
+   "model_done": true
+  },
+  {
+   "name": "fp2_necromancer",
+   "kind": "static",
+   "polys": 10000,
+   "prompt": "A necromancer's ritual circle: a hooded skeletal necromancer in dark purple robes holding a skull staff glowing green, standing on a stone altar in the center, and four bone obelisks with violet flames at the ends of four arms reaching to the four corners, glowing green runes on the ground connecting them. Bone, dark purple stone and eerie violet-green ghost light. Seen from above it is a big X: a center with four arms reaching diagonally to the four corners, a little wider than it is deep.",
+   "concept_task": "01a0ef42-3ac8-778c-88d6-a3f439095aa0",
+   "concept_done": true,
+   "model_task": "01a0ef4c-4275-73e9-8002-61e41d725fb7"
   }
  ]
 }

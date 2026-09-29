@@ -377,7 +377,36 @@ static func overlay(n: Node, m: Material) -> void:
 		overlay(ch, m)
 
 
+## Footprint-shaped Meshy models, second set (fp2_*): each multi-hex tower is one model made to fill its footprint's
+## silhouette (seen from above), so the tower itself covers every hex it stands on. [file, yaw in degrees (multiple of
+## 90) that turns the model's front toward -Z, height cap, how far one axis may be stretched to fill the footprint].
+## Set FOOTPRINT_ART_V2 to false to go back to the first set (FOOTPRINT_ART_V1); towers missing a v2 file use v1.
+const FOOTPRINT_ART_V2 := true
 const FOOTPRINT_ART := {
+	"ballista": ["fp2_ballista", 270.0, 4.5, 1.3],
+	"trebuchet": ["fp2_trebuchet", 270.0, 4.5, 1.3],
+	"bombard": ["fp2_bombard", 0.0, 4.5, 1.3],
+	"gryphon": ["fp2_gryphon", 0.0, 4.5, 1.3],
+	"arcane": ["fp2_arcane", 90.0, 4.5, 1.3],
+	"chapel": ["fp2_chapel", 0.0, 4.5, 1.3],
+	"spore": ["fp2_spore", 90.0, 4.5, 1.3],
+	"briar": ["fp2_briar", 90.0, 4.5, 1.3],
+	"treant": ["fp2_treant", 180.0, 4.5, 1.3],
+	"storm": ["fp2_storm", 0.0, 4.5, 1.3],
+	"hive": ["fp2_hive", 90.0, 4.5, 1.3],
+	"rootbinder": ["fp2_rootbinder", 0.0, 4.5, 1.3],
+	"dwarf_flame": ["fp2_dwarf_flame", 270.0, 4.5, 1.3],
+	"dwarf_hammer": ["fp2_dwarf_hammer", 0.0, 4.5, 1.3],
+	"dwarf_mortar": ["fp2_dwarf_mortar", 270.0, 4.5, 1.3],
+	"dwarf_gyro": ["fp2_dwarf_gyro", 180.0, 4.5, 1.3],
+	"mer_harpoon": ["fp2_mer_harpoon", 270.0, 4.5, 1.3],
+	"mer_whirl": ["fp2_mer_whirl", 180.0, 4.5, 1.3],
+	"mer_siren": ["fp2_mer_siren", 0.0, 4.5, 1.3],
+	"plague_cauldron": ["fp2_plague_cauldron", 180.0, 4.5, 1.3],
+	"soul_obelisk": ["fp2_soul_obelisk", 0.0, 4.5, 1.3],
+	"hex_tomb": ["fp2_hex_tomb", 180.0, 4.5, 1.3],
+}
+const FOOTPRINT_ART_V1 := {
 	"ballista": ["fp_ballista", 270.0, 2.6, 1.15],
 	"gryphon": ["fp_gryphon", 0.0, 3.4, 1.0],
 	"trebuchet": ["fp_trebuchet", 90.0, 4.2, 1.25],
@@ -420,21 +449,20 @@ static func footprint_box(id: String) -> Rect2:
 	return Rect2(lo, hi - lo)
 
 
-## Where a footprint's first gun hex sits, relative to the footprint's middle (facing north).
-static func footprint_muzzle(id: String) -> Vector3:
-	var sh: Dictionary = GameData.shape_of(id)
-	var mid := Vector3.ZERO
-	for c in sh["cells"]:
-		mid += Hex.to_world(Vector2i(c[0], c[1]))
-	mid /= float(sh["cells"].size())
-	var m: Array = sh["muzzles"][0]
-	return Hex.to_world(Vector2i(m[0], m[1])) - mid
+## The footprint art a tower uses (v2 when it exists), or [] for none.
+static func footprint_art(id: String) -> Array:
+	if FOOTPRINT_ART_V2 and FOOTPRINT_ART.has(id) and _has_custom([FOOTPRINT_ART[id][0]]):
+		return FOOTPRINT_ART[id]
+	if FOOTPRINT_ART_V1.has(id) and _has_custom([FOOTPRINT_ART_V1[id][0]]):
+		return FOOTPRINT_ART_V1[id]
+	return []
 
 
 static func _fp_tower(id: String, root: Node3D, head: Node3D) -> bool:
-	if not FOOTPRINT_ART.has(id) or not _has_custom([FOOTPRINT_ART[id][0]]):
+	var art: Array = footprint_art(id)
+	if art.is_empty():
 		return false
-	var art: Array = FOOTPRINT_ART[id]
+	var v2 := String(art[0]).begins_with("fp2_")
 	var n := asset(CUSTOM + art[0] + ".glb")
 	if n == null:
 		return false
@@ -449,9 +477,10 @@ static func _fp_tower(id: String, root: Node3D, head: Node3D) -> bool:
 	var box := footprint_box(id)
 	var sc: float = minf(minf(box.size.x * 0.97 / maxf(wx, 0.001), box.size.y * 0.97 / maxf(wz, 0.001)), float(art[2]) / maxf(bb.size.y, 0.001))
 	var c := bb.get_center()
-	# widen (across the facing) toward the footprint's full width, within the model's allowance
-	var widen: float = clampf(box.size.x * 0.92 / maxf(wx * sc, 0.001), 1.0, float(art[3]))
-	n.scale = Vector3(sc, sc, sc * widen) if turned else Vector3(sc * widen, sc, sc)
+	# stretch toward the footprint's full width (v1: across the facing only; v2: whichever axis has room too)
+	var widen: float = clampf(box.size.x * 0.95 / maxf(wx * sc, 0.001), 1.0, float(art[3]))
+	var deepen: float = clampf(box.size.y * 0.95 / maxf(wz * sc, 0.001), 1.0, float(art[3])) if v2 else 1.0
+	n.scale = Vector3(sc * deepen, sc, sc * widen) if turned else Vector3(sc * widen, sc, sc * deepen)
 	n.position = Vector3(-c.x * n.scale.x, -bb.position.y * sc + 0.1, -c.z * n.scale.z)
 	var ctr := box.get_center()
 	spin.position = Vector3(ctr.x, 0, ctr.y)
@@ -462,12 +491,12 @@ static func _fp_tower(id: String, root: Node3D, head: Node3D) -> bool:
 	for cc in cells:
 		mid += Hex.to_world(Vector2i(cc[0], cc[1]))
 	mid /= float(cells.size())
-	for ex in FOOTPRINT_EXTRAS.get(id, []):
+	for ex in ([] if v2 else FOOTPRINT_EXTRAS.get(id, [])):
 		var holder := fit(root, ex[1], ex[2], ex[3])
 		if holder:
 			var at := Hex.to_world(Vector2i(ex[0][0], ex[0][1])) - mid
 			holder.position = Vector3(at.x, 0.1, at.z)
-	head.position = footprint_muzzle(id) + Vector3(0, bb.size.y * sc * 0.6, 0)
+	head.position = Vector3(0, bb.size.y * sc * 0.6, 0)   # the tower fires from above its centroid
 	return true
 
 

@@ -19,7 +19,8 @@ var nb_range := 0.0     # from a neighboring relay station
 var spec := -1          # chosen specialization at level III (index into GameData.SPECS[id])
 var fx := {}            # that specialization's effects
 var cells: Array = []   # every hex the tower covers
-var muzzles: Array = [] # the hexes it fires from
+var muzzles: Array = [] # its guns (one shot each per volley); everything fires from the centroid
+var reach := 0.0        # GameData.reach_offset: added to range so the centroid reaches as far as the old gun hex did
 var facing := 4         # side index it faces (Hex.E)
 var arc := 360.0        # firing cone in degrees
 var _base_scale := 1.0
@@ -46,6 +47,7 @@ func setup(g: Game, tid: String, anchor: Vector2i, facing_ := 4) -> void:
 	cells = GameData.footprint(tid, anchor, facing)
 	muzzles = GameData.muzzle_cells(tid, anchor, facing)
 	arc = GameData.arc_of(tid)
+	reach = GameData.reach_offset(tid)
 	var m := Models.tower(tid, data["color"])
 	_model = m["root"]
 	head = m["head"]
@@ -56,15 +58,6 @@ func setup(g: Game, tid: String, anchor: Vector2i, facing_ := 4) -> void:
 	_base_scale = 1.0 if _fitted else SIZE_SCALE[clampi(cells.size() - 1, 0, SIZE_SCALE.size() - 1)]
 	_model.scale = Vector3.ONE * _base_scale
 	_model.rotation.y = Hex.dir_yaw(facing)
-	if cells.size() > 1:
-		# a stone plinth on every hex of the footprint (low under footprint-sized models)
-		var col: Color = Color(0.55, 0.53, 0.5).lerp(data["color"], 0.18)
-		var ph := 0.14 if _fitted else 0.28
-		for c in cells:
-			var off := Hex.to_world(c) - Vector3(position.x, 0, position.z)
-			var plinth := Models.cyl(Hex.R * 0.9, Hex.R * 0.96, ph, col, off + Vector3(0, ph * 0.45, 0), 0.0, 6)
-			plinth.material_override = Models.stone_mat(Color(1, 1, 1).lerp(data["color"], 0.12))
-			add_child(plinth)
 	cooldown = randf() * 0.3
 	_anim = randf() * 10.0
 
@@ -82,19 +75,6 @@ func reaches(p: Vector3, from: Vector3, r: float) -> bool:
 		return true
 	var fd := Hex.dir_world(facing)
 	return v.normalized().dot(Vector2(fd.x, fd.z)) >= cos(deg_to_rad(arc * 0.5)) - 0.001
-
-
-func _muzzle_flat(mc: Vector2i) -> Vector3:
-	return Hex.to_world(mc)
-
-
-## Nearest distance from p to any hex of the footprint (auras spread from the whole tower).
-func footprint_dist(p: Vector3) -> float:
-	var best := INF
-	for c in cells:
-		var w := Hex.to_world(c)
-		best = minf(best, Vector2(p.x - w.x, p.z - w.z).length())
-	return best
 
 
 func attack() -> String:
@@ -122,7 +102,7 @@ func damage() -> float:
 
 func range_world() -> float:
 	return float(data["range"]) * GameData.LEVEL_RANGE[level - 1] * GameData.TILE * game.mods["range"] \
-		* (1.0 + GameData.ELEVATION_RANGE * elevation) * (1.0 + fxf("range") + nb_range)
+		* (1.0 + GameData.ELEVATION_RANGE * elevation) * (1.0 + fxf("range") + nb_range) + reach
 
 
 func fire_rate() -> float:
@@ -190,31 +170,21 @@ func _flat_dist(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
 
 
+## Targets are picked from the footprint's centroid. First / Last compare remaining() (road distance left for
+## walkers, straight-line distance left for fliers), so ground and air enemies share one pool.
 func find_target() -> Enemy:
-	return _best_from(muzzles, range_world())
-
-
-func _best_from(from_cells: Array, r: float) -> Enemy:
+	var r := range_world()
 	var best: Enemy = null
 	var best_score := -INF
 	for e in game.enemies:
-		if e.dead or not can_hit(e):
-			continue
-		var ok := false
-		var d := INF
-		for mc in from_cells:
-			var w := _muzzle_flat(mc)
-			if reaches(e.position, w, r):
-				ok = true
-				d = minf(d, _flat_dist(e.position, w))
-		if not ok:
+		if e.dead or not can_hit(e) or not reaches(e.position, position, r):
 			continue
 		var score := 0.0
 		match target_mode:
 			0: score = -e.remaining()
 			1: score = e.remaining()
 			2: score = e.hp
-			3: score = -d
+			3: score = -_flat_dist(e.position, position)
 		if score > best_score:
 			best_score = score
 			best = e
@@ -295,11 +265,9 @@ func _process(delta: float) -> void:
 		_fire(t)
 
 
-## Auras reach from the whole footprint; cone-shaped ones (the Flame Belcher) only in front of the muzzle.
+## Auras reach around the centroid; cone-shaped ones (the Flame Belcher) only in front.
 func _in_aura(e: Enemy, r: float) -> bool:
-	if arc < 359.0:
-		return reaches(e.position, _muzzle_flat(muzzles[0]), r)
-	return footprint_dist(e.position) <= r
+	return reaches(e.position, position, r)
 
 
 func _any_in_range() -> bool:
@@ -318,12 +286,11 @@ func _pulse() -> void:
 			game.apply_hit(pkt, e)
 	if arc < 359.0:
 		var fwd := Hex.dir_world(facing)
-		var m := _muzzle_flat(muzzles[0]) + Vector3(0, position.y + 0.6, 0)
+		var m := position + Vector3(0, 0.6, 0)
 		for k in 3:
 			FX.burst(game.world, m + fwd * r * (0.3 + 0.3 * k), data["color"], 0.5 + 0.3 * k, 0.3)
 	else:
-		for c in cells:
-			FX.ring(game.world, Hex.to_world(c) + Vector3(0, position.y + 0.15, 0), data["color"], r, 0.45)
+		FX.ring(game.world, position + Vector3(0, 0.15, 0), data["color"], r, 0.45)
 	game.sfx("fire" if id == "dwarf_flame" else "pulse", global_position)
 
 
@@ -331,29 +298,30 @@ func _muzzle() -> Vector3:
 	return head.global_position + Vector3(0, 0.2, 0)
 
 
-## Where a shot leaves from: the head for one-gun towers, otherwise above each gun hex.
-func _muzzle_world(mc: Vector2i) -> Vector3:
-	if muzzles.size() == 1:
-		return _muzzle()
-	return Hex.to_world(mc) + Vector3(0, position.y + (head.position.y if _fitted else 1.3 * _base_scale), 0)
+## Where shot i of a volley leaves: the head above the centroid. Two-gun towers fire from barrels either side of it.
+func _muzzle_world(i: int) -> Vector3:
+	var p := _muzzle()
+	var n := muzzles.size()
+	if n > 1:
+		var fd := Hex.dir_world(facing)
+		p += Vector3(-fd.z, 0, fd.x) * (float(i) - (n - 1) * 0.5) * 0.9
+	return p
 
 
 func _fire(t: Enemy) -> void:
 	var r := range_world()
-	for mc in muzzles:
-		var tgt: Enemy = t if reaches(t.position, _muzzle_flat(mc), r) else _best_from([mc], r)
-		if tgt:
-			_fire_at(tgt, _muzzle_world(mc))
+	for i in muzzles.size():
+		_fire_at(t, _muzzle_world(i))
 	# Volley / Barrage / Swarm specializations: extra shots at the next-best targets
 	var extra := int(fxf("multishot"))
 	if extra > 0:
 		var others: Array = []
 		for e in game.enemies:
-			if e != t and not e.dead and can_hit(e) and reaches(e.position, _muzzle_flat(muzzles[0]), r):
+			if e != t and not e.dead and can_hit(e) and reaches(e.position, position, r):
 				others.append(e)
 		others.sort_custom(func(a, b): return a.remaining() < b.remaining())
 		for i in mini(extra, others.size()):
-			_fire_at(others[i], _muzzle_world(muzzles[0]))
+			_fire_at(others[i], _muzzle_world(0))
 	game.sfx(attack(), global_position)
 
 

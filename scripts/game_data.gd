@@ -549,6 +549,31 @@ static func footprint(tid: String, anchor: Vector2i, facing: int) -> Array:
 	return out
 
 
+## Towers aim, fire and measure range from their footprint's centroid. So that nothing loses reach, range gets this
+## added (world units): the distance from the centroid to the old gun hex, or for an all-round aura the mean distance
+## of its hexes from the centroid (a circle about as big as the old "reach from every hex" shape). 0 for one hex.
+static func reach_offset(tid: String) -> float:
+	var sh := shape_of(tid)
+	var cells: Array = sh["cells"]
+	if cells.size() < 2:
+		return 0.0
+	var mid := Vector3.ZERO
+	for c in cells:
+		mid += Hex.to_world(Vector2i(c[0], c[1]))
+	mid /= float(cells.size())
+	if String(TOWERS[tid]["attack"]).begins_with("aura") and arc_of(tid) >= 359.0:
+		var sum := 0.0
+		for c in cells:
+			var w := Hex.to_world(Vector2i(c[0], c[1])) - mid
+			sum += Vector2(w.x, w.z).length()
+		return sum / cells.size()
+	var best := 0.0
+	for c in sh["muzzles"]:
+		var w := Hex.to_world(Vector2i(c[0], c[1])) - mid
+		best = maxf(best, Vector2(w.x, w.z).length())
+	return best
+
+
 static func muzzle_cells(tid: String, anchor: Vector2i, facing: int) -> Array:
 	var out: Array = []
 	for c in shape_of(tid)["muzzles"]:

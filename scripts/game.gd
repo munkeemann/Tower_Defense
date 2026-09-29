@@ -90,6 +90,10 @@ var hover_cell := Vector2i(-1, -1)
 var _ghost: Node3D
 var _sel_range: MeshInstance3D
 var _hover_marker: MeshInstance3D
+var _sel_outline: MeshInstance3D      # gold outline around the selected tower's footprint
+var _hover_outline: MeshInstance3D    # white outline around the tower under the cursor
+var _ghost_outline: MeshInstance3D    # green / red outline around a footprint being placed
+var _outline_cache := {}
 
 var ability_cd := 0.0
 var ability_active := 0.0
@@ -276,7 +280,7 @@ func _footprint_shots() -> void:
 	hud.help_panel.visible = false
 	gold = 99999
 	for tid in run_towers():
-		if GameData.shape_of(tid)["cells"].size() < 2 and not Models.FOOTPRINT_ART.has(tid):
+		if GameData.shape_of(tid)["cells"].size() < 2 and Models.footprint_art(tid).is_empty():
 			continue
 		owned[tid] = 1
 		# an open spot away from the castle, with room in front for the camera
@@ -549,6 +553,64 @@ func _build_overlay() -> void:
 		var g := _hex_marker(Color(0.4, 1.0, 0.5), 0.35)
 		overlay.add_child(g)
 		_ghost_cells.append(g)
+	_sel_outline = _outline_node(Color(1.0, 0.85, 0.3))
+	_hover_outline = _outline_node(Color(1, 1, 1))
+	_ghost_outline = _outline_node(Color(0.4, 1.0, 0.5))
+
+
+func _outline_node(col: Color) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var m := Models.mat(col, 1.2, 0.95)
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m
+	mi.visible = false
+	overlay.add_child(mi)
+	return mi
+
+
+## A ribbon just outside the outer edge of a group of hexes (edges shared by two of them are skipped), in world
+## space relative to the first cell. Cached by shape.
+func _outline_mesh(cells: Array) -> ArrayMesh:
+	var key := str(cells.map(func(c): return c - cells[0]))
+	if _outline_cache.has(key):
+		return _outline_cache[key]
+	var inside := {}
+	for c in cells:
+		inside[c] = true
+	var verts := PackedVector3Array()
+	var o := Hex.to_world(cells[0])
+	for c in cells:
+		var p: Vector3 = Hex.to_world(c) - o
+		for i in 6:
+			if inside.has(c + Hex.E[i]):
+				continue
+			var a: Vector3 = Hex.CORNER[i]
+			var b: Vector3 = Hex.CORNER[(i + 1) % 6]
+			var a1: Vector3 = p + a * 0.98
+			var b1: Vector3 = p + b * 0.98
+			var a2: Vector3 = p + a * 1.12
+			var b2: Vector3 = p + b * 1.12
+			verts.append_array([a1, a2, b2, a1, b2, b1])
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = verts
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	_outline_cache[key] = m
+	return m
+
+
+func _show_outline(mi: MeshInstance3D, cells: Array, col := Color(-1, 0, 0)) -> void:
+	if cells.is_empty():
+		mi.visible = false
+		return
+	mi.mesh = _outline_mesh(cells)
+	mi.position = board.cell_to_world(cells[0]) + Vector3(0, board.surface_y(cells[0]) + 0.08, 0)
+	if col.r >= 0.0:
+		(mi.material_override as StandardMaterial3D).albedo_color = Color(col.r, col.g, col.b, 0.95)
+	mi.visible = true
 
 
 func _hex_marker(col: Color, alpha: float) -> MeshInstance3D:
@@ -610,38 +672,34 @@ func _show_range(mi: MeshInstance3D, pos: Vector3, r: float, arc: float, facing:
 	mi.visible = true
 
 
-## Range as the actual hexes a tower reaches on your tiles: road hexes (where enemies walk) bright,
-## other ground faint. Auras reach from the whole footprint; cone towers only in front of the gun.
-func _show_range_cells(key: String, muzzles: Array, foot: Array, r: float, arc: float, facing: int, aura: bool, col: Color) -> void:
+## Range as the actual hexes a tower reaches on your tiles, measured from its footprint's centroid: road hexes
+## (where enemies walk) bright, other ground faint. Towers with a firing arc only light the hexes in front.
+func _show_range_cells(key: String, center: Vector3, r: float, arc: float, facing: int, col: Color) -> void:
 	if key == _range_key:
 		return
 	_range_key = key
 	var mm := _range_mm.multimesh
-	var seen := {}
 	var n := 0
 	var fd := Hex.dir_world(facing)
 	var cos_half := cos(deg_to_rad(arc * 0.5))
 	var reach := int(ceil(r / (Hex.SQ3 * Hex.R))) + 1
-	var sources: Array = foot if (aura and arc >= 359.0) else muzzles
-	for src in sources:
-		var sw := Hex.to_world(src)
-		for c in Hex.disc(src, reach):
-			if seen.has(c) or not (board.whole.has(c) or board.path_cells.has(c)) or n >= mm.instance_count:
-				continue
-			var cw := Hex.to_world(c)
-			var v := Vector2(cw.x - sw.x, cw.z - sw.z)
-			if v.length() > r:
-				continue
-			if arc < 359.0 and v.length() > 0.1 and v.normalized().dot(Vector2(fd.x, fd.z)) < cos_half - 0.001:
-				continue
-			seen[c] = true
-			var road := board.path_cells.has(c)
-			var y := board.road_y(c) + 0.05 if road else board.surface_y(c) + 0.06
-			mm.set_instance_transform(n, Transform3D(Basis(), Vector3(cw.x, y, cw.z)))
-			var cc := col
-			cc.a = 0.5 if road else 0.17
-			mm.set_instance_color(n, cc)
-			n += 1
+	var src := Hex.from_world(center)
+	for c in Hex.disc(src, reach):
+		if not (board.whole.has(c) or board.path_cells.has(c)) or n >= mm.instance_count:
+			continue
+		var cw := Hex.to_world(c)
+		var v := Vector2(cw.x - center.x, cw.z - center.z)
+		if v.length() > r:
+			continue
+		if arc < 359.0 and v.length() > 0.1 and v.normalized().dot(Vector2(fd.x, fd.z)) < cos_half - 0.001:
+			continue
+		var road := board.path_cells.has(c)
+		var y := board.road_y(c) + 0.05 if road else board.surface_y(c) + 0.06
+		mm.set_instance_transform(n, Transform3D(Basis(), Vector3(cw.x, y, cw.z)))
+		var cc := col
+		cc.a = 0.5 if road else 0.17
+		mm.set_instance_color(n, cc)
+		n += 1
 	mm.visible_instance_count = n
 
 
@@ -2240,6 +2298,8 @@ func cancel_placing() -> void:
 	if _ghost and is_instance_valid(_ghost):
 		_ghost.queue_free()
 	_ghost = null
+	if _ghost_outline:
+		_ghost_outline.visible = false
 	if _range_mm and selected == null:
 		_hide_range()
 	for g in _ghost_cells:
@@ -2258,6 +2318,13 @@ func _update_ghost() -> void:
 		elif placing == DIG:
 			hm_col = Color(0.95, 0.75, 0.4) if board.can_lower(hover_cell) and diggers > 0 else Color(1, 0.3, 0.3)
 		_hover_marker.material_override = Models.mat(hm_col, 0.0, 0.35 if ground_mode else 0.18)
+	# hovering a tower (not placing anything): outline its whole footprint
+	var ht: Tower = board.towers.get(hover_cell) if over_board and placing == "" else null
+	if ht and is_instance_valid(ht) and ht != selected:
+		_show_outline(_hover_outline, ht.cells)
+		_hover_marker.visible = false
+	else:
+		_hover_outline.visible = false
 	for g in _ghost_cells:
 		(g as Node3D).visible = false
 	if placing == "" or ground_mode or _ghost == null:
@@ -2269,23 +2336,27 @@ func _update_ghost() -> void:
 	_ghost.visible = over_board
 	if not over_board:
 		_hide_range()
+		_ghost_outline.visible = false
 		return
 	var col := Color(0.4, 1.0, 0.5) if ok else Color(1.0, 0.3, 0.3)
 	var ctr := footprint_center(cells)
 	_ghost.position = ctr
 	_ghost.rotation.y = Hex.dir_yaw(place_facing)
 	_ghost.scale = Vector3.ONE * (1.0 if _ghost.has_meta("fitted") else Tower.SIZE_SCALE[clampi(cells.size() - 1, 0, 6)])
+	# each hex says for itself whether it can take the tower: clear, buildable and level with the first hex
+	var lvl := board.level_at(cells[0])
 	for i in cells.size():
 		var g: MeshInstance3D = _ghost_cells[i]
+		var good: bool = board.can_build(cells[i]) and board.level_at(cells[i]) == lvl and gold >= tower_cost(placing)
 		g.visible = true
 		g.position = board.cell_to_world(cells[i]) + Vector3(0, 0.08 + board.surface_y(cells[i]), 0)
-		g.material_override = Models.mat(col, 0.0, 0.4)
+		g.material_override = Models.mat(Color(0.4, 1.0, 0.5) if good else Color(1.0, 0.3, 0.3), 0.0, 0.45)
+	_show_outline(_ghost_outline, cells, col)
 	var d: Dictionary = GameData.TOWERS[placing]
 	var nb := 0.2 if "relay" in board.neutrals_near(cells) else 0.0
-	var r: float = float(d["range"]) * GameData.TILE * mods["range"] * (1.0 + GameData.ELEVATION_RANGE * board.level_at(hover_cell)) * (1.0 + nb)
-	var aura: bool = String(d["attack"]).begins_with("aura")
-	_show_range_cells("g|%s|%s|%d|%s" % [placing, hover_cell, place_facing, ok], GameData.muzzle_cells(placing, hover_cell, place_facing),
-		cells, r, GameData.arc_of(placing), place_facing, aura, col)
+	var r: float = float(d["range"]) * GameData.TILE * mods["range"] * (1.0 + GameData.ELEVATION_RANGE * board.level_at(hover_cell)) * (1.0 + nb) \
+		+ GameData.reach_offset(placing)
+	_show_range_cells("g|%s|%s|%d|%s" % [placing, hover_cell, place_facing, ok], ctr, r, GameData.arc_of(placing), place_facing, col)
 
 
 ## Raise Ground: like Tower Dominion's platforms. Works on empty tiles and under towers.
@@ -2419,12 +2490,15 @@ func try_place(c: Vector2i) -> void:
 func select_tower(t: Tower) -> void:
 	cancel_placing()
 	selected = t
+	_show_outline(_sel_outline, t.cells)
 	_update_sel_range()
 	hud.show_tower_info(t)
 
 
 func deselect() -> void:
 	selected = null
+	if _sel_outline:
+		_sel_outline.visible = false
 	_hide_range()
 	hud.show_tower_info(null)
 
@@ -2434,9 +2508,9 @@ func _update_sel_range() -> void:
 		_hide_range()
 		return
 	var t := selected
-	var aura: bool = t.attack().begins_with("aura")
-	_show_range_cells("s|%d|%d|%d|%.2f" % [t.get_instance_id(), t.level, t.elevation, t.range_world()], t.muzzles, t.cells,
-		t.range_world(), t.arc, t.facing, aura, Color(1.0, 0.9, 0.45))
+	_show_range_cells("s|%d|%d|%d|%.2f" % [t.get_instance_id(), t.level, t.elevation, t.range_world()], t.position,
+		t.range_world(), t.arc, t.facing, Color(1.0, 0.9, 0.45))
+	_show_outline(_sel_outline, t.cells)
 
 
 func needs_spec(t: Tower) -> bool:
@@ -2797,9 +2871,8 @@ func _auto_build() -> void:
 			var cells := GameData.footprint(tid, c2, f)
 			if not board.can_build_all(cells):
 				continue
-			var mz: Vector2i = GameData.muzzle_cells(tid, c2, f)[0]
-			var wp := board.cell_to_world(mz)
-			var rr := r * (1.0 + GameData.ELEVATION_RANGE * board.level_at(c2))
+			var wp := footprint_center(cells)
+			var rr := r * (1.0 + GameData.ELEVATION_RANGE * board.level_at(c2)) + GameData.reach_offset(tid)
 			var fd := Hex.dir_world(f)
 			var score := 0.0
 			for p in route:
