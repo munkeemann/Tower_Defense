@@ -498,8 +498,8 @@ func _setup_env() -> void:
 	env.adjustment_saturation = 1.0
 	env.adjustment_contrast = 1.04
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.3, 0.33, 0.4)
-	env.fog_density = 0.0005          # the board's spotlight does the fading now
+	env.fog_light_color = Color(0.6, 0.66, 0.7)
+	env.fog_density = 0.0007          # a light haze toward the horizon
 	env.fog_sky_affect = 0.0
 	var we := WorldEnvironment.new()
 	we.environment = env

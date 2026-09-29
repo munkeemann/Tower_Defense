@@ -21,7 +21,11 @@ uniform bool stylized = false;
 uniform vec3 grass_base : source_color = vec3(0.43, 0.63, 0.27);
 uniform vec3 rock_base : source_color = vec3(0.58, 0.53, 0.47);
 uniform float detail = 0.35;
-uniform vec3 backdrop_col : source_color = vec3(0.45, 0.55, 0.36);
+uniform vec3 backdrop_col : source_color = vec3(0.41, 0.52, 0.33);   // plain grass, about half the map's saturation
+// the board's outer walls (below tile level, down to the grass): a pale stone lip over banded earth
+uniform vec3 edge_lip : source_color = vec3(0.6, 0.56, 0.48);
+uniform vec3 edge_soil : source_color = vec3(0.4, 0.3, 0.21);
+uniform float edge_depth = 1.6;
 uniform bool all_backdrop = false;   // the ground beyond the map edge
 // spotlight: light pools on your tiles; the backdrop beyond fades into dark diagonal stripes
 uniform bool spot_on = false;
@@ -87,13 +91,23 @@ void fragment() {
 	if (stylized) {
 		float band = sin(w_pos.y * 6.5 + vnoise(w_pos.xz * 0.35) * 4.0);
 		side = mix(rock_base, side, 0.35) * (0.92 + 0.08 * band);
+		if (w_pos.y < 0.02) {
+			// the raised board's edge: stone lip, then earth strata darkening toward the grass
+			float d = clamp(-w_pos.y / edge_depth, 0.0, 1.0);
+			float strata = 0.9 + 0.1 * sin(w_pos.y * 13.0 + vnoise(w_pos.xz * 0.5) * 3.0);
+			vec3 earth = edge_soil * strata * mix(1.05, 0.7, d);
+			side = mix(edge_lip, earth, smoothstep(0.1, 0.2, -w_pos.y));
+		}
 	}
 	float steep = 1.0 - smoothstep(0.55, 0.8, abs(w_nrm.y));
 	vec3 col = mix(top, side, steep);
 	if (stylized && (v_col.a < 0.5 || all_backdrop)) {
-		// the backdrop outside your tiles: flat, calm and a little darker, so tiles stand out
-		float n = vnoise(w_pos.xz * 0.05) * 0.6 + vnoise(w_pos.xz * 0.19) * 0.4;
-		col = backdrop_col * grass_tint * mix(0.9, 1.06, n);
+		// the grass outside your tiles: plain, muted and a little darker, shaded by three octaves of value noise
+		// (no texture, so nothing repeats)
+		float broad = vnoise(w_pos.xz * 0.012);
+		float n = broad * 0.5 + vnoise(w_pos.xz * 0.045) * 0.3 + vnoise(w_pos.xz * 0.19) * 0.2;
+		col = backdrop_col * grass_tint * mix(0.88, 1.07, n);
+		col = mix(col, col * vec3(1.06, 1.03, 0.88), smoothstep(0.45, 0.8, broad) * 0.6);   // sun-dried patches
 		if (spot_on) {
 			vec2 suv = (w_pos.xz + vec2(spot_ext)) / (2.0 * spot_ext);
 			float m = 1.0;
@@ -102,8 +116,6 @@ void fragment() {
 			} else {
 				col = mix(col, spot_col, spot_dark);   // past the decal: keep the dark going
 			}
-			float stripe = step(0.5, fract((w_pos.x - w_pos.z) * 0.26));
-			col *= 1.0 - 0.15 * stripe * smoothstep(0.3, 0.85, m);
 		}
 	}
 	ALBEDO = col * v_col.rgb;

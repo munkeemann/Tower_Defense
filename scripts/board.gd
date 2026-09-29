@@ -23,7 +23,7 @@ const MAP_RADIUS := 5          # tile slots from the castle tile to the map edge
 ## Outside your tiles the world is a flat, slightly lower backdrop meadow, so every placed tile stands
 ## out as a raised block with rounded edges.
 const BACKDROP := -2
-const BACKDROP_Y := -0.9
+const BACKDROP_Y := -1.6        # the grass around the board sits well below it, so your tiles read as a raised board
 const BACKDROP_TINT := Color(0.7, 0.76, 0.66)
 const FRONTIER_WALLS := false
 const NONE := Vector2i(99999, 99999)
@@ -214,16 +214,11 @@ func _gen_wild() -> void:
 			if wild_h.has(g):
 				continue
 			wild_h[g] = BACKDROP
+			# the backdrop is plain grass; the old grove rolls still run so a seed grows the same map
 			var p := Hex.to_world(g)
-			var ty := T.GRASS
-			# a few small groves, not a ring of forest: the backdrop should stay quiet
-			if tn.get_noise_2d(p.x, p.z) > 0.5 and rng.randf() < 0.22:
-				ty = T.TREE
-			elif rng.randf() < 0.002:
-				ty = T.TREE
-			elif rng.randf() < 0.004:
-				ty = T.ROCK
-			wild_t[g] = ty
+			if not (tn.get_noise_2d(p.x, p.z) > 0.5 and rng.randf() < 0.22) and not rng.randf() < 0.002:
+				rng.randf()
+			wild_t[g] = T.GRASS
 
 
 ## Precompute, for every cell of the tile template, which tile slot owns each neighboring wedge
@@ -798,8 +793,8 @@ func _build_props() -> void:
 	for prop in PROP_EXTRA:
 		if _prop_exists(prop):
 			sets.append(prop)
-	# Two batches per prop: one for your tiles (casts shadows) and one for the wild land, which sits
-	# under the fog and would otherwise double the shadow work (it only casts shadows on the menu map).
+	# Two batches per prop: one for your tiles (casts shadows) and one for the wild land beyond them (the far tree
+	# line), which never does: those trees are the bulk of the scene's triangles and would double the shadow work.
 	for prop in sets:
 		for wild in [false, true]:
 			var n := int(counts.get(prop, 0)) if wild else PROP_SPARE
@@ -811,7 +806,7 @@ func _build_props() -> void:
 			mm.instance_count = n
 			var mmi := MultiMeshInstance3D.new()
 			mmi.multimesh = mm
-			if wild and fog_enabled:
+			if wild:
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(mmi)
 			for i in mm.instance_count:
@@ -1537,7 +1532,7 @@ const SPOT_FALLOFF := 22.0       # world units from your tiles to full darkness
 const SPOT_DARK := 0.6          # how dark the far backdrop gets
 const SPOT_COL := Color(0.05, 0.06, 0.09)
 var fog_enabled := true
-var spotlight := true            # when fog of war is off, the decal pools light on your tiles instead
+var spotlight := false           # when fog of war is off, the decal can pool light on your tiles instead (off: plain grass)
 var _skirt_mat: ShaderMaterial
 var revealed := PackedByteArray()
 var _fog: Decal
