@@ -31,7 +31,8 @@ func setup(g: Game, e: Enemy, src: Tower) -> void:
 	Models.overlay(m["root"], Models.rim_mat(Color(0.45, 1.0, 0.35)))
 	add_to_group("thralls")
 	position = e.ground_pos() + Vector3(0, -1.0, 0)
-	FX.burst(game.world, e.ground_pos() + Vector3(0, 0.3, 0), Color(0.45, 0.9, 0.35), 0.9, 0.35)
+	VFX.raise(game.world, e.ground_pos())
+	game.sfx("raise", e.ground_pos())
 
 
 func _point_at(d: float) -> Vector3:
@@ -62,6 +63,8 @@ func _process(delta: float) -> void:
 				continue
 			if Vector2(e.position.x - p.x, e.position.z - p.z).length() <= GRAB_REACH:
 				e.apply_stun(GRAB_STUN)
+				game.sfx("grab", p)
+				VFX.play(game.world, "wisps", p + Vector3(0, 0.4, 0), Color(0.5, 1.0, 0.4), 0.8)
 				e.take_damage(dmg, "magic", source if is_instance_valid(source) else null)
 				crumble()
 				return
@@ -72,5 +75,6 @@ func _process(delta: float) -> void:
 func crumble() -> void:
 	if is_queued_for_deletion():
 		return
-	FX.burst(game.world, position + Vector3(0, 0.6, 0), Color(0.45, 0.8, 0.35), 0.8, 0.3)
+	VFX.crumble(game.world, position)
+	game.sfx("crumble", position)
 	queue_free()

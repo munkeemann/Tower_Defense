@@ -86,7 +86,7 @@ def cmd_concepts(m, names):
         if a.get("concept_task"):
             continue
         style = STYLE_CHAR if a["kind"] == "humanoid" else STYLE
-        if a["kind"] in ("texture", "icon"):
+        if a["kind"] in ("texture", "icon", "fx"):
             style = ""   # these carry their full prompt
         body = {"ai_model": IMAGE_MODEL, "prompt": (a["prompt"] + " " + style).strip()}
         if a["kind"] == "humanoid":
@@ -99,7 +99,7 @@ def cmd_concepts(m, names):
 
 def cmd_models(m, names):
     for a in pick(m, names):
-        if a.get("model_task") or not a.get("concept_done") or a["kind"] in ("texture", "icon"):
+        if a.get("model_task") or not a.get("concept_done") or a["kind"] in ("texture", "icon", "fx"):
             continue
         body = {"input_task_id": a["concept_task"], "ai_model": "latest", "topology": "triangle",
                 "should_remesh": True, "target_polycount": a.get("polys", 8000), "should_texture": True,
@@ -166,8 +166,9 @@ def cmd_poll(m, _names):
             t = call("GET", "/openapi/v1/text-to-image/" + a["concept_task"])
             if t.get("status") == "SUCCEEDED":
                 dest = os.path.join(CONCEPTS, n + ".png")
-                if a["kind"] in ("texture", "icon"):
-                    sub = os.path.join(OUT, a["kind"] + "s")
+                if a["kind"] in ("texture", "icon", "fx"):
+                    # fx sprites land raw in fx_raw/ (.gdignore'd); tools/fx_textures.py turns them into assets/fx/
+                    sub = os.path.join(OUT, {"texture": "textures", "icon": "icons", "fx": "fx_raw"}[a["kind"]])
                     os.makedirs(sub, exist_ok=True)
                     dest = os.path.join(sub, n + ".png")
                 fetch(t["image_urls"][0], dest)

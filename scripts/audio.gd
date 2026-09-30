@@ -23,8 +23,16 @@ const SOUNDS := {
 	# recorded only (tools/sfx_batch.py); without a file they borrow a built-in sound (FALLBACK)
 	"scaffold": [-8.0, 0.1, 0.05], "dig": [-8.0, 0.1, 0.05], "rune": [-12.0, 0.1, 0.0],
 	"talent": [-9.0, 0.3, 0.0], "fire": [-17.0, 0.12, 0.08], "surge": [-9.0, 0.5, 0.0],
+	# creature towers, zombies and the like
+	"breath": [-11.0, 0.3, 0.05], "smite": [-9.0, 0.2, 0.05], "spear": [-16.0, 0.06, 0.1], "grasp": [-11.0, 0.15, 0.08],
+	"stomp": [-9.0, 0.2, 0.06], "maul": [-11.0, 0.1, 0.08], "claw": [-12.0, 0.08, 0.1], "magma": [-13.0, 0.1, 0.08],
+	"raise": [-12.0, 0.15, 0.08], "grab": [-12.0, 0.1, 0.1], "crumble": [-15.0, 0.08, 0.1], "graves": [-17.0, 0.25, 0.06],
+	"wings": [-15.0, 0.5, 0.1], "splat": [-14.0, 0.08, 0.1], "wave_clear": [-8.0, 1.0, 0.0],
 }
-const FALLBACK := {"scaffold": "build", "dig": "build", "rune": "card", "talent": "upgrade", "fire": "pulse", "surge": "portal"}
+const FALLBACK := {"scaffold": "build", "dig": "build", "rune": "card", "talent": "upgrade", "fire": "pulse", "surge": "portal",
+	"breath": "fire", "smite": "boom", "spear": "arrow", "grasp": "slam", "stomp": "slam", "maul": "slam", "claw": "hit",
+	"magma": "lob", "raise": "portal", "grab": "hit", "crumble": "die", "graves": "pulse", "wings": "card", "splat": "lob",
+	"wave_clear": "gold"}
 
 var muted := false
 var music_enabled := true

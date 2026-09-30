@@ -1309,6 +1309,83 @@
    "concept_done": true,
    "model_task": "01a0ef4c-4275-73e9-8002-61e41d725fb7",
    "model_done": true
+  },
+  {
+   "name": "fx_flame",
+   "kind": "fx",
+   "prompt": "A single wispy tongue of fire flame, licking upward, bright white core fading to soft grey edges. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-16e7-71c7-88f0-b174b22b7819",
+   "concept_done": true
+  },
+  {
+   "name": "fx_smoke",
+   "kind": "fx",
+   "prompt": "A single soft round puff of billowing smoke, fluffy and wispy, light grey. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-1bde-709d-8aa0-44fe6a2b5bf1",
+   "concept_done": true
+  },
+  {
+   "name": "fx_spark",
+   "kind": "fx",
+   "prompt": "A single bright four-pointed star sparkle glint with a small soft glow around its center. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-20c1-7465-be9e-912a2d3d92b0",
+   "concept_done": true
+  },
+  {
+   "name": "fx_magic",
+   "kind": "fx",
+   "prompt": "A glowing swirl of magical energy wisps spiraling around a bright center. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-25c5-705d-b0b2-e6a6a2becb04",
+   "concept_done": true
+  },
+  {
+   "name": "fx_rune",
+   "kind": "fx",
+   "prompt": "A glowing circular magic rune circle seen straight from above: thin concentric rings with arcane runes and symbols between them. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-2aaf-7271-88f8-9dd98f29d179",
+   "concept_done": true
+  },
+  {
+   "name": "fx_ray",
+   "kind": "fx",
+   "prompt": "A single soft vertical beam of bright light, tall and narrow, glowing, fading out at the top and the bottom. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-2f8a-7675-8f02-2449c498b106",
+   "concept_done": true
+  },
+  {
+   "name": "fx_splash",
+   "kind": "fx",
+   "prompt": "A single splash of water droplets and a crown of spray bursting outward. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-346c-7365-8e36-587dcfc802a9",
+   "concept_done": true
+  },
+  {
+   "name": "fx_bubble",
+   "kind": "fx",
+   "prompt": "A single glossy round bubble with a bright rim and a small highlight, hollow and see-through in the middle. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-3956-73bb-80ea-030c070db7b5",
+   "concept_done": true
+  },
+  {
+   "name": "fx_debris",
+   "kind": "fx",
+   "prompt": "A small cluster of broken rock chunks and pebbles, a few sharp stone fragments. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-3e28-7068-80c6-437e66bd39cc",
+   "concept_done": true
+  },
+  {
+   "name": "fx_dust",
+   "kind": "fx",
+   "prompt": "A soft ring-shaped cloud of dust seen from above, a round wispy donut of dust. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-430f-70f3-b71d-bc69f8f30edc",
+   "concept_done": true
+  },
+  {
+   "name": "fx_wisp",
+   "kind": "fx",
+   "prompt": "A single ghostly spirit wisp, a curling ribbon of ethereal smoke with a faint glowing head. Game visual effect sprite texture, pure white or light grey on a completely pure black background, centered, fully inside the frame with a wide empty black margin on every side, soft glowing edges, no text, no border, no shadow, flat, front view.",
+   "concept_task": "01a0f03e-47f8-7020-abe8-b88da9bda288",
+   "concept_done": true
   }
  ]
 }

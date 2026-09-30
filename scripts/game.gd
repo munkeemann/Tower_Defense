@@ -125,6 +125,7 @@ func _ready() -> void:
 	world = Node3D.new()
 	world.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(world)
+	VFX.warmup(world)
 	overlay = Node3D.new()
 	add_child(overlay)
 	cam = CameraRig.new()
@@ -1152,7 +1153,7 @@ func _wave_complete() -> void:
 		builders += 1
 	if int(mods["repair"]) > 0:
 		hp = mini(max_hp, hp + int(mods["repair"]))
-	sfx("gold")
+	sfx("wave_clear")
 	if wave >= GameData.MAX_WAVES:
 		_game_over(true)
 		return
@@ -2077,7 +2078,9 @@ func spawn_enemy(type_id: String, r: PackedVector3Array, progress := 0.0) -> Ene
 	e.setup(self, type_id, r, mult, progress)
 	enemies.append(e)
 	if progress <= 0.0:
-		FX.burst(world, r[0] + Vector3(0, 1.0, 0), Color(0.7, 0.3, 1.0), 0.8, 0.3)
+		VFX.play(world, "magic", r[0] + Vector3(0, 1.0, 0), Color(0.75, 0.4, 1.0), 1.2)
+		if e.flying:
+			sfx("wings", r[0])
 	return e
 
 
@@ -2146,7 +2149,9 @@ func enemy_killed(e: Enemy) -> void:
 	var g: int = int(round(base_gold * (1.0 + wave * 0.015) * (1.0 + float(hero_fx.get("kill_gold", 0.0)) + float(mods["kill_gold"])))) + int(mods["bounty"])
 	_add_gold(g)
 	run_stats["kills"] += 1
-	FX.burst(world, e.aim_pos(), e.data["color"], 0.6 if not e.is_boss else 3.0, 0.25)
+	VFX.death(world, e.aim_pos(), e.data["color"], e.is_boss)
+	if e.is_boss:
+		VFX.blast(world, e.ground_pos(), 6.0, true)
 	if e.is_boss:
 		FX.float_text(world, e.position + Vector3(0, 3, 0), "+%d" % g, Color(1, 0.85, 0.3), 96)
 		hud.toast("%s defeated!" % e.data["name"], Color(1, 0.85, 0.3))
@@ -2297,6 +2302,8 @@ func chain_lightning(pkt: Dictionary, first: Enemy, jumps: int, from: Vector3, c
 				nxt = e
 		cur = nxt
 	FX.lightning(world, points, col)
+	for i in range(1, points.size()):
+		VFX.play(world, "sparks", points[i], col.lightened(0.4))
 
 
 # ------------------------------------------------------------------ ability
@@ -2570,7 +2577,7 @@ func try_place(c: Vector2i) -> void:
 	board.claim_in_range(t.position, t.range_world())
 	gold -= cost
 	run_stats["built"] += 1
-	FX.burst(world, t.position + Vector3(0, 0.3, 0), Color(0.7, 0.6, 0.45), 1.2 * sqrt(cells.size()), 0.3)
+	VFX.build(world, t.position, cells.size())
 	sfx("build", t.position)
 	recompute_buffs()
 	if not Input.is_key_pressed(KEY_SHIFT) or gold < cost or int(owned[placing]) <= 0:

@@ -37,7 +37,8 @@ SOUNDS = {
     "build": ("a wooden defense tower built quickly, a few hammer knocks and a solid thud", 1.0),
     "upgrade": ("a magical upgrade, rising sparkle chime", 1.0),
     "sell": ("gold coins poured into a leather pouch", 0.8),
-    "horn": ("a medieval war horn blast signalling the start of battle", 2.5),
+    "horn": ("a regal herald trumpet fanfare announcing the start of battle: two bright brass trumpets play a short rising "
+             "call from a castle wall, crisp and triumphant", 2.5),
     "boss": ("an ominous giant monster roar with a deep war drum hit", 3.0),
     "portal": ("a dark magic portal opening, swirling vortex whoosh", 1.5),
     "leak": ("a monster striking the castle gate, heavy wooden impact and a warning bell", 1.0),
@@ -55,6 +56,22 @@ SOUNDS = {
     "talent": ("a castle upgrade, deep bell toll with an uplifting chime", 1.5),
     "fire": ("a short burst of fire breath from a flamethrower, whoosh and crackle", 1.0),
     "surge": ("a wave of water surging forward and crashing", 1.5),
+    # creature towers, zombies and other effects (2026-09-29)
+    "breath": ("a huge dragon exhaling a long roaring stream of fire, deep whoosh and crackling flames", 1.5),
+    "smite": ("a holy pillar of light crashing down from the sky, a bright angelic choir swell and a thunderous impact", 1.4),
+    "spear": ("a radiant spear of light hurled through the air, a shimmering whoosh with a bright bell-like chime", 0.6),
+    "grasp": ("giant wet tentacles lashing out and squeezing, slimy slaps and a water splash", 1.0),
+    "stomp": ("a giant mammoth stomping the ground, a heavy earth-shaking thud with a rumble and a short trumpet call", 1.2),
+    "maul": ("a huge bear roaring and swiping its claws, a growl and a heavy slash", 0.9),
+    "claw": ("giant crab claws snapping shut with a hard shell crunch", 0.6),
+    "magma": ("a molten boulder hurled from a volcano golem, a fiery whoosh and a lava sizzle", 1.0),
+    "raise": ("a zombie clawing its way out of the ground, cracking dirt, a hollow groan and a ghostly whoosh", 1.2),
+    "grab": ("a zombie lunging and grabbing someone, a snarl and a short struggle", 0.8),
+    "crumble": ("a skeleton crumbling to dust, bones clattering to the ground", 0.8),
+    "graves": ("dead hands clawing up through the dirt of a grave, scraping earth and faint moans", 1.0),
+    "wings": ("a flying monster swooping overhead, heavy leathery wing flaps and a whoosh", 1.0),
+    "splat": ("a glob of bubbling poison splattering on the ground, a wet splat and a hiss", 0.7),
+    "wave_clear": ("a short triumphant victory sting for a cleared wave: a quick brass flourish and a drum hit with coins jingling", 1.5),
 }
 
 

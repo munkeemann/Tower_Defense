@@ -16,10 +16,12 @@ var start := Vector3.ZERO
 var t := 0.0
 var dur := 1.0
 var color := Color.WHITE
+var style := ""
 
 
-func _visual(style: String, c: Color) -> void:
+func _visual(style_: String, c: Color) -> void:
 	color = c
+	style = style_
 	match style:
 		"arrow":
 			var shaft := Models.box(Vector3(0.05, 0.05, 0.6), Color(0.55, 0.4, 0.25))
@@ -38,6 +40,9 @@ func _visual(style: String, c: Color) -> void:
 			add_child(Models.sphere(0.22, Color(0.12, 0.12, 0.14)))
 		"spore":
 			add_child(Models.sphere(0.25, c, Vector3.ZERO, 1.2))
+		"magma":
+			add_child(Models.sphere(0.3, Color(0.25, 0.12, 0.08)))
+			add_child(Models.sphere(0.24, Color(1.0, 0.5, 0.1), Vector3.ZERO, 3.0))
 
 
 func setup_homing(g: Game, pkt: Dictionary, from: Vector3, tgt: Enemy, spd: float, style: String, c: Color) -> void:
@@ -71,12 +76,14 @@ func setup_lob(g: Game, pkt: Dictionary, from: Vector3, to: Vector3, flight: flo
 	start = from
 	target_pos = to
 	dur = flight
-	var style := "boulder"
+	var look := "boulder"
 	if pkt["tower_id"] == "bombard":
-		style = "cannonball"
-	elif pkt["tower_id"] == "spore":
-		style = "spore"
-	_visual(style, c)
+		look = "cannonball"
+	elif pkt["tower_id"] in ["spore", "plague_cauldron"]:
+		look = "spore"
+	elif pkt["tower_id"] == "magma_golem":
+		look = "magma"
+	_visual(look, c)
 
 
 func _process(delta: float) -> void:
@@ -93,7 +100,9 @@ func _process(delta: float) -> void:
 					game.apply_hit(packet, alive)
 				if packet["splash"] > 0.0:
 					game.apply_splash(packet, position, alive)
-					FX.burst(game.world, position, color, packet["splash"] * 0.6, 0.25)
+					VFX.magic_hit(game.world, position, color, true)
+				elif style == "orb":
+					VFX.magic_hit(game.world, position, color)
 				else:
 					FX.burst(game.world, position, color, 0.35, 0.15)
 				queue_free()
@@ -123,10 +132,14 @@ func _process(delta: float) -> void:
 			rotate_x(delta * 6.0)
 			if s >= 1.0:
 				game.apply_splash(packet, target_pos, null)
-				var fx_col := Color(0.55, 0.45, 0.35) if packet["tower_id"] != "spore" else color
+				var toxic: bool = packet["tower_id"] in ["spore", "plague_cauldron"]
+				var fx_col := color if toxic else Color(0.55, 0.45, 0.35)
 				FX.ring(game.world, target_pos + Vector3(0, 0.15, 0), fx_col, packet["splash"], 0.35)
-				FX.burst(game.world, target_pos, fx_col, packet["splash"] * 0.5, 0.3)
-				game.sfx("boom", target_pos)
+				if toxic:
+					VFX.poison(game.world, target_pos, color, packet["splash"])
+				else:
+					VFX.blast(game.world, target_pos, packet["splash"], packet["tower_id"] in ["magma_golem", "dwarf_mortar", "bombard"])
+				game.sfx("splat" if toxic else "boom", target_pos)
 				if packet["splash"] > 2.4:
 					game.cam.shake(0.18)
 				queue_free()

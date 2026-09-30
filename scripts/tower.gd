@@ -29,8 +29,9 @@ var water_bonus := 0.0  # Blue's Tidebound: extra damage next to water
 var line_w := 0.0       # breath towers: width of the straight line they hit (world units); 0 = normal reach
 var thralls: Array = [] # Necromancer: its zombies that are still up
 
-## Sounds for attack kinds that borrow another's.
-const ATTACK_SFX := {"breath": "fire", "smite": "boom", "grasp": "slam"}
+## A tower's attack sound: its own ("sfx" in its data), or its attack kind's.
+func attack_sfx() -> String:
+	return String(data.get("sfx", attack()))
 
 var head: Node3D
 var _model: Node3D
@@ -169,7 +170,7 @@ func upgrade(spec_index := -1) -> void:
 	var ring := Models.torus(rr, rr + 0.1 * (1.0 + float(_fitted)), GameData.FACTIONS[game.faction]["color"], Vector3(0, 0.3 + 0.12 * (level - 2), 0), 1.2)
 	add_child(ring)
 	_level_marks.append(ring)
-	FX.burst(game.world, global_position + Vector3(0, 1.0, 0), Color(1, 0.9, 0.4), 1.4, 0.35)
+	VFX.upgrade(game.world, global_position, GameData.FACTIONS[game.faction]["color"], cells.size())
 
 
 func can_hit(e: Enemy) -> bool:
@@ -300,13 +301,16 @@ func _pulse() -> void:
 		if not e.dead and can_hit(e) and _in_aura(e, r):
 			game.apply_hit(pkt, e)
 	if arc < 359.0:
+		# a cone of fire (Flame Belcher)
 		var fwd := Hex.dir_world(facing)
-		var m := position + Vector3(0, 0.6, 0)
-		for k in 3:
-			FX.burst(game.world, m + fwd * r * (0.3 + 0.3 * k), data["color"], 0.5 + 0.3 * k, 0.3)
+		VFX.play(game.world, "cone", position + fwd * reach + Vector3(0, 0.6, 0), Color.WHITE, clampf(r / 8.0, 0.5, 1.6), fwd)
 	else:
 		FX.ring(game.world, position + Vector3(0, 0.15, 0), data["color"], r, 0.45)
-	game.sfx("fire" if id == "dwarf_flame" else ("slam" if id == "mammoth" else "pulse"), global_position)
+		if data.has("stun"):
+			VFX.stomp(game.world, position, r)
+		elif id == "mass_grave":
+			VFX.play(game.world, "dirt", position, Color.WHITE, 1.2)
+	game.sfx(String(data.get("sfx", "pulse")), global_position)
 
 
 func _muzzle() -> Vector3:
@@ -344,7 +348,7 @@ func _fire(t: Enemy) -> void:
 		others.sort_custom(func(a, b): return a.remaining() < b.remaining())
 		for i in mini(extra, others.size()):
 			_fire_at(others[i], _muzzle_world(0))
-	game.sfx(ATTACK_SFX.get(attack(), attack()), global_position)
+	game.sfx(attack_sfx(), global_position)
 
 
 ## Fat Dragon: fire along the whole line ahead, burning everything in it.
@@ -354,13 +358,9 @@ func _breathe(r: float) -> void:
 		if not e.dead and can_hit(e) and reaches(e.position, position, r):
 			game.apply_hit(pkt, e)
 	var fd := Hex.dir_world(facing)
-	var mouth := position + fd * reach + Vector3(0, 0.7, 0)
-	var n := 6
-	for k in n:
-		var f := (k + 1.0) / n
-		FX.burst(game.world, mouth + fd * (r - reach) * f, data["color"].lerp(Color(1, 0.85, 0.3), f * 0.5), 0.5 + 0.5 * f, 0.3)
+	VFX.breath(game.world, position + fd * reach + Vector3(0, 0.7, 0), fd, r - reach)
 	_recoil = 1.0
-	game.sfx("fire", global_position)
+	game.sfx(attack_sfx(), global_position)
 
 
 ## Kraken: seize the target and the next ones along (up to "grasp"), crushing and holding them.
@@ -376,10 +376,10 @@ func _grasp(t: Enemy, r: float) -> void:
 	var pkt := make_packet()
 	for e in victims:
 		game.apply_hit(pkt, e)
-		FX.burst(game.world, e.aim_pos(), data["color"], 0.7, 0.3)
+		VFX.splash(game.world, e.ground_pos() + Vector3(0, 0.3, 0), data["color"])
 		FX.ring(game.world, e.ground_pos() + Vector3(0, 0.1, 0), data["color"], 0.9, 0.35)
 	_recoil = 1.0
-	game.sfx("slam", global_position)
+	game.sfx(attack_sfx(), global_position)
 
 
 func _fire_at(t: Enemy, from: Vector3) -> void:
@@ -413,8 +413,7 @@ func _fire_at(t: Enemy, from: Vector3) -> void:
 			for e in game.enemies.duplicate():
 				if not e.dead and can_hit(e) and _flat_dist(e.position, sp) <= maxf(pkt["splash"], 0.6):
 					game.apply_hit(pkt, e)
-			FX.burst(game.world, sp + Vector3(0, 2.5, 0), Color(1, 0.95, 0.7), 1.0, 0.35)
-			FX.burst(game.world, sp + Vector3(0, 0.6, 0), col, 1.6, 0.35)
+			VFX.smite(game.world, t.ground_pos(), col)
 			FX.ring(game.world, t.ground_pos() + Vector3(0, 0.15, 0), col, maxf(pkt["splash"], 1.0), 0.4)
 		"slam":
 			var gp := t.ground_pos()
@@ -422,5 +421,5 @@ func _fire_at(t: Enemy, from: Vector3) -> void:
 				if not e.dead and can_hit(e) and _flat_dist(e.position, gp) <= pkt["splash"]:
 					game.apply_hit(pkt, e)
 			FX.ring(game.world, gp + Vector3(0, 0.15, 0), Color(0.6, 0.45, 0.3), pkt["splash"], 0.3)
-			FX.burst(game.world, gp, Color(0.5, 0.4, 0.3), 0.8, 0.25)
+			VFX.stomp(game.world, gp, pkt["splash"])
 	_recoil = 1.0
