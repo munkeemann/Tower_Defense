@@ -141,6 +141,7 @@ Deepwood) changes how often tiles are raised and how many ponds they carry.
 | C | Castle talents |
 | Space / V / P / M | Start wave / game speed / pause / sound on-off |
 | Menu button | Set the run aside; Resume it from the main menu |
+| F11 or Alt+Enter | Fullscreen on / off (remembered; also a button on the main menu) |
 | Esc or right-click | Cancel |
 
 ## Look

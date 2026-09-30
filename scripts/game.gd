@@ -142,6 +142,8 @@ func _ready() -> void:
 	_load_stats()
 	difficulty = clampi(int(stats.get("difficulty", 0)), 0, GameData.DIFFICULTIES.size() - 1)
 	audio.set_muted(bool(stats.get("muted", false)))
+	if bool(stats.get("fullscreen", false)) and OS.get_cmdline_user_args().is_empty():
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	var args := OS.get_cmdline_user_args()
 	for a in args:
 		if a.begins_with("--autotest"):
@@ -2709,6 +2711,30 @@ func _set_paused(p: bool) -> void:
 
 
 # ------------------------------------------------------------------ input
+
+## F11 or Alt+Enter: fullscreen on / off, anywhere (menus included). The choice is remembered.
+func _input(event: InputEvent) -> void:
+	var k := event as InputEventKey
+	if k and k.pressed and not k.echo and (k.keycode == KEY_F11 or (k.keycode == KEY_ENTER and k.alt_pressed)):
+		toggle_fullscreen()
+		get_viewport().set_input_as_handled()
+
+
+func is_fullscreen() -> bool:
+	return DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
+
+
+func toggle_fullscreen() -> void:
+	set_fullscreen(not is_fullscreen())
+
+
+func set_fullscreen(on: bool) -> void:
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED)
+	stats["fullscreen"] = on
+	_save_stats()
+	if state == S.MENU and hud.menu_root and is_instance_valid(hud.menu_root):
+		hud.show_menu(stats)   # refresh the Fullscreen button's label
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if state == S.MENU:

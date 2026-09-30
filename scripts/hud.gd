@@ -283,7 +283,7 @@ func _build_bottom() -> void:
 		"F: ability   B: Builder (raise)   N: Digger (lower)\n" +
 		"C: castle talents (spend gold on long-term upgrades)\n" +
 		"Space: start wave   V: speed   P: pause   M: sound\n" +
-		"Esc / right-click: cancel   H: hide this", 13, DIM_C))
+		"Esc / right-click: cancel   F11: fullscreen   H: hide this", 13, DIM_C))
 	help_panel.visible = false   # out of the way until H
 
 
@@ -1342,6 +1342,7 @@ func show_menu(stats: Dictionary) -> void:
 	foot.add_child(_button("Sound: %s" % ("Off" if game.audio.muted else "On"), func():
 		game.toggle_mute()
 		show_menu(game.stats), 16))
+	foot.add_child(_button("Fullscreen: %s  [F11]" % ("On" if game.is_fullscreen() else "Off"), func(): game.toggle_fullscreen(), 16))
 	foot.add_child(_button("Quit", func(): game.get_tree().quit()))
 
 
