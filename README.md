@@ -26,9 +26,11 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
    - Entrances sit at side midpoints. A tile has 2 to 6 of them, usually 2 (50% 2, 27% 3, 13% 4, 7% 5, 3% 6).
      Once you're holding several battlefronts, tiles that would only add more get rarer.
    - **Sides that touch placed tiles must match**: entrance to entrance, wall to wall.
-   - **Every open entrance is an enemy spawn** (a battlefront). Each enemy picks one at random and walks the
-     shortest road to your castle. Extra entrances add battlefronts; lining a tile up with more than one open end
-     merges them.
+   - **Every open entrance is an enemy spawn** (a battlefront). Each enemy picks one at random, then one of the
+     roads from there to your castle (`Board.routes_from`: every route that never doubles back, up to 12): shorter
+     ones are likelier (one half again as long comes up about half as often), so forks and loops split a wave, and a
+     stretch every route shares is your chokepoint. Extra entrances add battlefronts; lining a tile up with more than
+     one open end merges them.
 3. **Build** towers on your own tiles, then press **Start Wave** (Space).
    Every tower needs a **blueprint copy**: building one uses a copy, selling it gives the copy back.
    Towers take 1 to 5 hexes, all clear and level; the big ones usually fit where two or three tiles meet.

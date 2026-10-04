@@ -60,7 +60,7 @@ var spawn_queue: Array = []
 var wave_clock := 0.0       # game seconds since the wave started (spawn times count from here)
 var _spawned := 0           # enemies spawned this wave (road ends take turns by this count)
 var next_wave_list: Array = []
-var wave_routes := {}       # port cell -> route (this wave)
+var wave_routes := {}       # port cell -> its routes this wave: [[waypoints, length], ...], shortest first
 var wave_port_cycle: Array = []
 var speed := 1.0
 var paused := false
@@ -1404,6 +1404,27 @@ func _enter_build() -> void:
 	_refresh_ui()
 
 
+## A route for one enemy from road end pc: any of its routes, the shorter ones likelier (a route half again as long
+## comes up about half as often).
+func _pick_route(pc: Vector2i) -> PackedVector3Array:
+	var rs: Array = wave_routes[pc]
+	if rs.size() == 1:
+		return rs[0][0]
+	var best := float(rs[0][1])
+	var ws: Array = []
+	var total := 0.0
+	for r in rs:
+		var w := pow(best / maxf(1.0, float(r[1])), 2.0)
+		ws.append(w)
+		total += w
+	var x := rng.randf() * total
+	for i in rs.size():
+		x -= float(ws[i])
+		if x <= 0.0:
+			return rs[i][0]
+	return rs[0][0]
+
+
 func start_wave() -> void:
 	if state != S.BUILD:
 		return
@@ -1417,7 +1438,7 @@ func start_wave() -> void:
 	# enemies split evenly across every open road end; a road end that opened just now gets a lighter share
 	var ports: Array = board.open_ports.keys()
 	for pc in ports:
-		wave_routes[pc] = board.route_from(pc)
+		wave_routes[pc] = board.routes_from(pc)
 	for round_i in 3:
 		for pc in ports:
 			var fresh: bool = int(board.port_opened.get(pc, 0)) == wave and wave > 1
@@ -2323,7 +2344,7 @@ func _process(delta: float) -> void:
 			_spawned += 1
 			if GameData.ENEMIES[e["type"]].get("boss", false):
 				pc = wave_port_cycle[rng.randi() % wave_port_cycle.size()]
-			var en := spawn_enemy(e["type"], wave_routes[pc])
+			var en := spawn_enemy(e["type"], _pick_route(pc))
 			if String(e.get("trait", "")) != "":
 				en.set_trait(e["trait"])
 		if spawn_queue.is_empty() and enemies.is_empty():

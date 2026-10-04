@@ -2017,6 +2017,59 @@ func route_from(port: Vector2i) -> PackedVector3Array:
 	return pts
 
 
+## Every road route from an entrance to the castle that never doubles back (up to `cap` of them, none much more than
+## twice the shortest), as [waypoints, length in cells], shortest first. Each enemy takes one of them, so forks and
+## loops in your road split the waves; a stretch every route shares is still a chokepoint.
+func routes_from(port: Vector2i, cap := 12) -> Array:
+	if _net_dirty:
+		_rebuild_network()
+	if not _dist.has(port):
+		return [[route_from(port), 0]]
+	var limit := int(_dist[port]) * 2 + 24
+	var by_dist := func(a, b): return int(_dist.get(a, 99999)) < int(_dist.get(b, 99999))
+	var found: Array = []
+	var path: Array = [port]
+	var on := {port: true}
+	var iters: Array = [0]          # per depth: the next neighbour to try (nearest-to-the-castle first)
+	var budget := 40000
+	while not path.is_empty() and found.size() < cap and budget > 0:
+		budget -= 1
+		var c: Vector2i = path.back()
+		if c == center:
+			found.append(path.duplicate())
+			on.erase(c)
+			path.pop_back()
+			iters.pop_back()
+			continue
+		var ns: Array = (links.get(c, []) as Array).duplicate()
+		ns.sort_custom(by_dist)
+		var i: int = iters.back()
+		if i >= ns.size():
+			on.erase(c)
+			path.pop_back()
+			iters.pop_back()
+			continue
+		iters[iters.size() - 1] = i + 1
+		var n: Vector2i = ns[i]
+		if on.has(n) or not _dist.has(n) or path.size() + int(_dist[n]) > limit:
+			continue
+		path.append(n)
+		on[n] = true
+		iters.append(0)
+	if found.is_empty():
+		return [[route_from(port), int(_dist[port])]]
+	found.sort_custom(func(a, b): return a.size() < b.size())
+	var out: Array = []
+	for cells in found:
+		var pts := PackedVector3Array()
+		for c in cells:
+			if c != center:
+				pts.append(cell_to_world(c) + Vector3(0, road_y(c), 0))
+		pts.append(cell_to_world(center) + Vector3(0, 0.02, 0))
+		out.append([pts, cells.size()])
+	return out
+
+
 func road_length_from(port: Vector2i) -> int:
 	if _net_dirty:
 		_rebuild_network()
