@@ -440,6 +440,7 @@ def kk_import(rel, coll, parent=None, loc=(0, 0, 0), rot_z=0.0, scale=1.0, name=
             o.name = name
         o.parent = parent
         o.location = loc
+        o.rotation_mode = "XYZ"     # the glTF importer leaves QUATERNION, which ignores rotation_euler
         o.rotation_euler = (0, 0, math.radians(rot_z))
         o.scale = (scale, scale, scale)
         o["kaykit"] = rel
