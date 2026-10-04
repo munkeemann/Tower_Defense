@@ -22,6 +22,29 @@ const WATER_Y := -0.3
 const MAP_RADIUS := 5          # tile slots from the castle tile to the map edge
 ## Outside your tiles the world is a flat, slightly lower backdrop meadow, so every placed tile stands
 ## out as a raised block with rounded edges.
+## KayKit hex tiles (assets/kaykit/hex): pointy-top hexes 2.0 x 2.31 x 1.0 thick. Turned 30 degrees and scaled to
+## our flat-top cells, one tile is one cell and one level (LEVEL_H) thick.
+const KK_BASE_YAW := 30.0
+const KK_SCALE := 1.2 / 1.1547005
+## Draw your tiles with KayKit hex tiles (true) or the original generated board (false). Game logic is the same.
+const KAYKIT_TERRAIN := true
+## Road tile for a cell, by which of its sides (Hex.E indices, as a bit mask) the road leaves through:
+## [tile, number of 60 degree turns]. Made by tools/kaykit_roads.gd.
+const KK_ROADS := {1: ["hex_road_M", 2], 2: ["hex_road_M", 1], 3: ["hex_road_C", 2], 4: ["hex_road_M", 0], 5: ["hex_road_B", 2],
+	6: ["hex_road_C", 1], 7: ["hex_road_G", 1], 8: ["hex_road_M", 5], 9: ["hex_road_A", 2], 10: ["hex_road_B", 1], 11: ["hex_road_F", 5],
+	12: ["hex_road_C", 0], 13: ["hex_road_E", 2], 14: ["hex_road_G", 0], 16: ["hex_road_M", 4], 17: ["hex_road_B", 4], 18: ["hex_road_A", 1],
+	19: ["hex_road_E", 4], 20: ["hex_road_B", 0], 21: ["hex_road_D", 0], 22: ["hex_road_F", 4], 23: ["hex_road_H", 1], 24: ["hex_road_C", 5],
+	25: ["hex_road_F", 2], 26: ["hex_road_E", 1], 27: ["hex_road_I", 0], 28: ["hex_road_G", 5], 29: ["hex_road_H", 5], 31: ["hex_road_K", 0],
+	32: ["hex_road_M", 3], 33: ["hex_road_C", 3], 34: ["hex_road_B", 3], 35: ["hex_road_G", 2], 36: ["hex_road_A", 0], 37: ["hex_road_F", 0],
+	38: ["hex_road_E", 3], 40: ["hex_road_B", 5], 41: ["hex_road_E", 5], 42: ["hex_road_D", 1], 43: ["hex_road_H", 2], 44: ["hex_road_F", 3],
+	45: ["hex_road_I", 1], 46: ["hex_road_H", 0], 47: ["hex_road_K", 1], 48: ["hex_road_C", 4], 49: ["hex_road_G", 3], 50: ["hex_road_F", 1],
+	52: ["hex_road_E", 0], 53: ["hex_road_H", 3], 54: ["hex_road_I", 2], 55: ["hex_road_K", 2], 56: ["hex_road_G", 4], 58: ["hex_road_H", 4],
+	59: ["hex_road_K", 3], 61: ["hex_road_K", 4], 62: ["hex_road_K", 5], 63: ["hex_road_J", 0]}
+## Map props drawn with KayKit decoration instead of the Meshy models.
+const KK_PROPS := {"prop_oak": "tree_single_A", "prop_birch": "tree_single_A", "prop_pine": "tree_single_B",
+	"prop_rock": "rock_single_A", "prop_outcrop": "rock_single_E", "prop_log": "tree_single_A_cut", "prop_bush": "trees_A_small",
+	"prop_reeds": "waterplant_A"}
+var team := "blue"   # KayKit team color for the castle (Game sets it from your color)
 const BACKDROP := -2
 const BACKDROP_Y := -1.6        # the grass around the board sits well below it, so your tiles read as a raised board
 const BACKDROP_TINT := Color(0.7, 0.76, 0.66)
@@ -160,7 +183,7 @@ func generate(seed_v: int, want_biome := "") -> void:
 		ch.queue_free()
 	for d in [wild_h, wild_t, placed, height, terrain, whole, path_cells, links, ramps, open_ports, port_opened,
 			portals, towers, neutrals, pois, _meshes, _cell_props, _prop_sets, bridges, _scatter_mm, _scatter_cell,
-			_frontier, _signed]:
+			_frontier, _signed, _kk_mm]:
 		d.clear()
 	_road_mi = null
 	_bridge_root = null
@@ -196,7 +219,9 @@ func generate(seed_v: int, want_biome := "") -> void:
 	_rebuild_roads()
 	_rebuild_water()
 	_build_skirt()
-	_castle = Models.castle()
+	if _kk_on():
+		_kk_rebuild()
+	_castle = Models.castle(team if _kk_on() else "")
 	_castle.scale = Vector3.ONE * 1.4
 	_castle.position = cell_to_world(center)
 	add_child(_castle)
@@ -534,6 +559,9 @@ func _rebuild_mesh(t: Vector2i) -> void:
 	if _meshes.has(t):
 		(_meshes[t] as Node).queue_free()
 		_meshes.erase(t)
+	if _kk_on() and placed.has(t):
+		_kk_queue()
+		return
 	_ctx.clear()
 	_mv = PackedVector3Array()
 	_mn = PackedVector3Array()
@@ -637,6 +665,8 @@ func _rebuild_water() -> void:
 	if _water_mi and is_instance_valid(_water_mi):
 		_water_mi.queue_free()
 	_water_mi = null
+	if _kk_on():
+		return   # KayKit water tiles
 	var verts := PackedVector3Array()
 	for c in height:
 		if int(height[c]) != -1 and not bridges.has(c):
@@ -720,12 +750,20 @@ func _prop_exists(prop: String) -> bool:
 	return ResourceLoader.exists(Models.CUSTOM + prop + ".glb")
 
 
-func _prop_base(prop: String) -> Transform3D:
+## A prop's mesh and its transform inside its file: KayKit decoration when the KayKit terrain is on, else Meshy.
+func _prop_mesh(prop: String) -> Array:
+	if _kk_on() and KK_PROPS.has(prop):
+		return KayKit.hex_mesh(KK_PROPS[prop])
 	var path := Models.CUSTOM + prop + ".glb"
-	var mesh := Models.asset_mesh(path)
+	return [Models.asset_mesh(path), Models.asset_mesh_xform(path)]
+
+
+func _prop_base(prop: String) -> Transform3D:
+	var pm := _prop_mesh(prop)
+	var mesh: Mesh = pm[0]
 	if mesh == null:
 		return Transform3D()
-	var inner := Models.asset_mesh_xform(path)
+	var inner: Transform3D = pm[1]
 	var bb := inner * mesh.get_aabb()
 	var sz: Array = PROP_SIZE.get(prop, PROP_EXTRA.get(prop, SCATTER_SIZE.get(prop, [1.0, 1.0])))
 	_prop_long_x[prop] = bb.size.x >= bb.size.z
@@ -802,7 +840,7 @@ func _build_props() -> void:
 				continue
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
-			mm.mesh = Models.asset_mesh(Models.CUSTOM + prop + ".glb")
+			mm.mesh = _prop_mesh(prop)[0]
 			mm.instance_count = n
 			var mmi := MultiMeshInstance3D.new()
 			mmi.multimesh = mm
@@ -1902,6 +1940,8 @@ func clear_preview() -> void:
 func _process(_delta: float) -> void:
 	if _fog_dirty and _fog:
 		_rebuild_fog()
+	if _kk_dirty:
+		_kk_rebuild()
 	var tm := Time.get_ticks_msec() / 1000.0
 	for pc in portals:
 		var p: Node3D = portals[pc]
@@ -1931,8 +1971,122 @@ func _is_water(c: Vector2i) -> bool:
 	return height.has(c) and (int(height[c]) == -1 or bridges.has(c))
 
 
+# ------------------------------------------------------------------ KayKit terrain
+
+var _kk_mm := {}        # tile model -> MultiMeshInstance3D (one batch per tile model for the whole map)
+var _kk_dirty := false
+
+
+func _kk_on() -> bool:
+	return KAYKIT_TERRAIN and KayKit.available()
+
+
+func _kk_queue() -> void:
+	_kk_dirty = true
+
+
+## Redraws every cell of your tiles as KayKit hex tiles: grass, water, the right road piece (turned to its exits),
+## sloped road on ramps, and earth pieces stacked underneath down to the grass outside the board.
+func _kk_rebuild() -> void:
+	_kk_dirty = false
+	var lists := {}
+	var seen := {}
+	for t in placed:
+		var base: Vector2i = t * Hex.K
+		for e in _info:
+			var g: Vector2i = base + e["off"]
+			if seen.has(g):
+				continue
+			seen[g] = true
+			_kk_cell(g, lists)
+	for tile in lists:
+		var xs: Array = lists[tile]
+		if not _kk_mm.has(tile):
+			var mmi := MultiMeshInstance3D.new()
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.mesh = KayKit.hex_mesh(tile)[0]
+			mmi.multimesh = mm
+			add_child(mmi)
+			_kk_mm[tile] = mmi
+		var mm2: MultiMesh = (_kk_mm[tile] as MultiMeshInstance3D).multimesh
+		mm2.instance_count = xs.size()
+		var inner: Transform3D = KayKit.hex_mesh(tile)[1]
+		for i in xs.size():
+			mm2.set_instance_transform(i, (xs[i] as Transform3D) * inner)
+	for tile in _kk_mm:
+		if not lists.has(tile):
+			(_kk_mm[tile] as MultiMeshInstance3D).multimesh.instance_count = 0
+
+
+func _kk_cell(g: Vector2i, lists: Dictionary) -> void:
+	var lvl := level_at(g)
+	if lvl == BACKDROP:
+		return
+	var p := Hex.to_world(g)
+	var water := lvl == -1 or bridges.has(g)
+	var top := 0.0 if water else lvl * LEVEL_H
+	var tile := "hex_grass"
+	var k := 0
+	if water:
+		tile = "hex_water"
+	elif path_cells.has(g) and not is_castle(g):
+		if ramps.has(g):
+			tile = "hex_road_A_sloped_high"
+			k = posmod(5 - int(ramps[g]), 6)
+		else:
+			var r := _kk_road(_road_mask(g))
+			tile = r[0]
+			k = r[1]
+	_kk_add(lists, tile, p + Vector3(0, top, 0), k)
+	var y := top - LEVEL_H
+	while y > BACKDROP_Y - 0.05:
+		_kk_add(lists, "hex_grass_bottom", p + Vector3(0, y, 0), 0)
+		y -= LEVEL_H
+
+
+func _kk_add(lists: Dictionary, tile: String, pos: Vector3, k: int) -> void:
+	if not lists.has(tile):
+		lists[tile] = []
+	var b := Basis(Vector3.UP, deg_to_rad(KK_BASE_YAW + 60.0 * k)).scaled(Vector3(KK_SCALE, LEVEL_H, KK_SCALE))
+	lists[tile].append(Transform3D(b, pos))
+
+
+## Which sides of a road cell the road leaves through (linked road cells, plus the open side of a road end).
+func _road_mask(g: Vector2i) -> int:
+	var m := 0
+	for n in links.get(g, []):
+		var i := Hex.dir_index((n as Vector2i) - g)
+		if i >= 0:
+			m |= 1 << i
+	if open_ports.has(g):
+		m |= 1 << int(open_ports[g]["side"])
+	return m
+
+
+## The road tile for a mask; a junction shape the pack lacks uses the smallest one that covers it.
+func _kk_road(mask: int) -> Array:
+	if mask == 0:
+		return ["hex_grass", 0]
+	if KK_ROADS.has(mask):
+		return KK_ROADS[mask]
+	var best: Array = ["hex_road_J", 0]
+	var best_n := 7
+	for m in KK_ROADS:
+		if int(m) & mask == mask:
+			var n := 0
+			for i in 6:
+				n += (int(m) >> i) & 1
+			if n < best_n:
+				best_n = n
+				best = KK_ROADS[m]
+	return best
+
+
 ## Grass tufts, flowers, mushrooms and shore reeds for one tile slot, in one small batch per prop.
 func _build_scatter(t: Vector2i) -> void:
+	if _kk_on() and placed.has(t):
+		return   # KayKit tiles are clean; their trees and rocks come from the props
 	if _scatter_mm.has(t):
 		for mi in _scatter_mm[t]:
 			(mi as Node).queue_free()
@@ -2049,6 +2203,9 @@ func _road_mat(file: String, tint: Color) -> Material:
 func _rebuild_roads() -> void:
 	if _road_mi and is_instance_valid(_road_mi):
 		_road_mi.queue_free()
+	_road_mi = null
+	if _kk_on():
+		return   # KayKit road tiles
 	# a darker packed-earth verge under a lighter lane: one clean shape, like Tower Dominion's paths
 	var layers := [["tex_dirt", Color(0.4, 0.31, 0.23), 1.95, 0.035], ["tex_road", Color(0.52, 0.42, 0.33), 1.3, 0.06]]
 	var am := ArrayMesh.new()

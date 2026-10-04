@@ -911,6 +911,7 @@ func start_run(fid: String, hero_id := "") -> void:
 	ability_active = 0.0
 	run_stats = {"kills": 0, "leaked": 0, "built": 0, "gold_earned": 0, "tiles": 0, "discoveries": 0}
 	board.fog_enabled = false   # the map is just your tiles on a plain backdrop: nothing to hide
+	board.team = KayKit.TEAM.get(fid, "blue")
 	board.generate(rng.randi(), force_biome)
 	_roll_threats()
 	thumbs.queue_faction(fid)

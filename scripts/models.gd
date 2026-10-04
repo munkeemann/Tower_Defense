@@ -824,7 +824,15 @@ static func enemy(id: String, d: Dictionary) -> Dictionary:
 	return p
 
 
-static func castle() -> Node3D:
+## The castle. With a KayKit team color ("blue", "green", "red", "yellow") it's the KayKit castle in that color.
+static func castle(team := "") -> Node3D:
+	if team != "" and KayKit.available():
+		var kc := KayKit.hex("building_castle_" + team)
+		if kc:
+			var holder := Node3D.new()
+			kc.scale = Vector3.ONE * 1.3
+			holder.add_child(kc)
+			return holder
 	if not has_assets():
 		return _proc_castle()
 	var n := Node3D.new()

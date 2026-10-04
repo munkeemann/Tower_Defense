@@ -19,6 +19,9 @@ const LIB_FILES := {
 const LOOPING := ["Walking", "Running", "Idle", "Aiming", "Blocking", "Spellcasting", "Shooting", "Skeletons_Walking",
 	"Skeletons_Idle", "Melee_2H_Idle", "Melee_Unarmed_Idle"]
 
+## KayKit team color for each of your colors (buildings and the castle come in blue, green, red and yellow).
+const TEAM := {"crown": "yellow", "verdant": "green", "forge": "red", "tide": "blue", "grave": "blue"}
+
 static var _libs := {}
 static var _heights := {}
 static var _scenes := {}
