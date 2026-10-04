@@ -26,9 +26,9 @@ CHAR = "Paladin.glb"
 HEIGHT = 2.0
 HOVER = 0.75
 GOLD = (1.0, 0.82, 0.4)
-ARCH_Y = FRONT.y + 0.35
+ARCH_Y = BACK.y - 0.25          # the arch stands behind the angel (it faces the front)
 ARCH_X = 0.78
-PILLAR_TOP = 2.9
+PILLAR_TOP = 2.55
 
 
 def build_base():
@@ -39,8 +39,8 @@ def build_base():
     bm = bmesh.new()
     bm_cyl(bm, 1.0, 1.04, 0.18, (C.x, C.y, TOP + 0.09), seg=20)
     bm_cyl(bm, 0.8, 0.84, 0.18, (C.x, C.y, TOP + 0.27), seg=20)
-    for k, (w, d) in enumerate(((1.1, 0.3), (0.95, 0.3))):     # steps down toward the back cell
-        bm_box(bm, (w, d, 0.18 - 0.09 * k), (0, BACK.y + 0.05 - k * 0.28, TOP + (0.09 - 0.045 * k)))
+    for k, (w, d) in enumerate(((1.1, 0.3), (0.95, 0.3))):     # steps down toward the front
+        bm_box(bm, (w, d, 0.18 - 0.09 * k), (0, FRONT.y - 0.05 + k * 0.28, TOP + (0.09 - 0.045 * k)))
     o = paint(mesh_obj("Dais", bm, col, root), "stone", lo=0.05, hi=0.55)
     b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.02; b.segments = 1; b.limit_method = "ANGLE"
     bm = bmesh.new()
@@ -83,8 +83,14 @@ def build_base():
     ring(bm, (0, ARCH_Y, PILLAR_TOP - 0.05), 0.5, 0.44, -0.04, 0.04, seg=24, axis="Y")
     paint(mesh_obj("Arch_Gold", bm, col, root), "gold", lo=0.1, hi=0.5)
     sun = glow_mat("archangel_sun", GOLD, 1.3)
-    bm = bmesh.new()
-    bm_cyl(bm, 0.44, 0.44, 0.04, (0, ARCH_Y, PILLAR_TOP - 0.05), rot=(90, 0, 0), seg=24)
+    bm = bmesh.new()   # an open sun ring with rays: the angel stays visible through it from the game camera
+    ring(bm, (0, ARCH_Y, PILLAR_TOP - 0.05), 0.44, 0.34, -0.025, 0.025, seg=24, axis="Y")
+    for i in range(12):
+        a = math.radians(30 * i)
+        p0 = Vector((math.cos(a) * 0.44, ARCH_Y, PILLAR_TOP - 0.05 + math.sin(a) * 0.44))
+        p1 = Vector((math.cos(a) * 0.62, ARCH_Y, PILLAR_TOP - 0.05 + math.sin(a) * 0.62))
+        if p1.z < PILLAR_TOP + 0.6:
+            bm_beam(bm, p0, p1, 0.07, 0.03, w1=0.0, h1=0.02, up=(0, 1, 0))
     o = mesh_obj("Arch_Sun", bm, col, root)
     o.data.materials.append(sun)
     bm = bmesh.new()
@@ -94,9 +100,10 @@ def build_base():
         pts = [Vector((x - 0.14, ARCH_Y - 0.16, PILLAR_TOP - 0.15)), Vector((x + 0.14, ARCH_Y - 0.16, PILLAR_TOP - 0.15)),
                Vector((x + 0.14, ARCH_Y - 0.16, TOP + 1.05)), Vector((x, ARCH_Y - 0.16, TOP + 0.9)),
                Vector((x - 0.14, ARCH_Y - 0.16, TOP + 1.05))]
-        for off in (0.0, -0.012):
-            vs = [bm.verts.new(q + Vector((0, off, 0))) for q in pts]
-            bm.faces.new(vs if off < 0 else list(reversed(vs)))
+        for face in (0.0, 0.32):            # on both faces of the pillars
+            for off in (0.0, -0.012):
+                vs = [bm.verts.new(q + Vector((0, face + (off if face == 0.0 else -off), 0))) for q in pts]
+                bm.faces.new(vs if (off < 0) == (face == 0.0) else list(reversed(vs)))
     paint(mesh_obj("Arch_Banners", bm, col, root), "team", team=True, lo=0.1, hi=0.7)
 
     # side cells: golden statues on plinths, braziers
@@ -129,7 +136,7 @@ def build_base():
         o.data.materials.append(fire)
         for o in kk_import("props/paladin_statue", col, root, (sp.x, sp.y, TOP + 0.44), 180 + sx * 30, 0.36, name="Prop_Statue_" + side):
             pass
-    for i, (loc, rot, sc) in enumerate((((0.62, BACK.y - 0.3, TOP), 30, 0.36), ((-0.66, BACK.y - 0.25, TOP), 70, 0.32))):
+    for i, (loc, rot, sc) in enumerate((((0.62, FRONT.y + 0.3, TOP), 30, 0.36), ((-0.66, FRONT.y + 0.25, TOP), 70, 0.32))):
         for o in kk_import("dungeon/candle_triple", col, root, loc, rot, sc, name="Prop_Candles_%d" % i):
             pass
     empty("Head", col, root, (0, 0, DAIS), 0.5, "SINGLE_ARROW")

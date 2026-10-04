@@ -378,7 +378,7 @@ var _tt_shots: Array = []   # --towertest: where each of the tower's projectiles
 
 
 ## Headless check for one tower (--towertest=id): build it beside the road where its arc covers the most of it, walk
-## sturdy goblins into range, check that it turns, fires, plays its Blender "fire" animation on every shot and that
+## sturdy goblins (wasps along their flight line, for air-only towers) into range, check that it turns, fires, plays its Blender "fire" animation on every shot and that
 ## bolts leave from its Muzzle marker, then sell it and check the refund. Prints TOWERTEST lines; true if all passed.
 func _tower_test(tid: String) -> bool:
 	start_run("crown")
@@ -391,6 +391,16 @@ func _tower_test(tid: String) -> bool:
 	var ok := true
 	# the spot whose reach covers the most route points (like the bot, but exhaustive)
 	var routes: Array = board.open_ports.keys().map(func(pc): return board.route_from(pc))
+	var air_only: bool = not GameData.TOWERS[tid].get("ground", false)
+	if air_only:
+		# fliers go straight from the road end to the castle: score spots against points along that line
+		routes = routes.map(func(r):
+			var line := flight_route(r)
+			var pts := PackedVector3Array()
+			var n := int(ceil(line[0].distance_to(line[1]) / 1.0))
+			for i in n + 1:
+				pts.append(line[0].lerp(line[1], float(i) / maxf(1.0, n)))
+			return pts)
 	var r := float(GameData.TOWERS[tid]["range"]) * GameData.TILE + GameData.reach_offset(tid)
 	var arc := GameData.arc_of(tid)
 	var best := Board.NONE
@@ -474,7 +484,7 @@ func _tower_test(tid: String) -> bool:
 	_tt_shots.clear()
 	world.child_entered_tree.connect(_tt_note)
 	for k in 4:
-		var e := spawn_enemy("goblin", best_route, maxf(0.0, along - 2.0 - 1.5 * k))
+		var e := spawn_enemy("wasp" if air_only else "goblin", best_route, maxf(0.0, along - 2.0 - 1.5 * k))
 		e.max_hp = 1.0e6
 		e.hp = e.max_hp
 	Engine.time_scale = 2.0

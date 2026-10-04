@@ -194,7 +194,7 @@ def build_base():
     o = mesh_obj("Court_Flame", bm, col, root)
     o.data.materials.append(glow_mat("holy_fire", (1.0, 0.62, 0.2), 1.6))
     kk = [
-        ("props/paladin_statue", (FL.x - 0.15, FL.y + 0.05, TOP + 0.28), 0, 0.36),
+        ("props/paladin_statue", (FL.x - 0.15, FL.y + 0.05, TOP + 0.28), 180, 0.36),   # faces out the front, like the chapel
         ("dungeon/candle_triple", (FL.x + 0.45, FL.y + 0.4, TOP), 20, 0.4),
         ("dungeon/candle_triple", (FL.x + 0.35, FL.y - 0.45, TOP), 80, 0.34),
         ("dungeon/candle_triple", (FR.x - 0.5, FR.y - 0.42, TOP), 40, 0.38),
