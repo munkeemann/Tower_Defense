@@ -217,6 +217,8 @@ key from the `ELEVENLABS_API_KEY` Windows user variable and never prints it. Eac
 trimmed, and level-matched to the procedural sound it replaces (`tools/sfx_levels.json`), so the volume table in
 `scripts/audio.gd` still balances.
 
+- The second set (2026-10-04) aims at half grounded medieval foley (wood, steel, stone, leather, bells), half
+  stylized punch; the first set, all-cartoon, is kept in `assets/audio/v1/` (copy a file back to restore it).
 - `python tools/sfx_batch.py list` shows every sound and its prompt.
 - `python tools/sfx_batch.py gen boom horn --takes=3` regenerates just those sounds (about 5 credits per second
   of audio on pay-as-you-go); takes land in `assets/audio/takes/`, and take 1 is used.
