@@ -49,12 +49,17 @@ def import_character(file, coll, head, height, hover=0.0):
     return arm, meshes
 
 
-def load_clips(names):
-    """Imports the pack's animation files and keeps the named clips (as actions); the files' own armatures go."""
+RIG_MEDIUM = ["Rig_Medium_General", "Rig_Medium_CombatMelee", "Rig_Medium_CombatRanged", "Rig_Medium_MovementBasic",
+              "Rig_Medium_Simulation"]
+RIG_LARGE = ["Rig_Large_General", "Rig_Large_CombatMelee", "Rig_Large_Simulation", "Rig_Large_Special"]
+
+
+def load_clips(names, files=None):
+    """Imports the pack's animation files (the medium rig's unless `files` says otherwise) and keeps the named clips
+    (as actions); the files' own armatures go."""
     want = set(names)
     got = {}
-    for f in ["Rig_Medium_General", "Rig_Medium_CombatMelee", "Rig_Medium_CombatRanged", "Rig_Medium_MovementBasic",
-              "Rig_Medium_Simulation"]:
+    for f in files or RIG_MEDIUM:
         if want <= set(got):
             break
         before_o = set(bpy.data.objects)

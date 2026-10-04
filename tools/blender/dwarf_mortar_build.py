@@ -4,8 +4,8 @@ Forge tower: colossal range, huge blasts.
     blender -b --factory-startup --python tools/blender/build_tower.py -- dwarf_mortar <preview dir>
 
 A squat bronze mortar on an iron carriage turns on a round platform where the four hexes meet (the Head: shells leave
-its mouth). Cannonball stacks, powder kegs and crates lie on the front cells; a small crane with a hanging shell and a
-dwarf loader (Crew) stand at the back. idle: the carriage settles, the crane's shell sways. fire: the barrel slams back
+its mouth). A loading crane on the carriage holds a shell over the breech. Cannonball stacks, powder kegs and crates lie on
+the front cells; a dwarf loader (Crew) stands at the back. idle: the carriage settles, the crane's shell sways. fire: the barrel slams back
 and down, the carriage jolts, smoke billows from the mouth.
 """
 import bpy, bmesh, math, random
@@ -34,13 +34,6 @@ def build_base():
     bm = bmesh.new()
     ring(bm, (0, 0, 0), 0.92, 0.84, T + 0.15, T + 0.19, seg=24)
     paint(mesh_obj("Platform_Rail", bm, col, root), "iron", lo=0.2, hi=0.5)
-    # the crane at the back: a post, an arm, a chain and a shell
-    bm = bmesh.new()
-    cp = BK + Vector((0.6, -0.3, 0))
-    bm_box(bm, (0.16, 0.16, 1.9), (cp.x, cp.y, T + 0.95))
-    bm_beam(bm, (cp.x, cp.y, T + 1.85), (cp.x - 0.75, cp.y + 0.15, T + 1.9), 0.12, 0.12)
-    bm_beam(bm, (cp.x, cp.y, T + 1.3), (cp.x - 0.45, cp.y + 0.1, T + 1.88), 0.07, 0.07)
-    paint(mesh_obj("Crane", bm, col, root), "wood", lo=0.2, hi=0.8)
     kk = [("hex/cannonball_pallet", (FLc.x - 0.15, FLc.y + 0.1, T), 30, 2.6), ("dungeon/barrel_small_stack", (FRc.x + 0.1, FRc.y + 0.05, T), 200, 0.35),
           ("dungeon/crates_stacked", (Fc.x + 0.45, Fc.y + 0.45, T), 20, 0.3), ("hex/cannonball_pallet", (Fc.x - 0.5, Fc.y + 0.4, T), 70, 2.2),
           ("resources/Parts_Pile_Medium", (BK.x - 0.6, BK.y - 0.35, T), 140, 0.5)]
@@ -62,14 +55,14 @@ BONES = {"root": ((0, 0, 0), (0, 0, 0.2), None),
          "barrel": (tuple(PIVOT), tuple(PIVOT + AXIS * 0.4), "carriage"),
          "smoke": (tuple(MUZ), tuple(MUZ + Vector((0, 0, 0.3))), "root"),
          "shell": None}
+CRANE = Vector((0.55, -0.62, 0.14))     # the loading crane rides the carriage's back corner and turns with it
+HANG = Vector((0.12, -0.5, 1.62))
 
 
 def build_head():
     col = collection("Dwarf_mortar")
     head = bpy.data.objects["Head"]
-    cp = BK + Vector((0.6, -0.3, 0)) - Vector(head.location)
-    hang = Vector((cp.x - 0.7, cp.y + 0.15, TOP + 1.85 - head.location.z))
-    BONES["shell"] = (tuple(hang), tuple(hang - Vector((0, 0, 0.3))), "root")
+    BONES["shell"] = (tuple(HANG), tuple(HANG - Vector((0, 0, 0.3))), "carriage")
     rig = make_rig(col, head, BONES)
     # carriage: a turning iron base and two cheek plates holding the trunnions
     bm = bmesh.new()
@@ -85,6 +78,11 @@ def build_head():
     for sx in (-1, 1):
         bm_cyl(bm, 0.1, 0.1, 0.18, (sx * 0.48, PIVOT.y, PIVOT.z), rot=(0, 90, 0), seg=8)
     rig_part("Head_Trunnions", bm, "gold", rig, "carriage", col, bevel=0, lo=0.1, hi=0.5)
+    bm = bmesh.new()
+    bm_box(bm, (0.13, 0.13, 1.6), (CRANE.x, CRANE.y, CRANE.z + 0.8))
+    bm_beam(bm, CRANE + Vector((0, 0, 1.55)), HANG + Vector((-0.04, 0, 0.08)), 0.11, 0.11)
+    bm_beam(bm, CRANE + Vector((0, 0, 1.05)), CRANE.lerp(HANG, 0.55) + Vector((0, 0, 0.05)), 0.06, 0.06)
+    rig_part("Head_Crane", bm, "wood", rig, "carriage", col, bevel=0, lo=0.2, hi=0.8)
     # the barrel: a stubby bronze tube, reinforcing rings, a flared mouth with a dark bore
     rot = tuple(math.degrees(x) for x in AXIS.to_track_quat("Z", "Y").to_euler())
     bm = bmesh.new()
@@ -110,8 +108,8 @@ def build_head():
                      (0.24 + k * 0.03,) * 2 + (0.2 + k * 0.03,), u=7, v=5)
     rig_part("Head_Smoke", bm, "stone2", rig, "smoke", col, bevel=0, lo=0.05, hi=0.45)
     bm = bmesh.new()
-    bm_beam(bm, hang, hang - Vector((0, 0, 0.35)), 0.025, 0.025)
-    bm_ellipsoid(bm, tuple(hang - Vector((0, 0, 0.5))), (0.17, 0.17, 0.17), u=10, v=6)
+    bm_beam(bm, HANG, HANG - Vector((0, 0, 0.35)), 0.025, 0.025)
+    bm_ellipsoid(bm, tuple(HANG - Vector((0, 0, 0.5))), (0.17, 0.17, 0.17), u=10, v=6)
     rig_part("Head_CraneShell", bm, "iron", rig, "shell", col, bevel=0, lo=0.2, hi=0.6)
     empty("Muzzle", col, head, tuple(MUZ + AXIS * 0.05), 0.2, "SPHERE")
     return rig
