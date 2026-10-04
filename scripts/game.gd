@@ -118,6 +118,8 @@ var _shots_taken := {}
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	rng.randomize()
+	if "--no-kaykit" in OS.get_cmdline_user_args():
+		KayKit.enabled = false   # the models from before the KayKit swap (for before/after checks)
 	_setup_env()
 	board = Board.new()
 	board.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -165,8 +167,6 @@ func _ready() -> void:
 			difficulty = clampi(int(a.split("=")[1]), 0, GameData.DIFFICULTIES.size() - 1)
 		if a.begins_with("--seed="):
 			rng.seed = int(a.split("=")[1])   # same map every time (before/after screenshots)
-		if a == "--no-kaykit":
-			KayKit.enabled = false   # the models from before the KayKit swap (for before/after checks)
 	if args.size() > 0:
 		# test runs: don't let a sleeping monitor throttle vsync to a crawl, and stay quiet
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
@@ -294,7 +294,7 @@ func _footprint_shots() -> void:
 		var best := -1.0
 		for c in board.whole:
 			var cells := GameData.footprint(tid, c, 1)
-			if Hex.length(c) < 6 or not board.can_build_all(cells):
+			if Hex.length(c) < Hex.K or not board.can_build_all(cells):
 				continue
 			var clear := 0.0
 			for n in Hex.disc(c, 3):
@@ -507,6 +507,8 @@ func _setup_env() -> void:
 	env.fog_light_color = Color(0.6, 0.66, 0.7)
 	env.fog_density = 0.0007          # a light haze toward the horizon
 	env.fog_sky_affect = 0.0
+	if Board.KAYKIT_TERRAIN and KayKit.available():
+		_kaykit_look(env)
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -520,7 +522,26 @@ func _setup_env() -> void:
 	sun.directional_shadow_max_distance = 85.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sun.directional_shadow_fade_start = 0.75
+	if Board.KAYKIT_TERRAIN and KayKit.available():
+		sun.light_energy = 1.0
+		sun.light_color = Color(1.0, 0.98, 0.94)
+		sun.shadow_opacity = 0.75
 	add_child(sun)
+
+
+## The KayKit sample look: the board floats over a dark floor, lit plainly and brightly so the pack's colors read
+## as they were painted (no film curve, no haze, light contact shadows).
+func _kaykit_look(env: Environment) -> void:
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.11, 0.11, 0.115)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.86, 0.9, 1.0)
+	env.ambient_light_energy = 0.55
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.tonemap_white = 1.0
+	env.ssao_intensity = 0.7
+	env.adjustment_contrast = 1.0
+	env.fog_enabled = false
 
 
 func _build_overlay() -> void:
@@ -1277,7 +1298,7 @@ func tile_title(card: Dictionary) -> String:
 		6: return "Great Crossroads"
 	var d := absi(int(ents[0]) - int(ents[1]))
 	d = mini(d, 6 - d)
-	var inner := Hex.dist(Hex.E[ents[0]] * 2, Hex.E[ents[1]] * 2)
+	var inner := Hex.dist(Hex.E[ents[0]] * (Hex.HALF - 1), Hex.E[ents[1]] * (Hex.HALF - 1))
 	var winding: bool = card["paths"][0].size() >= inner + 5
 	if winding:
 		return ["", "Looping Turn", "Winding Bend", "Winding Road"][d]

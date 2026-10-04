@@ -2,11 +2,12 @@ class_name Hex
 extends RefCounted
 ## Hex math. Cells are flat-top hexagons in axial coordinates (q, s):
 ##   world x = 1.5 * R * q,   world z = sqrt(3) * R * (s + q / 2)
-## Terrain tiles use the same orientation, scaled up: tile (Q, S) is centered on cell (6Q, 6S).
+## Terrain tiles use the same orientation, scaled up: tile (Q, S) is centered on cell (K*Q, K*S).
 
 const R := 1.2                       # cell circumradius (world units)
 const SQ3 := 1.7320508075688772
-const K := 6                         # cells between neighboring tile centers
+const K := 4                         # cells between neighboring tile centers: 3 hexes along each tile edge
+const HALF := K / 2                  # from a tile's middle to the half cell in the middle of each side (its entrance)
 ## Neighbor directions in edge order: edge i of a hexagon faces 60*i + 30 degrees (x right, z down).
 const E := [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 1), Vector2i(-1, 0), Vector2i(0, -1), Vector2i(1, -1)]
 
@@ -24,11 +25,11 @@ static func setup() -> void:
 		CORNER.append(Vector3(cos(a), 0, sin(a)) * R)
 	for i in 6:
 		WEDGE_OFF.append((CORNER[i] + CORNER[(i + 1) % 6]) / 3.0)
-	var apothem := 3.0 * SQ3 * R
-	for q in range(-5, 6):
-		for s in range(-5, 6):
+	var apothem := HALF * SQ3 * R
+	for q in range(-K - 1, K + 2):
+		for s in range(-K - 1, K + 2):
 			var c := Vector2i(q, s)
-			if length(c) > 4:
+			if length(c) > HALF + 1:
 				continue
 			var mask := 0
 			for i in 6:

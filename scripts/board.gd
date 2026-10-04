@@ -3,9 +3,9 @@ extends Node3D
 ## The hex map.
 ##
 ## The world is a lattice of small flat-top hex cells (see Hex). Terrain tiles are big flat-top hexagons,
-## one every 6 cells: 31 whole cells, plus half a cell at the middle of each side and a third of a cell at
-## each corner. Halves and thirds are shared with the neighboring tile; once both tiles are down they merge
-## into whole cells, and the new tile's seam copies the existing tile's heights so the join is flat.
+## one every Hex.K (4) cells, 3 hexes along each edge: 13 whole cells plus half a cell at the middle of each
+## side. Halves are shared with the neighboring tile; once both tiles are down they merge into whole cells,
+## and the new tile's seam copies the existing tile's heights so the join is flat.
 ## Every cell is drawn as 6 wedges and each wedge belongs to exactly one tile slot, which is what makes
 ## the half cells on an open edge look like half hexes.
 ##
@@ -27,7 +27,10 @@ const MAP_RADIUS := 5          # tile slots from the castle tile to the map edge
 const KK_BASE_YAW := 30.0
 const KK_SCALE := 1.2 / 1.1547005
 ## Draw your tiles with KayKit hex tiles (true) or the original generated board (false). Game logic is the same.
+## With KayKit tiles the board is an island like the KayKit samples: one tile thick, raised ground stacked on top,
+## floating over a dark hex floor instead of the meadow (no backdrop meadow, skirt or forest ring).
 const KAYKIT_TERRAIN := true
+const VOID_Y := -9.0            # the dark floor under the island
 ## Road tile for a cell, by which of its sides (Hex.E indices, as a bit mask) the road leaves through:
 ## [tile, number of 60 degree turns]. Made by tools/kaykit_roads.gd.
 const KK_ROADS := {1: ["hex_road_M", 2], 2: ["hex_road_M", 1], 3: ["hex_road_C", 2], 4: ["hex_road_M", 0], 5: ["hex_road_B", 2],
@@ -40,9 +43,10 @@ const KK_ROADS := {1: ["hex_road_M", 2], 2: ["hex_road_M", 1], 3: ["hex_road_C",
 	45: ["hex_road_I", 1], 46: ["hex_road_H", 0], 47: ["hex_road_K", 1], 48: ["hex_road_C", 4], 49: ["hex_road_G", 3], 50: ["hex_road_F", 1],
 	52: ["hex_road_E", 0], 53: ["hex_road_H", 3], 54: ["hex_road_I", 2], 55: ["hex_road_K", 2], 56: ["hex_road_G", 4], 58: ["hex_road_H", 4],
 	59: ["hex_road_K", 3], 61: ["hex_road_K", 4], 62: ["hex_road_K", 5], 63: ["hex_road_J", 0]}
-## Map props drawn with KayKit decoration instead of the Meshy models.
-const KK_PROPS := {"prop_oak": "tree_single_A", "prop_birch": "tree_single_A", "prop_pine": "tree_single_B",
-	"prop_rock": "rock_single_A", "prop_outcrop": "rock_single_E", "prop_log": "tree_single_A_cut", "prop_bush": "trees_A_small",
+## Map props drawn with KayKit decoration instead of the Meshy models, at the pack's own scale (forest props are
+## pine groves that fill their hex, like the KayKit samples).
+const KK_PROPS := {"prop_oak": "trees_A_medium", "prop_birch": "trees_B_medium", "prop_pine": "trees_B_large",
+	"prop_rock": "rock_single_A", "prop_outcrop": "rock_single_E", "prop_log": "tree_single_A_cut", "prop_bush": "trees_B_small",
 	"prop_reeds": "waterplant_A"}
 var team := "blue"   # KayKit team color for the castle (Game sets it from your color)
 const BACKDROP := -2
@@ -218,9 +222,11 @@ func generate(seed_v: int, want_biome := "") -> void:
 	_update_frontier(Vector2i.ZERO)
 	_rebuild_roads()
 	_rebuild_water()
-	_build_skirt()
 	if _kk_on():
+		_build_void()
 		_kk_rebuild()
+	else:
+		_build_skirt()
 	_castle = Models.castle(team if _kk_on() else "")
 	_castle.scale = Vector3.ONE * 1.4
 	_castle.position = cell_to_world(center)
@@ -559,9 +565,10 @@ func _rebuild_mesh(t: Vector2i) -> void:
 	if _meshes.has(t):
 		(_meshes[t] as Node).queue_free()
 		_meshes.erase(t)
-	if _kk_on() and placed.has(t):
-		_kk_queue()
-		return
+	if _kk_on():
+		if placed.has(t):
+			_kk_queue()
+		return   # KayKit island: nothing is drawn outside your tiles
 	_ctx.clear()
 	_mv = PackedVector3Array()
 	_mn = PackedVector3Array()
@@ -698,6 +705,20 @@ func _rebuild_water() -> void:
 	add_child(_water_mi)
 
 
+## KayKit island: a dark hex floor far below, like the backdrop of the KayKit samples.
+func _build_void() -> void:
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(1200, 1200)
+	var mi := MeshInstance3D.new()
+	mi.mesh = pm
+	var sm := ShaderMaterial.new()
+	sm.shader = load("res://shaders/void_hex.gdshader")
+	mi.material_override = sm
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = Vector3(0, VOID_Y, 0)
+	add_child(mi)
+
+
 func _build_skirt() -> void:
 	var pm := PlaneMesh.new()
 	var ext := (MAP_RADIUS + 1) * Hex.K * Hex.SQ3 * Hex.R * 4.0
@@ -768,6 +789,8 @@ func _prop_base(prop: String) -> Transform3D:
 	var sz: Array = PROP_SIZE.get(prop, PROP_EXTRA.get(prop, SCATTER_SIZE.get(prop, [1.0, 1.0])))
 	_prop_long_x[prop] = bb.size.x >= bb.size.z
 	var s: float = minf(float(sz[0]) / maxf(bb.size.y, 0.001), float(sz[1]) / maxf(maxf(bb.size.x, bb.size.z), 0.001))
+	if _kk_on() and KK_PROPS.has(prop):
+		s = KK_SCALE   # KayKit decoration keeps the pack's proportions to its hex tiles
 	var c := bb.get_center()
 	_prop_h[prop] = bb.size.y * s
 	return Transform3D(Basis().scaled(Vector3(s, s, s)), Vector3(-c.x * s, -bb.position.y * s, -c.z * s)) * inner
@@ -801,7 +824,7 @@ func _build_props() -> void:
 		return
 	var plan: Array = []
 	var trees: Array = biome["trees"]
-	for g in wild_t:
+	for g in ([] if _kk_on() else wild_t.keys()):   # the KayKit island has no wild land around it
 		if placed.has(tile_of(g)) or Hex.dist(g, center) <= 4:
 			continue
 		var p0 := Hex.to_world(g) + Vector3(0, surface_y_wild(g), 0)
@@ -819,7 +842,7 @@ func _build_props() -> void:
 
 	# a forest ring beyond the map edge
 	var rim := (MAP_RADIUS + 1.6) * Hex.K * Hex.SQ3 * Hex.R
-	for i in 220:
+	for i in (0 if _kk_on() else 220):
 		var a := rng.randf() * TAU
 		var d := rim + rng.randf_range(2.0, 16.0)
 		var prop: String = trees[rng.randi() % trees.size()] if rng.randf() < 0.9 else "prop_rock"
@@ -954,8 +977,8 @@ func open_hq_exit(side: int, wave := 0) -> Vector2i:
 	var t := Vector2i.ZERO
 	if side in placed[t]["entrances"] or placed.has(t + E[side]) or not in_map(t + E[side]):
 		return NONE
-	var half: Vector2i = E[side] * 3
-	var inner: Vector2i = E[side] * 2
+	var half: Vector2i = E[side] * Hex.HALF
+	var inner: Vector2i = E[side] * (Hex.HALF - 1)
 	path_cells[half] = true
 	path_cells[inner] = true
 	_link(half, inner)
@@ -1041,11 +1064,12 @@ func make_tile(r: RandomNumberGenerator, n_ent := 0) -> Dictionary:
 			roads[c] = true
 	# a tile can sit a level above or below the road it joins
 	var rise := 0
-	var up: float = 0.3 if biome_id == "highlands" else 0.22
+	# (rarely: flat runs of tiles leave room for the bigger towers, and read like the KayKit samples)
+	var up: float = 0.2 if biome_id == "highlands" else 0.1
 	var rr := r.randf()
 	if rr < up:
 		rise = 1
-	elif rr < up + 0.18:
+	elif rr < up + 0.07:
 		rise = -1
 	return {"entrances": sides, "paths": paths, "features": _gen_features(roads, r), "rise": rise}
 
@@ -1053,10 +1077,10 @@ func make_tile(r: RandomNumberGenerator, n_ent := 0) -> Dictionary:
 func _gen_paths(sides: Array, r: RandomNumberGenerator) -> Array:
 	var paths: Array = []
 	if sides.size() == 2:
-		var a: Vector2i = E[sides[0]] * 2
-		var b: Vector2i = E[sides[1]] * 2
+		var a: Vector2i = E[sides[0]] * (Hex.HALF - 1)
+		var b: Vector2i = E[sides[1]] * (Hex.HALF - 1)
 		var best: Array = []
-		var want := Hex.dist(a, b) + r.randi_range(0, 4)
+		var want := Hex.dist(a, b) + r.randi_range(0, 2)   # gently winding: small tiles need room to build
 		for attempt in 30:
 			var p := _walk(a, b, want, r)
 			if p.size() > best.size() and p.size() <= want + 1:
@@ -1065,23 +1089,23 @@ func _gen_paths(sides: Array, r: RandomNumberGenerator) -> Array:
 				break
 		if best.is_empty():
 			best = _walk(a, b, 12, r)
-		var full: Array = [E[sides[0]] * 3]
+		var full: Array = [E[sides[0]] * Hex.HALF]
 		full.append_array(best)
-		full.append(E[sides[1]] * 3)
+		full.append(E[sides[1]] * Hex.HALF)
 		paths.append(full)
 		return paths
 	var hub: Vector2i = Vector2i.ZERO if r.randf() < 0.5 else E[r.randi() % 6]
 	var taken := {}
 	for s in sides:
-		var p: Array = [E[s] * 3, E[s] * 2]
-		var cur: Vector2i = E[s] * 2
+		var p: Array = [E[s] * Hex.HALF, E[s] * (Hex.HALF - 1)]
+		var cur: Vector2i = E[s] * (Hex.HALF - 1)
 		var guard := 0
 		while cur != hub and not taken.has(cur) and guard < 10:
 			guard += 1
 			var opts: Array = []
 			for d in E:
 				var n: Vector2i = cur + d
-				if Hex.dist(n, hub) < Hex.dist(cur, hub) and Hex.length(n) <= 2:
+				if Hex.dist(n, hub) < Hex.dist(cur, hub) and Hex.length(n) <= Hex.HALF - 1:
 					opts.append(n)
 			if opts.is_empty():
 				break
@@ -1093,7 +1117,7 @@ func _gen_paths(sides: Array, r: RandomNumberGenerator) -> Array:
 	return paths
 
 
-## Random self-avoiding walk from a to b inside the tile (cells within 2 of the middle), at most max_len steps.
+## Random self-avoiding walk from a to b inside the tile (cells inside its edge ring), at most max_len steps.
 func _walk(a: Vector2i, b: Vector2i, max_len: int, r: RandomNumberGenerator) -> Array:
 	var path: Array = [a]
 	var seen := {a: true}
@@ -1113,7 +1137,7 @@ func _walk_rec(path: Array, seen: Dictionary, goal: Vector2i, max_len: int, r: R
 	var opts: Array = []
 	for d in E:
 		var n: Vector2i = cur + d
-		if Hex.length(n) > 2 or seen.has(n):
+		if Hex.length(n) > Hex.HALF - 1 or seen.has(n):
 			continue
 		# don't touch the path except where we came from (no shortcuts between road cells)
 		var touch := false
@@ -1144,7 +1168,7 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 	var free: Array = []
 	for e in _info:
 		var off: Vector2i = e["off"]
-		if e["mask"] == 63 and not roads.has(off) and Hex.length(off) <= 3:
+		if e["mask"] == 63 and not roads.has(off) and Hex.length(off) <= Hex.HALF:
 			free.append(off)
 	for i in range(free.size() - 1, 0, -1):
 		var j := r.randi_range(0, i)
@@ -1161,18 +1185,18 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 		var seeds: Array = []
 		for c in (roads.keys() if bridge else free):
 			var cc: Vector2i = c
-			if Hex.length(cc) <= 2 and not Hex.BAND.has(cc):
+			if Hex.length(cc) <= Hex.HALF - 1 and not Hex.BAND.has(cc):
 				seeds.append(cc)
 		if not seeds.is_empty():
 			var start: Vector2i = seeds[r.randi() % seeds.size()]
 			var pond: Array = [start]
-			var want := r.randi_range(3, 6)
+			var want := r.randi_range(2, 4)   # tiles are 13 whole hexes: a pond takes a few of them
 			var guard := 0
 			while pond.size() < want and guard < 40:
 				guard += 1
 				var from: Vector2i = pond[r.randi() % pond.size()]
 				var n: Vector2i = from + E[r.randi() % 6]
-				if n in pond or Hex.length(n) > 3 or Hex.BAND.has(n):
+				if n in pond or Hex.length(n) > Hex.HALF or Hex.BAND.has(n):
 					continue
 				if roads.has(n) and not bridge:
 					continue
@@ -1180,8 +1204,8 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 			for c in pond:
 				taken[c] = true
 				feats.append({"cell": c, "type": "pond"})
-	var interior := func(c: Vector2i) -> bool: return Hex.length(c) <= 2 and not roads.has(c) and not taken.has(c)
-	if r.randf() < 0.55:
+	var interior := func(c: Vector2i) -> bool: return Hex.length(c) <= Hex.HALF - 1 and not roads.has(c) and not taken.has(c)
+	if r.randf() < 0.2:
 		for c in free:
 			if interior.call(c):
 				taken[c] = true
@@ -1194,12 +1218,12 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 				break
 	var put := func(ty: String, kind := "", inner := false) -> void:
 		for c in free:
-			if not taken.has(c) and (not inner or Hex.length(c) <= 2):
+			if not taken.has(c) and (not inner or Hex.length(c) <= Hex.HALF - 1):
 				taken[c] = true
 				feats.append({"cell": c, "type": ty, "kind": kind})
 				return
-	for i in r.randi_range(1, 4):
-		put.call("tree" if r.randf() < 0.7 else "rock")
+	for i in r.randi_range(0, 2):
+		put.call("tree" if r.randf() < 0.85 else "rock")
 	if r.randf() < 0.35:
 		put.call("ley", "", true)
 	if r.randf() < 0.35:
@@ -1255,7 +1279,7 @@ func plan_tile(t: Vector2i, card: Dictionary, k: int) -> Dictionary:
 			if has != (((side + 3) % 6) in placed[nt]["entrances"]):
 				return {}
 			if has:
-				var half: Vector2i = t * Hex.K + E[side] * 3
+				var half: Vector2i = t * Hex.K + E[side] * Hex.HALF
 				merges.append(half)
 				var hh := level_at(half)
 				lo = maxi(lo, hh - 1)
@@ -1375,7 +1399,7 @@ func commit_tile(plan: Dictionary, wave := 0) -> Array:
 	# entrances: merged ones close, the rest open as new spawn points
 	var opened: Array = []
 	for side in plan["entrances"]:
-		var half: Vector2i = base + E[side] * 3
+		var half: Vector2i = base + E[side] * Hex.HALF
 		if placed.has(t + E[side]):
 			_close_port(half)
 		else:
@@ -1922,7 +1946,7 @@ func show_tile_preview(plan: Dictionary, valid := true) -> void:
 		add_child(m2)
 		_preview_nodes.append(m2)
 	for side in plan["entrances"]:
-		var half: Vector2i = t * Hex.K + E[side] * 3
+		var half: Vector2i = t * Hex.K + E[side] * Hex.HALF
 		var merge: bool = half in plan["merges"]
 		var arrow := Models.cone(0.5, 1.0, Color(0.3, 1, 0.5) if merge else Color(0.85, 0.4, 1.0), cell_to_world(half) + Vector3(0, lvl_y + 2.0, 0), 1.5)
 		arrow.rotation_degrees = Vector3(180, 0, 0)
@@ -2039,16 +2063,39 @@ func _kk_cell(g: Vector2i, lists: Dictionary) -> void:
 			tile = r[0]
 			k = r[1]
 	_kk_add(lists, tile, p + Vector3(0, top, 0), k)
+	if bridges.has(g):
+		# a stone bridge (its deck meets the road at both ends) along the road; where the road turns over the water,
+		# a half bridge runs from the middle out to each exit
+		var m := _road_mask(g)
+		var straight := -1
+		for i in 3:
+			if m == (1 << i) | (1 << (i + 3)):
+				straight = i
+		if straight >= 0:
+			_kk_add_yaw(lists, "building_bridge_A", p, 90.0 - (60.0 * straight + 30.0))
+		else:
+			for i in 6:
+				if m & (1 << i):
+					var yaw := deg_to_rad(90.0 - (60.0 * i + 30.0))
+					var b := Basis(Vector3.UP, yaw).scaled(Vector3(KK_SCALE, LEVEL_H, KK_SCALE * 0.5))
+					if not lists.has("building_bridge_A"):
+						lists["building_bridge_A"] = []
+					lists["building_bridge_A"].append(Transform3D(b, p + Hex.dir_world(i) * (Hex.SQ3 * Hex.R * 0.25)))
 	var y := top - LEVEL_H
-	while y > BACKDROP_Y - 0.05:
+	while y > -LEVEL_H + 0.05:   # the island is one tile thick; raised ground stands on earth pieces
 		_kk_add(lists, "hex_grass_bottom", p + Vector3(0, y, 0), 0)
 		y -= LEVEL_H
 
 
 func _kk_add(lists: Dictionary, tile: String, pos: Vector3, k: int) -> void:
+	_kk_add_yaw(lists, tile, pos, KK_BASE_YAW + 60.0 * k)
+
+
+## A KayKit piece at any yaw (bridges run edge to edge, which the pack's tiles' own turns can't do).
+func _kk_add_yaw(lists: Dictionary, tile: String, pos: Vector3, yaw_deg: float) -> void:
 	if not lists.has(tile):
 		lists[tile] = []
-	var b := Basis(Vector3.UP, deg_to_rad(KK_BASE_YAW + 60.0 * k)).scaled(Vector3(KK_SCALE, LEVEL_H, KK_SCALE))
+	var b := Basis(Vector3.UP, deg_to_rad(yaw_deg)).scaled(Vector3(KK_SCALE, LEVEL_H, KK_SCALE))
 	lists[tile].append(Transform3D(b, pos))
 
 
@@ -2311,8 +2358,8 @@ func _update_frontier(t: Vector2i) -> void:
 
 ## A signpost with a lantern beside every road junction.
 func _place_signposts(roads: Array) -> void:
-	if not _prop_sets.has("prop_signpost"):
-		return
+	if not _prop_sets.has("prop_signpost") or _kk_on():
+		return   # (the KayKit island keeps its roads clean, like the pack's samples)
 	for p in roads:
 		for c in p:
 			if _signed.has(c) or links.get(c, []).size() < 3:

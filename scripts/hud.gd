@@ -925,7 +925,7 @@ class TileDiagram extends Control:
 
 	func _draw() -> void:
 		Hex.setup()
-		var px := minf(size.x / 12.6, (size.y - 4.0) / (6.0 * Hex.SQ3 + 0.4))
+		var px := minf(size.x / (2.0 * Hex.K + 0.6), (size.y - 4.0) / (Hex.K * Hex.SQ3 + 0.4))
 		var k := px / Hex.R
 		var mid := size * 0.5
 		var roads := {}
@@ -967,7 +967,7 @@ class TileDiagram extends Control:
 						var letter := String(GameData.NEUTRALS[f["kind"]]["name"]).substr(0, 1)
 						draw_string(font, ctr + Vector2(-px * 0.32, px * 0.36), letter, HORIZONTAL_ALIGNMENT_LEFT, -1, int(px * 1.0), Color(0.15, 0.08, 0.02))
 		for s_ in card["entrances"]:
-			var e := Hex.to_world(Hex.E[s_] * 3)
+			var e := Hex.to_world(Hex.E[s_] * Hex.HALF)
 			draw_circle(mid + Vector2(e.x, e.z) * k, px * 0.42, Color(0.8, 0.35, 1.0))
 		var rise: int = card.get("rise", 0)
 		if rise != 0:

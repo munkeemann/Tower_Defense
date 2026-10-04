@@ -584,18 +584,22 @@ const SHAPES := {
 	"star5": {"name": "5, cross", "cells": [[0, 0], [1, -1], [-1, 0], [1, 0], [-1, 1]], "muzzles": [[0, 0]]},
 	"battery6": {"name": "6, two front guns", "cells": [[0, 0], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1]], "muzzles": [[1, -1], [-1, 0]]},
 	"flower7": {"name": "7, flower", "cells": [[0, 0], [1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]], "muzzles": [[0, 0]]},
+	"battery5": {"name": "5, two front guns", "cells": [[0, 0], [-1, 0], [0, -1], [1, -1], [0, 1]], "muzzles": [[1, -1], [-1, 0]]},
+	"fan5": {"name": "5, fan", "cells": [[0, 0], [-1, 0], [0, -1], [1, -1], [1, 0]], "muzzles": [[0, 0]]},
 }
-## tower -> [shape, firing arc in degrees (360 = all round)]
+## tower -> [shape, firing arc in degrees (360 = all round)]. No tower covers more than 5 hexes: map tiles are 3 hexes
+## along each edge (13 whole hexes, a road through the middle), so the big towers fit where neighboring tiles leave a
+## clear, level patch together, and 6-7 hex shapes would hardly ever find one. Those shapes stay in SHAPES.
 const FOOTPRINTS := {
 	"archer": ["single", 360], "ballista": ["line3", 60], "arcane": ["pair", 360], "trebuchet": ["arrow5", 120],
-	"chapel": ["fan4", 360], "banner": ["single", 360], "gryphon": ["wing3", 180], "bombard": ["battery6", 120],
+	"chapel": ["fan4", 360], "banner": ["single", 360], "gryphon": ["wing3", 180], "bombard": ["battery5", 120],
 	"thorn": ["single", 360], "spore": ["pair", 360], "briar": ["line4", 360], "treant": ["star5", 360],
-	"storm": ["arrow3", 360], "hive": ["pair", 360], "moonwell": ["single", 360], "rootbinder": ["flower7", 360],
+	"storm": ["arrow3", 360], "hive": ["pair", 360], "moonwell": ["single", 360], "rootbinder": ["fan5", 360],
 	"dwarf_flame": ["pair", 90], "dwarf_hammer": ["arrow3", 360], "dwarf_mortar": ["fan4", 360], "dwarf_gyro": ["wing3", 180],
 	"mer_tide": ["single", 360], "mer_harpoon": ["line3", 60], "mer_whirl": ["arrow3", 360], "mer_siren": ["pair", 360],
 	"bone_crypt": ["single", 360], "plague_cauldron": ["pair", 360], "soul_obelisk": ["pair", 360], "hex_tomb": ["fan4", 360],
-	"seraph": ["arrow3", 360], "archangel": ["fan4", 360], "dire_bear": ["pair", 360], "mammoth": ["battery6", 360],
-	"magma_golem": ["arrow3", 360], "fat_dragon": ["arrow5", 30], "snapjaw_crab": ["wing3", 360], "kraken": ["flower7", 360],
+	"seraph": ["arrow3", 360], "archangel": ["fan4", 360], "dire_bear": ["pair", 360], "mammoth": ["battery5", 360],
+	"magma_golem": ["arrow3", 360], "fat_dragon": ["arrow5", 30], "snapjaw_crab": ["wing3", 360], "kraken": ["fan5", 360],
 	"mass_grave": ["line4", 360], "necromancer": ["star5", 360],
 }
 
