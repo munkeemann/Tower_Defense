@@ -1378,9 +1378,9 @@ func plan_tile(t: Vector2i, card: Dictionary, k: int) -> Dictionary:
 	if open_ports.size() - merges.size() + (ents.size() - merges.size()) < 1:
 		return {}
 	# the card's own height, relative to the road it joins, within one step of every road it touches
-	var level := clampi(level_at(merges[0]) + int(card.get("rise", 0)), 0, 2)
-	level = clampi(level, maxi(lo, 0), mini(hi, MAX_LEVEL - 1))
-	if level < lo or level > hi:
+	var want := clampi(level_at(merges[0]) + int(card.get("rise", 0)), 0, 2)
+	want = clampi(want, maxi(lo, 0), mini(hi, MAX_LEVEL - 1))
+	if want < lo or want > hi:
 		return {}
 	var base := t * Hex.K
 	var rc := rotate_tile(card, k)
@@ -1390,6 +1390,17 @@ func plan_tile(t: Vector2i, card: Dictionary, k: int) -> Dictionary:
 		for c in p:
 			gp.append(base + c)
 		roads.append(gp)
+	# the pack's sloped road only runs straight, so no height that puts a ramp where the road bends: the card's own
+	# height first, then the others its roads allow
+	var level := -1
+	var choices: Array = range(maxi(lo, 0), mini(hi, MAX_LEVEL - 1) + 1)
+	choices.sort_custom(func(a, b): return absi(a - want) < absi(b - want) or (absi(a - want) == absi(b - want) and a < b))
+	for cand in choices:
+		if not _ramp_bends(roads, cand):
+			level = cand
+			break
+	if level < 0:
+		return {}
 	var feats: Array = []
 	for f in rc["features"]:
 		var nf: Dictionary = f.duplicate()
@@ -1397,6 +1408,42 @@ func plan_tile(t: Vector2i, card: Dictionary, k: int) -> Dictionary:
 		feats.append(nf)
 	return {"tile": t, "rot": k, "entrances": ents, "roads": roads, "features": feats, "level": level,
 		"merges": merges, "new_ports": ents.size() - merges.size()}
+
+
+## Would these roads (a tile's paths, its new cells at `level`) leave a ramp on a cell where the road bends or
+## branches? A ramp is the sloped straight road piece, so the road must run straight through it, up and down the slope;
+## anything else doesn't line up. Checks the ramps the roads would make and the ones already there that they touch.
+func _ramp_bends(roads: Array, level: int) -> bool:
+	var ramp := {}
+	var nb := {}   # road cell -> the cells its road joins (existing links plus these roads)
+	for p in roads:
+		for i in p.size():
+			var c: Vector2i = p[i]
+			if not nb.has(c):
+				nb[c] = (links.get(c, []) as Array).duplicate()
+			for j in [i - 1, i + 1]:
+				if j >= 0 and j < p.size() and p[j] not in nb[c]:
+					nb[c].append(p[j])
+			if ramps.has(c):
+				ramp[c] = int(ramps[c])
+			if i == 0:
+				continue
+			var a: Vector2i = p[i - 1]
+			var la: int = int(height[a]) if height.has(a) else level
+			var lc: int = int(height[c]) if height.has(c) else level
+			if absi(la - lc) == 1:
+				var low := a if la < lc else c
+				var high := c if la < lc else a
+				ramp[low] = Hex.dir_index(high - low)
+	for c in ramp:
+		if not nb.has(c):
+			continue
+		var up: int = ramp[c]
+		for n in nb[c]:
+			var d := Hex.dir_index((n as Vector2i) - c)
+			if d != up and d != (up + 3) % 6:
+				return true
+	return false
 
 
 ## Stamps a planned tile onto the map. Returns the entrance cells that became new spawn points.

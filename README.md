@@ -19,8 +19,9 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
      middle of each side, where the road enters. When two tiles meet, their halves merge into whole hexes; only
      those shared halves match, the rest of each tile keeps its own height. Tiles are often a level above or below
      the road they join (3 levels in all) and often carry a raised patch, so the map climbs and dips; roads ramp
-     between levels. Tiles carry few trees and rocks so there's room for the bigger towers, and ponds only cross a
-     road where it runs straight (a bridge can't bend).
+     between levels, only where they run straight (a ramp can't bend: a tile takes another height, or doesn't fit,
+     rather than turn its road on one). Tiles carry few trees and rocks so there's room for the bigger towers, and
+     ponds only cross a road where it runs straight (a bridge can't bend).
    - Entrances sit at side midpoints. A tile has 2 to 6 of them, usually 2 (50% 2, 27% 3, 13% 4, 7% 5, 3% 6).
      Once you're holding several battlefronts, tiles that would only add more get rarer.
    - **Sides that touch placed tiles must match**: entrance to entrance, wall to wall.
@@ -294,7 +295,8 @@ KayKit (Kay Lousberg, CC0, in `assets/kaykit`, wrapped by `scripts/kaykit.gd`) s
 - `tools/tower_sheet.gd` draws towers on their hexes into a PNG with no window (a small software rasterizer in
   `tools/snap.gd`), so tower art can be checked in headless runs (`--biome=<id>` draws them in that biome's
   palette); `tools/map_sheet.gd` does the same for a grown
-  map (add `--bridge` to force pond crossings). `scripts/models.gd` maps each
+  map (add `--bridge` to force pond crossings), and `tools/ramp_test.gd` grows a dozen maps and fails if any ramp's
+  road bends. `scripts/models.gd` maps each
 tower and enemy to its model, and falls back to simple shapes if a file is missing. Multi-hex towers with their
 own footprint-shaped model (the `fp2_*` set: one per multi-hex tower, each drawn to fill its footprint's silhouette)
 are listed in `Models.FOOTPRINT_ART` with a yaw, a height cap and a stretch allowance (plus optional tilt / spin /
