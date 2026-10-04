@@ -765,6 +765,7 @@ func _setup_env() -> void:
 	env.fog_sky_affect = 0.0
 	if Board.KAYKIT_TERRAIN and KayKit.available():
 		_kaykit_look(env)
+	_env = env
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -785,11 +786,20 @@ func _setup_env() -> void:
 	add_child(sun)
 
 
-## The KayKit sample look: the board floats over a dark floor, lit plainly and brightly so the pack's colors read
+var _env: Environment
+
+
+## Behind the island the sea runs to the horizon: the sky's clear color matches it (KayKit look only).
+func _match_sky() -> void:
+	if _env and Board.KAYKIT_TERRAIN and KayKit.available():
+		_env.background_color = board.ocean_color
+
+
+## The KayKit sample look: the island stands in an open sea, lit plainly and brightly so the pack's colors read
 ## as they were painted (no film curve, no haze, light contact shadows).
 func _kaykit_look(env: Environment) -> void:
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.11, 0.11, 0.115)
+	env.background_color = Color(0.11, 0.11, 0.115)   # (start_run matches it to the sea: Board.ocean_color)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.86, 0.9, 1.0)
 	env.ambient_light_energy = 0.55
@@ -1105,6 +1115,7 @@ func to_menu() -> void:
 	board.pond_bonus = 0.0
 	board.fog_enabled = false
 	board.generate(rng.randi())
+	_match_sky()
 	# grow a little road network for the backdrop
 	for i in 9:
 		_auto_expand()
@@ -1193,12 +1204,15 @@ func start_run(fid: String, hero_id := "") -> void:
 	board.team = KayKit.TEAM.get(fid, "blue")
 	Models.team = board.team
 	board.generate(rng.randi(), force_biome)
+	_match_sky()
 	_roll_threats()
 	thumbs.queue_faction(fid)
 	cam.auto_orbit = false
-	cam.focus(Vector3(0, 0, -8))
+	# the opening view, swung START_YAW counterclockwise around the castle (the framing turns with it)
+	cam.focus(Vector3(0, 0, -8).rotated(Vector3.UP, CameraRig.START_YAW))
 	cam._target_dist = 44.0 / CameraRig.CELL_ZOOM
-	cam._target_yaw = 0.0
+	cam._target_yaw = CameraRig.START_YAW
+	cam.yaw = CameraRig.START_YAW
 	hud.set_game_ui_visible(true)
 	hud.help_panel.visible = int(stats.get("runs", 0)) < 2 and OS.get_cmdline_user_args().is_empty()
 	hud.build_tower_bar()

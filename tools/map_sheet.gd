@@ -78,10 +78,14 @@ func _init() -> void:
 		nn.transform = (b.neutrals[c]["node"] as Node3D).global_transform
 		stage.add_child(nn)
 	await process_frame
-	var img := S.draw(stage, 1400, Vector3(0.0, 0.84, 0.545), 0.0, Vector3.ZERO, Color(0.11, 0.11, 0.115))
+	# seen from the run's opening camera (turned CameraRig.START_YAW around the castle), over the open sea
+	var yaw := CameraRig.START_YAW
+	var sea := b.ocean_color * 0.9   # (snap shades a flat top face about this much)
+	var img := S.draw(stage, 1400, Vector3(0.0, 0.84, 0.545).rotated(Vector3.UP, yaw), 0.0, Vector3.ZERO, sea)
 	img.save_png(out)
 	# a close-up of the castle's corner of the map, about as near as the game's opening view
-	var close := S.draw(stage, 1000, Vector3(0.25, 0.84, 0.545), 52.0, b._castle.global_position + Vector3(0, 0, -4), Color(0.11, 0.11, 0.115))
+	var close := S.draw(stage, 1000, Vector3(0.25, 0.84, 0.545).rotated(Vector3.UP, yaw), 52.0,
+		b._castle.global_position + Vector3(0, 0, -4).rotated(Vector3.UP, yaw), sea)
 	close.save_png(out.get_basename() + "_close.png")
 	print("MAP tiles=%d cells=%d saved %s" % [b.placed.size(), seen.size(), out])
 	quit()

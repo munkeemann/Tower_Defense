@@ -6,7 +6,8 @@ All third-party models are CC0 (public domain). No attribution is required, but 
 - **Quaternius** (quaternius.com): Ultimate Monsters (`monsters/`)
 - **Kay Lousberg / KayKit** (kaylousberg.com): Character Pack: Skeletons (`skeletons/`), and in `kaykit/`: Medieval
   Hexagon Pack (Extra), Adventurers (Extra), Mystery Monthly Series 4 and 5, Character Animations, Skeletons, Fantasy
-  Weapons Bits, Dungeon Pack and Forest Nature Pack (`chars/`, `anims/`, `hex/`, `gear/`)
+  Weapons Bits, Dungeon Pack, Forest Nature Pack (`chars/`, `anims/`, `hex/`, `gear/`), Halloween Bits
+  (`halloween/`), Medieval Builder Pack (`builder/`, its hex tiles in `builder/hex/`) and Resource Bits (`resources/`)
 
 ## AI-generated (`custom/`)
 

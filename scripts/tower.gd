@@ -187,8 +187,13 @@ func upgrade(spec_index := -1) -> void:
 	if level == 3 and spec_index >= 0 and GameData.SPECS.has(id):
 		spec = spec_index
 		fx = GameData.SPECS[id][spec_index]["fx"]
-	var s := (1.0 + (level - 1) * (0.03 if _fitted else 0.08)) * _base_scale
+	# grow visibly: Blender and KayKit towers grow the part that does the work (machine, crew, angel, beast) and keep
+	# their base the footprint's size; the rest grow whole (footprint art only a little, so it stays on its hexes)
+	var grows_head := (_rig != null or _model.has_meta("kaykit")) and head.position.length() > 0.01
+	var s := (1.0 + (level - 1) * (0.02 if grows_head else (0.05 if _fitted else 0.1))) * _base_scale
 	_model.scale = Vector3(s, s, s)
+	if grows_head:
+		head.scale = Vector3.ONE * (1.0 + 0.15 * (level - 1))
 	var rr := sqrt(float(cells.size())) * 0.8 if _fitted else 0.72 * _base_scale
 	var ring := Models.torus(rr, rr + 0.1 * (1.0 + float(_fitted)), GameData.FACTIONS[game.faction]["color"], Vector3(0, 0.3 + 0.12 * (level - 2), 0), 1.2)
 	add_child(ring)

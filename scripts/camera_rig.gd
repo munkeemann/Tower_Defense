@@ -13,6 +13,8 @@ var _fov_comp := tan(deg_to_rad(25.0)) / tan(deg_to_rad(FOV * 0.5))
 ## Hexes read bigger on screen, closer to Tower Dominion's framing: the run's opening view and the closest zoom
 ## both sit this much nearer than they used to (the farthest zoom still shows the whole map).
 const CELL_ZOOM := 1.35
+## Where a run's camera starts: turned this far counterclockwise (seen from above) around the castle.
+const START_YAW := deg_to_rad(45.0)
 var distance := 34.0 / CELL_ZOOM
 var min_dist := 12.0 / CELL_ZOOM
 var max_dist := 150.0

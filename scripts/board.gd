@@ -243,7 +243,7 @@ func generate(seed_v: int, want_biome := "") -> void:
 	_rebuild_roads()
 	_rebuild_water()
 	if _kk_on():
-		_build_void()
+		_build_ocean()
 		_kk_rebuild()
 	else:
 		_build_skirt()
@@ -725,7 +725,55 @@ func _rebuild_water() -> void:
 	add_child(_water_mi)
 
 
-## KayKit island: a dark hex floor far below, like the backdrop of the KayKit samples.
+var ocean_color := Color(0.25, 0.55, 0.75)   # the sea's color (Game matches the sky to it)
+
+
+## KayKit island: open sea all round. A plane just under the water tiles' surface, in the tiles' own material with its
+## texture lookup pinned to the water's spot in the atlas, so the island's ring of water hexes runs on to the horizon in
+## exactly their color, whatever the biome's palette.
+func _build_ocean() -> void:
+	var hm: Array = KayKit.hex_mesh("hex_water")
+	var mesh: Mesh = hm[0]
+	if mesh == null:
+		_build_void()
+		return
+	var xf: Transform3D = hm[1]
+	var arr := mesh.surface_get_arrays(0)
+	var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
+	var top := -INF
+	for v in vs:
+		top = maxf(top, (xf * v).y)
+	var uv := Vector2.ZERO
+	var n := 0
+	for i in vs.size():
+		if (xf * vs[i]).y > top - 0.001:
+			uv += uvs[i]
+			n += 1
+	uv /= maxf(1.0, n)
+	var m := (_kk_material() as BaseMaterial3D).duplicate() as BaseMaterial3D
+	m.vertex_color_use_as_albedo = false
+	m.uv1_scale = Vector3.ZERO
+	m.uv1_offset = Vector3(uv.x, uv.y, 0.0)
+	var tex := m.albedo_texture
+	if tex:
+		var im := tex.get_image()
+		if im:
+			if im.is_compressed():
+				im.decompress()
+			ocean_color = im.get_pixel(clampi(int(uv.x * im.get_width()), 0, im.get_width() - 1),
+				clampi(int(uv.y * im.get_height()), 0, im.get_height() - 1))
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(1600, 1600)
+	var mi := MeshInstance3D.new()
+	mi.mesh = pm
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = Vector3(0, KK_SEA_Y + top * LEVEL_H - 0.004, 0)
+	add_child(mi)
+
+
+## The dark hex floor far below the island (the KayKit samples' backdrop); the fallback if the water tile is missing.
 func _build_void() -> void:
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(1200, 1200)
