@@ -2056,24 +2056,20 @@ func show_tile_preview(plan: Dictionary, valid := true) -> void:
 	clear_preview()
 	if plan.is_empty():
 		return
-	var lvl_y: float = int(plan["level"]) * LEVEL_H
 	var t: Vector2i = plan["tile"]
-	var outline := _hex_plate(Hex.K * Hex.R, Color(1.0, 0.9, 0.4) if valid else Color(1, 0.3, 0.3), Hex.tile_world(t) + Vector3(0, lvl_y + 0.35, 0), 0.12, 0.05)
-	add_child(outline)
-	_preview_nodes.append(outline)
-	for p in plan["roads"]:
-		for c in p:
-			var m := _hex_plate(Hex.R * 0.85, Color(1.0, 0.85, 0.4), cell_to_world(c) + Vector3(0, lvl_y + 0.45, 0), 0.75, 0.12)
-			add_child(m)
-			_preview_nodes.append(m)
-	for f in plan["features"]:
-		var fc: Vector2i = f["cell"]
-		var fcol: Color = {"plateau": Color(0.8, 0.65, 0.4), "tree": Color(0.3, 0.8, 0.35), "rock": Color(0.6, 0.6, 0.65),
-			"ley": Color(0.4, 0.9, 1.0), "neutral": Color(1.0, 0.6, 0.2)}.get(f["type"], Color.WHITE)
-		var hgt := 0.7 if f["type"] == "plateau" else 0.4
-		var m2 := _hex_plate(Hex.R * 0.7, fcol, cell_to_world(fc) + Vector3(0, lvl_y + hgt * 0.5 + 0.3, 0), 0.6, hgt)
-		add_child(m2)
-		_preview_nodes.append(m2)
+	var lvl_y: float = int(plan["level"]) * LEVEL_H
+	if _kk_on():
+		_tile_hologram(plan, valid)
+	else:
+		var outline := _hex_plate(Hex.K * Hex.R, Color(1.0, 0.9, 0.4) if valid else Color(1, 0.3, 0.3), Hex.tile_world(t) + Vector3(0, lvl_y + 0.35, 0), 0.12, 0.05)
+		add_child(outline)
+		_preview_nodes.append(outline)
+		for p in plan["roads"]:
+			for c in p:
+				var m := _hex_plate(Hex.R * 0.85, Color(1.0, 0.85, 0.4), cell_to_world(c) + Vector3(0, lvl_y + 0.45, 0), 0.75, 0.12)
+				add_child(m)
+				_preview_nodes.append(m)
+	# entrances: green where it joins a road, purple where it opens a new spawn
 	for side in plan["entrances"]:
 		var half: Vector2i = t * Hex.K + E[side] * Hex.HALF
 		var merge: bool = half in plan["merges"]
@@ -2081,6 +2077,149 @@ func show_tile_preview(plan: Dictionary, valid := true) -> void:
 		arrow.rotation_degrees = Vector3(180, 0, 0)
 		add_child(arrow)
 		_preview_nodes.append(arrow)
+
+
+var _holo_mats := {}
+
+
+## The hologram's look: the map tiles' own material (this biome's palette), see-through and lit from within; red where
+## the tile can't go.
+func _holo_mat(valid: bool, props := false) -> Material:
+	var key := "%s|%s|%s" % [biome_id, valid, props]
+	if _holo_mats.has(key):
+		return _holo_mats[key]
+	var m: BaseMaterial3D
+	if props:
+		m = StandardMaterial3D.new()
+		m.albedo_color = Color(0.75, 0.95, 1.0, 0.5) if valid else Color(1.0, 0.5, 0.45, 0.5)
+	else:
+		m = (_kk_material() as BaseMaterial3D).duplicate() as BaseMaterial3D
+		m.albedo_color = Color(0.9, 1.0, 1.05, 0.62) if valid else Color(1.0, 0.55, 0.5, 0.55)
+	m.vertex_color_use_as_albedo = false
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.emission_enabled = true
+	m.emission = Color(0.3, 0.55, 0.7) if valid else Color(0.6, 0.12, 0.1)
+	m.emission_energy_multiplier = 0.35
+	_holo_mats[key] = m
+	return m
+
+
+## A see-through copy of the tile a plan would lay, cell by cell as the map would draw it: grass, the right road piece
+## at each turn, ramps, ponds, raised patches (with earth under them), and its trees, rocks and crystals.
+func _tile_hologram(plan: Dictionary, valid: bool) -> void:
+	for part in hologram_parts(plan):
+		_holo_add(part[0], part[1], _holo_mat(valid, part[2]))
+
+
+## The hologram's pieces: [mesh, world transforms, is a prop] for each tile piece and prop the plan would add.
+func hologram_parts(plan: Dictionary) -> Array:
+	var t: Vector2i = plan["tile"]
+	var level: int = plan["level"]
+	var base := t * Hex.K
+	var feats := {}
+	for f in plan["features"]:
+		feats[f["cell"]] = f
+	var road := {}
+	var nb := {}                     # road cell -> the cells its road joins (existing links plus the plan's paths)
+	for p in plan["roads"]:
+		for i in p.size():
+			var c: Vector2i = p[i]
+			road[c] = true
+			if not nb.has(c):
+				nb[c] = (links.get(c, []) as Array).duplicate()
+			for j in [i - 1, i + 1]:
+				if j >= 0 and j < p.size() and p[j] not in nb[c]:
+					nb[c].append(p[j])
+	var lv := func(c: Vector2i) -> int:
+		if height.has(c):
+			return int(height[c])
+		if feats.has(c) and feats[c]["type"] == "plateau" and not road.has(c):
+			return mini(level + 1, MAX_LEVEL - 1)
+		return level
+	var ramp := {}
+	for p in plan["roads"]:
+		for i in range(1, p.size()):
+			var la: int = lv.call(p[i - 1])
+			var lb: int = lv.call(p[i])
+			if absi(la - lb) == 1:
+				var low: Vector2i = p[i - 1] if la < lb else p[i]
+				var high: Vector2i = p[i] if la < lb else p[i - 1]
+				ramp[low] = Hex.dir_index(high - low)
+	var open_side := {}              # entrances that will open a road end: the road runs on out of that side
+	for side in plan["entrances"]:
+		if not placed.has(t + E[side]):
+			open_side[base + E[side] * Hex.HALF] = side
+	var lists := {}
+	var props := {}
+	for e in _info:
+		var g: Vector2i = base + e["off"]
+		if height.has(g):
+			continue                 # a neighbour's shared cell: already drawn
+		var pond: bool = feats.has(g) and feats[g]["type"] == "pond"
+		var water := pond and not road.has(g)
+		var l: int = lv.call(g)
+		var top := 0.0 if water else l * LEVEL_H
+		var p := Hex.to_world(g)
+		var tile := "hex_grass"
+		var k := 0
+		if water:
+			tile = "hex_water"
+		elif road.has(g):
+			if ramp.has(g):
+				tile = "hex_road_A_sloped_high"
+				k = posmod(5 - int(ramp[g]), 6)
+			else:
+				var m := 0
+				for n in nb.get(g, []):
+					var i := Hex.dir_index((n as Vector2i) - g)
+					if i >= 0:
+						m |= 1 << i
+				if open_side.has(g):
+					m |= 1 << int(open_side[g])
+				var r := _kk_road(m)
+				tile = r[0]
+				k = r[1]
+		_kk_add(lists, tile, p + Vector3(0, top, 0), k)
+		var y := top - LEVEL_H
+		while y > -LEVEL_H + 0.05:
+			_kk_add(lists, "hex_grass_bottom", p + Vector3(0, y, 0), 0)
+			y -= LEVEL_H
+		if feats.has(g) and not road.has(g) and not water:
+			var prop: String = {"tree": (biome["trees"] as Array)[0], "rock": "prop_rock", "ley": "prop_crystal"}.get(feats[g]["type"], "")
+			if prop != "" and _props_ready:
+				if not props.has(prop):
+					props[prop] = []
+				props[prop].append(_prop_xform(prop, {"pos": p + Vector3(0, top + 0.02, 0), "rot": 0.6, "scale": 0.5 if prop == "prop_crystal" else 1.0}))
+	var out: Array = []
+	for tile in lists:
+		var hm: Array = KayKit.hex_mesh(tile)
+		if hm[0] == null:
+			continue
+		var inner: Transform3D = hm[1]
+		var xs: Array = []
+		for xf in lists[tile]:
+			xs.append((xf as Transform3D) * inner)
+		out.append([hm[0], xs, false])
+	for prop in props:
+		out.append([_prop_mesh(prop)[0], props[prop], true])
+	return out
+
+
+func _holo_add(mesh: Mesh, xforms: Array, mat: Material) -> void:
+	if mesh == null or xforms.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = xforms.size()
+	for i in xforms.size():
+		mm.set_instance_transform(i, xforms[i])
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.material_override = mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mmi)
+	_preview_nodes.append(mmi)
 
 
 func clear_preview() -> void:

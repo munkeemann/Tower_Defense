@@ -13,8 +13,9 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
 1. **Pick a color and a commander** (see *The color pie* below). Every commander has two powers. Some are
    free; the others are unlocked with Renown.
 2. **Expand the realm**: before every wave you're offered **one** random hexagonal terrain tile, which always
-   fits somewhere. Place it next to an open road end, or cast 1 **Rune** to reroll it. Press **R** to turn it
-   (6 ways). Tiles can carry high ground, ley crystals, trees, rocks and neutral buildings.
+   fits somewhere. Point at a glowing spot to see it there as a hologram (the real tile, see-through: roads,
+   ramps, ponds, high ground; red where it won't fit), then click to place it. **R** / **Shift+R** turn it (6 ways);
+   **F** casts 1 **Rune** to reroll it. Tiles can carry high ground, ley crystals, trees, rocks and neutral buildings.
    - Each tile is a hexagon 3 small hexes along each edge (`Hex.K = 4`): 13 whole hexes plus a half hex in the
      middle of each side, where the road enters. When two tiles meet, their halves merge into whole hexes; only
      those shared halves match, the rest of each tile keeps its own height. Tiles are often a level above or below
@@ -138,10 +139,10 @@ Deepwood) changes how often tiles are raised and how many ponds they carry.
 |---|---|
 | WASD / arrows / right-drag | Move camera |
 | Mouse wheel, Q / E | Zoom, rotate |
-| Tile placement | Click a glowing spot. R turns it. The Reroll button swaps the tile for 1 Rune |
-| 1-9, R, click | Pick a tower, turn it, build it (hold Shift to keep building) |
+| Tile placement | Point at a glowing spot (hologram), click to place. R / Shift+R turn it. F rerolls it for 1 Rune |
+| 1-9, R / Shift+R, click | Pick a tower, turn it (either way), build it (hold Shift to keep building) |
 | Click tower | Select it (U upgrade, X sell, T targeting mode) |
-| F | Faction ability |
+| F | Faction ability (between waves: reroll the tile or the rewards) |
 | B (or G) / N then click | Builder raises ground (high ground = more range) / Digger lowers it |
 | C | Castle talents |
 | Space / V / P / M | Start wave / game speed / pause / sound on-off |

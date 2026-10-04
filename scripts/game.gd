@@ -1495,7 +1495,7 @@ func reroll() -> void:
 
 
 func _reroll_label() -> String:
-	return "Reroll  (%d Rune%s, have %d)" % [GameData.REROLL_COST, "" if GameData.REROLL_COST == 1 else "s", recon]
+	return "Reroll [F]  (%d Rune%s, have %d)" % [GameData.REROLL_COST, "" if GameData.REROLL_COST == 1 else "s", recon]
 
 
 # ------------------------------------------------------------------ expansion (terrain tiles)
@@ -1625,15 +1625,7 @@ func _on_tile_card(i: int) -> void:
 			_slots.append(p[0])
 	board.clear_preview()
 	board.show_slots(_slots)
-	var c: Dictionary = tile_cards[i]
-	var fl := _feature_lines(c["features"])
-	var rise: int = c.get("rise", 0)
-	var lines: PackedStringArray = ["%d entrances" % c["entrances"].size()]
-	if rise != 0:
-		lines.append("Raised: one level up (+range)" if rise > 0 else "Lowland: one level down")
-	if fl != "":
-		lines.append(fl)
-	hud.show_tile_panel(c, tile_title(c), "\n".join(lines), _reroll_label())
+	hud.show_tile_panel(tile_title(tile_cards[i]), _reroll_label())
 	var mid := Vector3.ZERO
 	for sl in _slots:
 		mid += Hex.tile_world(sl)
@@ -3094,10 +3086,14 @@ func _handle_key(code: Key, shift := false) -> void:
 	if state == S.EXPAND:
 		match code:
 			KEY_R: _rotate_tile(-1 if shift else 1)
+			KEY_F: reroll()
 			KEY_C: hud.toggle_castle()
 			KEY_M: toggle_mute()
 			KEY_P: toggle_pause()
 			KEY_H: hud.help_panel.visible = not hud.help_panel.visible
+		return
+	if state == S.REWARD and code == KEY_F:
+		reroll()   # the reward offers reroll like the tile
 		return
 	match code:
 		KEY_SPACE:

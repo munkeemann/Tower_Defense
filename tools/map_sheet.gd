@@ -4,6 +4,7 @@ extends SceneTree
 ## layout and colors, not the game's lighting.
 ## Godot --headless --path . --script res://tools/map_sheet.gd -- out.png [faction] [waves] [seed] [--bridge] [--biome=<id>]
 ##   --bridge: every new tile tries to put a pond across its road (to check bridges)
+##   --holo: also draws the next tile on offer as its placement hologram, on the first spot it fits
 
 const S := preload("res://tools/snap.gd")
 
@@ -69,6 +70,20 @@ func _init() -> void:
 				mi.material_override = (set_["mm"] as MultiMeshInstance3D).material_override
 				mi.transform = b._prop_xform(set_["prop"], item)
 				stage.add_child(mi)
+	if "--holo" in a:
+		var cards := g._roll_tile_cards(1)
+		if not cards.is_empty():
+			var pl := g._card_placements(cards[0])
+			if not pl.is_empty():
+				var plan := b.plan_tile(pl[0][0], cards[0], pl[0][1])
+				print("MAPSHEET hologram on slot %s: %s" % [pl[0][0], g.tile_title(cards[0])])
+				for part in b.hologram_parts(plan):
+					for xf in part[1]:
+						var mi := MeshInstance3D.new()
+						mi.mesh = part[0]
+						mi.material_override = b._holo_mat(true, part[2])
+						mi.transform = xf
+						stage.add_child(mi)
 	for n in [b._castle]:
 		var c := (n as Node3D).duplicate() as Node3D
 		c.transform = (n as Node3D).global_transform

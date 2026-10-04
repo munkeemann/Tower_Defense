@@ -26,9 +26,7 @@ var raise_btn: Button
 var dig_btn: Button
 var castle_btn: Button
 var tile_panel: PanelContainer
-var tile_diag: Control
 var tile_title_lbl: Label
-var tile_body_lbl: Label
 var tile_reroll: Button
 var castle_root: PanelContainer
 var castle_detail: Label
@@ -1096,39 +1094,28 @@ func _build_hint() -> void:
 	hint_panel.add_child(hint_lbl)
 	hint_panel.visible = false
 
-	# the one tile on offer: what it is, and a reroll
+	# the one tile on offer: the map shows it as a hologram on the spot you point at; here, just how to turn it and the reroll
 	tile_panel = PanelContainer.new()
 	tile_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	tile_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	tile_panel.offset_top = 60
-	tile_panel.add_theme_stylebox_override("panel", _panel_box(14, Color(0.06, 0.05, 0.08, 0.92), Color(1, 0.85, 0.4, 0.5), 2, 12, 12))
+	tile_panel.add_theme_stylebox_override("panel", _panel_box(10, Color(0.06, 0.05, 0.08, 0.85), Color(1, 0.85, 0.4, 0.4), 2, 10, 6))
 	root.add_child(tile_panel)
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 16)
+	h.add_theme_constant_override("separation", 14)
 	tile_panel.add_child(h)
-	tile_diag = TileDiagram.new()
-	tile_diag.custom_minimum_size = Vector2(190, 118)
-	h.add_child(tile_diag)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	v.custom_minimum_size = Vector2(300, 0)
-	h.add_child(v)
-	tile_title_lbl = _label("", 21, GOLD_C)
-	v.add_child(tile_title_lbl)
-	tile_body_lbl = _wrap_label("", 300, 14, TEXT_C)
-	v.add_child(tile_body_lbl)
-	v.add_child(_label("Click a glowing spot to place it.   R turns it", 13, DIM_C))
+	tile_title_lbl = _label("", 17, GOLD_C)
+	h.add_child(tile_title_lbl)
+	h.add_child(_label("Click a glowing spot   R / Shift+R: turn", 14, DIM_C))
 	tile_reroll = _button("", func(): game.reroll(), 15)
 	tile_reroll.add_theme_color_override("font_color", RECON_C)
-	v.add_child(tile_reroll)
+	h.add_child(tile_reroll)
 	tile_panel.visible = false
 
 
-func show_tile_panel(card: Dictionary, title: String, body: String, reroll_text: String) -> void:
-	tile_diag.card = card
-	tile_diag.queue_redraw()
+## The tile bar: the tile's name and the reroll (the hologram on the map shows the tile itself).
+func show_tile_panel(title: String, reroll_text: String) -> void:
 	tile_title_lbl.text = title
-	tile_body_lbl.text = body
 	tile_reroll.text = reroll_text
 	tile_reroll.disabled = game.recon < GameData.REROLL_COST
 	tile_panel.visible = true
