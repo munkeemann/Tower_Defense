@@ -389,14 +389,14 @@ func _tower_test(tid: String) -> bool:
 	start_run("crown")
 	await get_tree().process_frame
 	hud.hide_choices()
-	for i in 4:
+	for i in 8:   # (enough land that the 5-hex shapes find a clear, level patch)
 		_auto_expand()
 	owned[tid] = 3
 	gold = 5000
 	var ok := true
 	# the spot whose reach covers the most route points (like the bot, but exhaustive)
 	var routes: Array = board.open_ports.keys().map(func(pc): return board.route_from(pc))
-	var air_only: bool = not GameData.TOWERS[tid].get("ground", false)
+	var air_only: bool = GameData.TOWERS[tid].get("air", false) and not GameData.TOWERS[tid].get("ground", false)
 	if air_only:
 		# fliers go straight from the road end to the castle: score spots against points along that line
 		routes = routes.map(func(r):
@@ -530,7 +530,7 @@ func _tower_test(tid: String) -> bool:
 			var m := muzzle.global_position
 			var off := absf(Vector2(s.x - hp.x, s.z - hp.z).length() - Vector2(m.x - hp.x, m.z - hp.z).length())
 			worst = maxf(worst, maxf(off, absf(s.y - m.y)))
-	print("TOWERTEST attacks=%d projectiles=%d rig_fires=%d head_turned=%s muzzle_offset=%.3f" % [t.attacks, _tt_shots.size(),
+	print("TOWERTEST attacks=%d damage=%d projectiles=%d rig_fires=%d head_turned=%s muzzle_offset=%.3f" % [t.attacks, int(t.damage_done), _tt_shots.size(),
 		fires, turned, worst])
 	if t.attacks == 0:
 		print("TOWERTEST FAIL it never attacked")
@@ -1495,6 +1495,13 @@ func _wave_complete() -> void:
 	if wave % 4 == 0:
 		builders += board.neutral_count("lumber")
 	hp = mini(max_hp, hp + 2 * board.neutral_count("barracks"))
+	var toll := 0
+	for t in towers:
+		toll += int(t.data.get("toll", 0))
+	if toll > 0:
+		hp = maxi(1, hp - toll)
+		hud.toast("The Blood Altar drinks %d castle health" % toll, Color(0.95, 0.35, 0.35))
+	recompute_buffs()   # (the Heart of the Forest grows every wave)
 	recon += rc
 	if int(mods["builder_every"]) > 0 and wave % int(mods["builder_every"]) == 0:
 		builders += 1
@@ -2649,7 +2656,7 @@ func apply_hit(pkt: Dictionary, e: Enemy) -> void:
 		e.apply_slow(slow[0], slow[1])
 	var dot: Array = pkt["dot"]
 	if dot.size() == 2:
-		e.apply_dot(dot[0], dot[1], pkt["dtype"], tw)
+		e.apply_dot(dot[0], dot[1], pkt.get("dot_dtype", pkt["dtype"]), tw)
 	var stun: Array = pkt["stun"]
 	if stun.size() == 2 and not e.flying and rng.randf() < float(stun[0]):
 		e.apply_stun(stun[1])
@@ -3001,6 +3008,7 @@ func try_place(c: Vector2i) -> void:
 	t.position = footprint_center(cells)
 	t.setup(self, placing, c, place_facing)
 	t.spent = cost
+	t.built_wave = wave
 	t.on_ley = cells.any(func(x): return board.is_ley(x))
 	t.elevation = board.level_at(c)
 	for cc in t.cells:
@@ -3101,6 +3109,7 @@ func recompute_buffs() -> void:
 		t.buff_dmg = 0.0
 		t.buff_rate = 0.0
 		t.nb_range = 0.0
+		t.burn = []
 		t.water_bonus = float(hero_fx.get("water_dmg", 0.0)) if board.near_water(t.cells) else 0.0
 		var near := board.neutrals_near(t.cells)
 		if "ammo" in near:
@@ -3120,6 +3129,10 @@ func recompute_buffs() -> void:
 			if Vector2(t.position.x - s.position.x, t.position.z - s.position.z).length() <= r:
 				t.buff_dmg += float(b.get("dmg", 0.0))
 				t.buff_rate += float(b.get("rate", 0.0))
+				if s.data.has("burn"):
+					var dps: float = float(s.data["burn"][0]) * GameData.LEVEL_BUFF[s.level - 1] * float(hero_fx.get("aura_mult", 1.0))
+					if t.burn.is_empty() or dps > float(t.burn[0]):
+						t.burn = [dps, float(s.data["burn"][1])]
 
 
 # ------------------------------------------------------------------ speed / pause

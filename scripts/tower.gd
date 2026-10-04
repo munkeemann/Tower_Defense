@@ -27,7 +27,9 @@ var _base_scale := 1.0
 var _fitted := false    # the model was built to fill the whole footprint
 var water_bonus := 0.0  # Blue's Tidebound: extra damage next to water
 var line_w := 0.0       # breath towers: width of the straight line they hit (world units); 0 = normal reach
-var thralls: Array = [] # Necromancer: its zombies that are still up
+var thralls: Array = [] # Necromancer: its zombies that are still up (Hall of Knights: its knights)
+var burn: Array = []    # [dps, seconds] from a nearby Forge of Ages: its hits set enemies burning
+var built_wave := 0     # the wave it was built on (Heart of the Forest grows with every wave since)
 
 ## A tower's attack sound: its own ("sfx" in its data), or its attack kind's.
 func attack_sfx() -> String:
@@ -158,6 +160,9 @@ func buff() -> Dictionary:
 		out["dmg"] = float(out.get("dmg", 0.0)) + fxf("buff_dmg")
 	if fx.has("buff_rate"):
 		out["rate"] = float(out.get("rate", 0.0)) + fxf("buff_rate")
+	if data.has("grow"):
+		var waves := maxi(0, game.wave - built_wave)
+		out["dmg"] = float(out.get("dmg", 0.0)) + minf(float(data["grow_max"]), (float(data["grow"]) + fxf("grow")) * waves)
 	var am := float(game.hero_fx.get("aura_mult", 1.0))
 	for k in out:
 		out[k] = float(out[k]) * am
@@ -243,10 +248,15 @@ func make_packet() -> Dictionary:
 		# poison scales with everything that scales the tower's hit damage
 		var scale := dmg / float(data["dmg"]) if not fx.has("dot") else dmg / (float(data["dmg"]) * GameData.LEVEL_DMG[2])
 		dot = [float(dot[0]) * scale * fxf("dot_mult", 1.0) * float(game.hero_fx.get("poison_mult", 1.0)), dot[1]]
+	var dot_dtype := String(data.get("dtype", "phys"))
+	if dot.size() != 2 and burn.size() == 2:
+		dot = burn   # a Forge of Ages nearby: its hits burn
+		dot_dtype = "magic"
 	var slow: Array = fx.get("slow", data.get("slow", []))
 	if slow.size() == 2:
 		slow = [minf(0.8, float(slow[0]) * float(game.hero_fx.get("slow_mult", 1.0))), slow[1]]
 	return {
+		"dot_dtype": dot_dtype,
 		"dmg": dmg,
 		"tower_id": id,
 		"dtype": data.get("dtype", "phys"),
@@ -336,6 +346,8 @@ func _process(delta: float) -> void:
 			if tn != head:
 				(tn as Node3D).rotation.y = lerp_angle((tn as Node3D).rotation.y, _aim_yaw(tn, t.position), min(1.0, delta * 12.0))
 	if cooldown <= 0.0:
+		if a == "muster" and not _can_muster():
+			return
 		cooldown = 1.0 / fire_rate()
 		_fire(t)
 		_crew_act()
@@ -439,6 +451,12 @@ func _fire(t: Enemy) -> void:
 		"grasp":
 			_grasp(t, r)
 			return
+		"beam":
+			_beam(t, r)
+			return
+		"muster":
+			_muster(t)
+			return
 	for i in muzzles.size():
 		_fire_at(t, _muzzle_world(i))
 	# Volley / Barrage / Swarm specializations: extra shots at the next-best targets
@@ -481,6 +499,48 @@ func _grasp(t: Enemy, r: float) -> void:
 		game.apply_hit(pkt, e)
 		VFX.splash(game.world, e.ground_pos() + Vector3(0, 0.3, 0), data["color"])
 		FX.ring(game.world, e.ground_pos() + Vector3(0, 0.1, 0), data["color"], 0.9, 0.35)
+	_recoil = 1.0
+	game.sfx(attack_sfx(), global_position)
+
+
+## Sunlance: a lance of light from the tower through the target to the end of its reach, burning everything on that line.
+func _beam(t: Enemy, r: float) -> void:
+	var d := Vector2(t.position.x - position.x, t.position.z - position.z)
+	d = d.normalized() if d.length() > 0.01 else Vector2(0, -1)
+	var w := (float(data.get("beam_w", 1.0)) + fxf("beam_w")) * GameData.TILE
+	var pkt := make_packet()
+	for e in game.enemies.duplicate():
+		if e.dead or not can_hit(e):
+			continue
+		var v := Vector2(e.position.x - position.x, e.position.z - position.z)
+		var along := v.dot(d)
+		if along >= -0.3 and along <= r and absf(v.x * d.y - v.y * d.x) <= w * 0.5:
+			game.apply_hit(pkt, e)
+	var from := _muzzle_world(0)
+	var aim := t.aim_pos()
+	var flat := maxf(0.5, Vector2(aim.x - from.x, aim.z - from.z).length())
+	var end := from + (aim - from) * ((r + reach) / flat)
+	if end.y < 0.25:
+		# the beam would dive into the ground beyond the target: stop it where it lands
+		end = from.lerp(end, (from.y - 0.25) / maxf(0.01, from.y - end.y))
+	FX.beam(game.world, from, end, data["color"], w * 0.3)
+	VFX.magic_hit(game.world, aim, data["color"], true)
+	_recoil = 1.0
+	game.sfx(attack_sfx(), global_position)
+
+
+## Hall of Knights: is there room for another knight?
+func _can_muster() -> bool:
+	thralls = thralls.filter(func(x): return is_instance_valid(x) and not x.is_queued_for_deletion())
+	return thralls.size() < int(data["muster"]["max"]) + int(fxf("muster_max"))
+
+
+## Hall of Knights: a knight marches onto the road a little ahead of the target and turns to meet it.
+func _muster(t: Enemy) -> void:
+	var k := Thrall.new()
+	game.world.add_child(k)
+	k.setup_knight(game, t, self)
+	thralls.append(k)
 	_recoil = 1.0
 	game.sfx(attack_sfx(), global_position)
 

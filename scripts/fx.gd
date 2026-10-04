@@ -82,6 +82,37 @@ static func lightning(parent: Node, points: Array, color: Color) -> void:
 	tw.tween_callback(holder.queue_free)
 
 
+## A straight beam of light from a to b: a bright core in a colored glow, flaring then fading.
+static func beam(parent: Node, a: Vector3, b: Vector3, color: Color, width := 0.4, dur := 0.35) -> void:
+	var length := a.distance_to(b)
+	if length < 0.05:
+		return
+	var holder := Node3D.new()
+	parent.add_child(holder)
+	var mats: Array = []
+	for layer in [[width, color.lightened(0.15), 0.5], [width * 0.4, color.lightened(0.8), 0.95]]:
+		var cm := CylinderMesh.new()
+		cm.top_radius = float(layer[0]) * 0.5
+		cm.bottom_radius = float(layer[0]) * 0.5
+		cm.height = length
+		cm.radial_segments = 10
+		cm.rings = 1
+		var mi := MeshInstance3D.new()
+		mi.mesh = cm
+		var m := _fade_mat(layer[1], layer[2])
+		mats.append(m)
+		mi.material_override = m
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(mi)
+	holder.global_position = (a + b) * 0.5
+	holder.quaternion = Quaternion(Vector3.UP, (b - a).normalized())   # the cylinders run along Y
+	var tw := holder.create_tween().set_parallel(true)
+	for m in mats:
+		tw.tween_property(m, "albedo_color:a", 0.0, dur)
+	tw.tween_property(holder, "scale", Vector3(0.25, 1.0, 0.25), dur).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(holder.queue_free)
+
+
 static func float_text(parent: Node, pos: Vector3, text: String, color: Color, size := 48) -> void:
 	var l := Label3D.new()
 	l.text = text

@@ -63,7 +63,7 @@ const FACTIONS := {
 		"weakness": "No standout damage tricks",
 		"passive_name": "Order", "passive_desc": "Support auras are 30% stronger. +5 castle health.",
 		"passive": {"aura_mult": 1.3, "hp": 5},
-		"towers": ["arcane", "chapel", "banner", "gryphon", "seraph", "archangel"],
+		"towers": ["arcane", "chapel", "banner", "gryphon", "seraph", "archangel", "knight_hall", "sunlance"],
 		"start": ["archer", "ballista", "arcane"],
 		"start_copies": {"archer": 3, "ballista": 1, "arcane": 1},
 	},
@@ -75,7 +75,7 @@ const FACTIONS := {
 		"weakness": "Low burst damage against armor",
 		"passive_name": "Wildgrowth", "passive_desc": "Slows and poison are 20% stronger.",
 		"passive": {"slow_mult": 1.2, "poison_mult": 1.2},
-		"towers": ["thorn", "spore", "briar", "treant", "storm", "hive", "moonwell", "rootbinder", "dire_bear", "mammoth"],
+		"towers": ["thorn", "spore", "briar", "treant", "storm", "hive", "moonwell", "rootbinder", "dire_bear", "mammoth", "heart_tree"],
 		"start": ["thorn", "spore", "briar"],
 		"start_copies": {"thorn": 3, "spore": 1, "briar": 2},
 	},
@@ -87,7 +87,7 @@ const FACTIONS := {
 		"weakness": "Slow to fire, weak against flyers and camouflage",
 		"passive_name": "Forgecraft", "passive_desc": "+15% physical damage. Upgrades cost 15% less.",
 		"passive": {"phys": 0.15, "upgrade_discount": 0.15},
-		"towers": ["dwarf_flame", "dwarf_hammer", "dwarf_mortar", "dwarf_gyro", "magma_golem", "fat_dragon"],
+		"towers": ["dwarf_flame", "dwarf_hammer", "dwarf_mortar", "dwarf_gyro", "magma_golem", "fat_dragon", "doom_cannon", "war_forge"],
 		"start": ["archer", "dwarf_flame", "dwarf_hammer"],
 		"start_copies": {"archer": 3, "dwarf_flame": 2, "dwarf_hammer": 1},
 	},
@@ -99,7 +99,7 @@ const FACTIONS := {
 		"weakness": "Low raw damage, struggles against bosses",
 		"passive_name": "Tidebound", "passive_desc": "Towers next to water deal +30% damage, and your tiles bring more ponds.",
 		"passive": {"water_dmg": 0.3, "ponds": 0.25},
-		"towers": ["mer_tide", "mer_harpoon", "mer_whirl", "mer_siren", "snapjaw_crab", "kraken"],
+		"towers": ["mer_tide", "mer_harpoon", "mer_whirl", "mer_siren", "snapjaw_crab", "kraken", "leviathan", "tidecaller"],
 		"start": ["archer", "mer_tide", "mer_harpoon"],
 		"start_copies": {"archer": 2, "mer_tide": 2, "mer_harpoon": 1},
 	},
@@ -111,7 +111,7 @@ const FACTIONS := {
 		"weakness": "Short range, slow to kill fast swarms",
 		"passive_name": "Plague Tide", "passive_desc": "Poisoned enemies burst when they die, hitting nearby enemies for 15% of their max health.",
 		"passive": {"death_burst": 0.15, "poison_mult": 1.15},
-		"towers": ["bone_crypt", "plague_cauldron", "soul_obelisk", "hex_tomb", "mass_grave", "necromancer"],
+		"towers": ["bone_crypt", "plague_cauldron", "soul_obelisk", "hex_tomb", "mass_grave", "necromancer", "bone_colossus", "blood_altar"],
 		"start": ["bone_crypt", "plague_cauldron", "archer"],
 		"start_copies": {"bone_crypt": 4, "plague_cauldron": 1, "archer": 2},
 	},
@@ -253,6 +253,34 @@ const TOWERS := {
 	"necromancer": {"name": "Necromancer", "tier": 3, "copies": 1, "cost": 300, "attack": "orb", "dmg": 40.0, "rate": 0.8, "range": 5.0,
 		"dtype": "magic", "air": true, "ground": true, "raise": {"max": 5, "life": 8.0, "grab": 0.3}, "color": Color(0.55, 0.85, 0.35),
 		"desc": "Dark bolts. Walkers that die in its reach rise as zombies (up to 5 at once) that shamble back down the road and grab the next enemy they meet: stunned and mauled for 30% of the zombie's old health."},
+	# ---- Tier IV (legendary, from wave 16): each color's late game
+	"knight_hall": {"name": "Hall of Knights", "tier": 4, "copies": 1, "cost": 440, "attack": "muster", "dmg": 160.0, "rate": 0.45, "range": 4.6,
+		"dtype": "phys", "air": false, "ground": true, "muster": {"max": 4, "life": 12.0, "stun": 1.6, "hits": 2}, "color": Color(0.95, 0.88, 0.6), "sfx": "shield",
+		"desc": "Musters knights who march out onto the road ahead of the foe and pin it: stunned and cut down. Up to 4 knights at once, each fighting twice."},
+	"sunlance": {"name": "Sunlance Lighthouse", "tier": 4, "copies": 1, "cost": 420, "attack": "beam", "dmg": 120.0, "rate": 0.6, "range": 7.5,
+		"beam_w": 1.1, "dtype": "magic", "air": true, "ground": true, "detect": true, "color": Color(1.0, 0.92, 0.55), "sfx": "smite",
+		"desc": "A lance of sunlight that burns through everything in a straight line toward its target, flyers too. Sees camouflaged enemies."},
+	"doom_cannon": {"name": "Doomsday Cannon", "tier": 4, "copies": 1, "cost": 480, "attack": "lob", "dmg": 520.0, "rate": 0.18, "range": 11.5,
+		"dtype": "phys", "air": false, "ground": true, "splash": 2.4, "stun": [0.5, 1.0], "color": Color(0.9, 0.45, 0.25),
+		"desc": "The Forge's masterpiece: a colossal cannon whose shells level whole crowds at the far end of the map, and can stun what's left."},
+	"war_forge": {"name": "Forge of Ages", "tier": 4, "copies": 1, "cost": 420, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.8,
+		"buff": {"dmg": 0.3}, "burn": [22.0, 3.0], "color": Color(1.0, 0.5, 0.2),
+		"desc": "An ancient forge that tempers the towers around it: they deal +30% damage and set what they hit burning."},
+	"leviathan": {"name": "Leviathan", "tier": 4, "copies": 1, "cost": 480, "attack": "bolt", "dmg": 140.0, "rate": 0.5, "range": 7.0,
+		"dtype": "magic", "air": true, "ground": true, "pierce": true, "slow": [0.4, 1.5], "push": [0.35, 1.2], "color": Color(0.3, 0.75, 0.95), "sfx": "surge",
+		"desc": "A sea serpent from the deep. Its water jet pierces a whole line, slows everything it hits and can wash walkers back down the road."},
+	"tidecaller": {"name": "Tidecaller Spire", "tier": 4, "copies": 1, "cost": 430, "attack": "aura_dmg", "dmg": 40.0, "rate": 0.33, "range": 3.2,
+		"dtype": "magic", "air": true, "ground": true, "stun": [1.0, 1.2], "slow": [0.5, 2.0], "color": Color(0.6, 0.85, 1.0), "sfx": "talent",
+		"desc": "A great bell of ice and coral. Every toll freezes everything around it in place, then leaves it slowed."},
+	"bone_colossus": {"name": "Bone Colossus", "tier": 4, "copies": 1, "cost": 480, "attack": "slam", "dmg": 260.0, "rate": 0.4, "range": 2.9,
+		"dtype": "phys", "air": false, "ground": true, "splash": 1.6, "stun": [0.4, 1.0], "color": Color(0.85, 0.82, 0.7), "sfx": "stomp",
+		"desc": "A giant of fused bones. Its fists smash whole groups and can stun them."},
+	"blood_altar": {"name": "Blood Altar", "tier": 4, "copies": 1, "cost": 400, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.8,
+		"buff": {"dmg": 0.35, "rate": 0.15}, "toll": 1, "color": Color(0.8, 0.15, 0.2),
+		"desc": "Towers around it deal +35% damage and attack 15% faster. The price: after every wave it drinks 1 castle health."},
+	"heart_tree": {"name": "Heart of the Forest", "tier": 4, "copies": 1, "cost": 420, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 3.0,
+		"buff": {"dmg": 0.1}, "grow": 0.03, "grow_max": 0.45, "color": Color(0.5, 0.95, 0.45),
+		"desc": "A living heart of the old wood. Towers around it deal +10% damage, +3% more for every wave it has stood (up to +55%)."},
 }
 
 ## speed is in tiles per second.
@@ -552,6 +580,24 @@ const SPECS := {
 		{"name": "Rot", "desc": "+100% damage.", "fx": {"dmg": 1.0}}],
 	"necromancer": [{"name": "Legion", "desc": "Up to 10 zombies at once.", "fx": {"raise_max": 5}},
 		{"name": "Soul Bolts", "desc": "+60% damage, and zombies grab harder.", "fx": {"dmg": 0.6}}],
+	"knight_hall": [{"name": "Paladins", "desc": "Knights strike 60% harder.", "fx": {"dmg": 0.6}},
+		{"name": "Muster", "desc": "Up to 3 more knights at once, mustered 50% faster.", "fx": {"muster_max": 3, "rate": 0.5}}],
+	"sunlance": [{"name": "Dawnfire", "desc": "The beam leaves its line burning: 30 damage/s for 3s.", "fx": {"dot": [30.0, 3.0]}},
+		{"name": "Focused Lens", "desc": "+50% damage and a wider beam.", "fx": {"dmg": 0.5, "beam_w": 0.5}}],
+	"doom_cannon": [{"name": "Earthshaker", "desc": "A much bigger blast.", "fx": {"splash": 1.0}},
+		{"name": "Rapid Loader", "desc": "+60% attack speed.", "fx": {"rate": 0.6}}],
+	"war_forge": [{"name": "Masterworks", "desc": "The aura grants an extra +15% damage.", "fx": {"buff_dmg": 0.15}},
+		{"name": "Great Bellows", "desc": "The aura also grants +20% attack speed.", "fx": {"buff_rate": 0.2}}],
+	"leviathan": [{"name": "Crushing Depths", "desc": "+50% damage.", "fx": {"dmg": 0.5}},
+		{"name": "Riptide", "desc": "Washes walkers back much more often.", "fx": {"push": [0.7, 1.6]}}],
+	"tidecaller": [{"name": "Deep Freeze", "desc": "The freeze lasts longer.", "fx": {"stun": [1.0, 1.9]}},
+		{"name": "Undertow", "desc": "+50% damage and a 70% slow after the freeze.", "fx": {"dmg": 0.5, "slow": [0.7, 2.0]}}],
+	"bone_colossus": [{"name": "Bonecrusher", "desc": "+50% damage.", "fx": {"dmg": 0.5}},
+		{"name": "Earthquake", "desc": "Slams hit a much larger area.", "fx": {"splash": 0.8}}],
+	"blood_altar": [{"name": "Exsanguinate", "desc": "The aura grants an extra +15% damage.", "fx": {"buff_dmg": 0.15}},
+		{"name": "Dark Covenant", "desc": "The aura grants an extra +20% attack speed.", "fx": {"buff_rate": 0.2}}],
+	"heart_tree": [{"name": "Deep Roots", "desc": "Grows twice as fast.", "fx": {"grow": 0.03}},
+		{"name": "Canopy", "desc": "The aura also grants +15% attack speed.", "fx": {"buff_rate": 0.15}}],
 }
 
 ## ---- Meta progression (Renown, spent in the War Council between runs) -----------------------
@@ -567,8 +613,8 @@ const REROLL_COST := 1
 
 ## Tower tiers: later tiers cost more and hit much harder. A tier's blueprints can be offered from this wave on
 ## (towers you start with are always yours to build).
-const TIER_WAVE := {1: 1, 2: 4, 3: 10}
-const TIER_NAMES := ["", "I", "II", "III"]
+const TIER_WAVE := {1: 1, 2: 4, 3: 10, 4: 16}   # tier IV: each color's legendary late game
+const TIER_NAMES := ["", "I", "II", "III", "IV"]
 
 
 static func tier_of(tid: String) -> int:
@@ -624,6 +670,9 @@ const FOOTPRINTS := {
 	"seraph": ["arrow3", 360], "archangel": ["fan4", 360], "dire_bear": ["pair", 360], "mammoth": ["battery5", 360],
 	"magma_golem": ["arrow3", 360], "fat_dragon": ["arrow5", 30], "snapjaw_crab": ["wing3", 360], "kraken": ["fan5", 360],
 	"mass_grave": ["line4", 360], "necromancer": ["star5", 360],
+	"knight_hall": ["arrow3", 360], "sunlance": ["pair", 360], "doom_cannon": ["arrow5", 120], "war_forge": ["fan4", 360],
+	"leviathan": ["line4", 90], "tidecaller": ["arrow3", 360], "bone_colossus": ["fan5", 360], "blood_altar": ["pair", 360],
+	"heart_tree": ["star5", 360],
 }
 
 
