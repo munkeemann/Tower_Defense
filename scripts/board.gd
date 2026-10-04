@@ -61,13 +61,13 @@ const KK_SHORE_CHANCE := 0.18
 const KK_SEA_Y := -LEVEL_H      # the sea ring sits a level below your tiles, so the island stands on cliffs
 const KK_WATER_DECOR := ["waterlily_A", "waterlily_B", "waterplant_A", "waterplant_B", "waterplant_C"]
 ## Small things on open grass hexes of your tiles (a grassy knoll with dirt sides, stones, a lone pine), like the
-## details on the pack's samples. Clutter (knolls, stones, and cut stumps on tree hexes) is cleared when a tower goes on
-## the hex; trees (KK_DECOR_BLOCKS, and every tree hex) and big rocks block building.
+## details on the pack's samples. Clutter (knolls, stones, lone pines, and cut stumps on tree hexes) is cleared when a
+## tower goes on the hex; tree hexes and big rocks block building.
 const KK_DECOR := {"deco_knoll_a": "hill_single_A", "deco_knoll_b": "hill_single_B", "deco_knoll_c": "hill_single_C",
 	"deco_stone": "rock_single_B", "deco_stones": "rock_single_D", "deco_pine": "tree_single_B"}
 const KK_DECOR_PICK := ["deco_knoll_a", "deco_knoll_b", "deco_knoll_c", "deco_knoll_a", "deco_stone", "deco_stones", "deco_pine", "deco_pine"]
 const KK_DECOR_CHANCE := 0.28
-const KK_DECOR_BLOCKS := ["deco_pine"]   # decorations that stand in the way (a tree): their hex can't be built on
+const KK_DECOR_BLOCKS := []   # decorations that stand in the way: none now (2026-10-04: less blocked ground; pines clear when you build)
 ## The pack's alternate palettes, by biome (the rest keep the default yellow-green).
 const KK_PALETTE := {"greenvale": "Summer", "highlands": "Winter", "deepwood": "Fall"}
 var team := "blue"   # KayKit team color for the castle (Game sets it from your color)
@@ -1264,7 +1264,7 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 	var feats: Array = []
 	var taken := {}
 	# a pond: a few water hexes away from the tile edge; sometimes the road crosses it on a bridge
-	var pond_p: float = (0.5 if biome_id == "lakelands" else 0.22) + pond_bonus
+	var pond_p: float = (0.35 if biome_id == "lakelands" else 0.14) + pond_bonus
 	if force_bridge or r.randf() < pond_p:
 		var bridge := force_bridge or r.randf() < 0.3
 		force_bridge = false
@@ -1276,7 +1276,7 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 		if not seeds.is_empty():
 			var start: Vector2i = seeds[r.randi() % seeds.size()]
 			var pond: Array = [start]
-			var want := r.randi_range(2, 4)   # tiles are 13 whole hexes: a pond takes a few of them
+			var want := r.randi_range(2, 3)   # tiles are 13 whole hexes: a pond takes a couple of them
 			var guard := 0
 			while pond.size() < want and guard < 40:
 				guard += 1
@@ -1291,14 +1291,14 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 				taken[c] = true
 				feats.append({"cell": c, "type": "pond"})
 	var interior := func(c: Vector2i) -> bool: return Hex.length(c) <= Hex.HALF - 1 and not roads.has(c) and not taken.has(c)
-	if r.randf() < 0.45:
+	if r.randf() < 0.3:
 		for c in free:
 			if interior.call(c):
 				taken[c] = true
 				feats.append({"cell": c, "type": "plateau"})
 				for d in E:
 					var n: Vector2i = c + d
-					if interior.call(n) and r.randf() < 0.45:
+					if interior.call(n) and r.randf() < 0.3:
 						taken[n] = true
 						feats.append({"cell": n, "type": "plateau"})
 				break
@@ -1308,7 +1308,7 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 				taken[c] = true
 				feats.append({"cell": c, "type": ty, "kind": kind})
 				return
-	for i in r.randi_range(0, 2):
+	for i in (1 if r.randf() < 0.55 else 0):   # (2026-10-04: was 0-2; big towers need open ground)
 		put.call("tree" if r.randf() < 0.85 else "rock")
 	if r.randf() < 0.35:
 		put.call("ley", "", true)
@@ -1416,6 +1416,65 @@ func plan_tile(t: Vector2i, card: Dictionary, k: int) -> Dictionary:
 		feats.append(nf)
 	return {"tile": t, "rot": k, "entrances": ents, "roads": roads, "features": feats, "level": level,
 		"merges": merges, "new_ports": ents.size() - merges.size()}
+
+
+## What a planned tile would leave to build on: {cell: [buildable, level]} for every cell of the tile (fresh ones with
+## their features, shared seam cells as they are, and whether each would be whole). Pair with can_build_all_with().
+func plan_ground(plan: Dictionary) -> Dictionary:
+	var t: Vector2i = plan["tile"]
+	var level: int = plan["level"]
+	var base := t * Hex.K
+	var feats := {}
+	for f in plan["features"]:
+		feats[f["cell"]] = f
+	var road := {}
+	for p in plan["roads"]:
+		for c in p:
+			road[c] = true
+	var out := {}
+	for e in _info:
+		var g: Vector2i = base + e["off"]
+		var ok := true
+		var lv := level
+		if height.has(g):
+			lv = level_at(g)
+			var tt: int = terrain.get(g, -1)
+			ok = (tt == T.GRASS or tt == T.LEY) and not path_cells.has(g) and not towers.has(g)
+		elif road.has(g):
+			ok = false
+		elif feats.has(g):
+			match String(feats[g]["type"]):
+				"plateau": lv = mini(level + 1, MAX_LEVEL - 1)
+				"ley": pass
+				_: ok = false   # pond, tree, rock, neutral building
+		if ok:
+			for i in 6:
+				var wt := Hex.wedge_tile(g, i)
+				if wt != t and not placed.has(wt):
+					ok = false
+					break
+		out[g] = [ok, lv]
+	return out
+
+
+## can_build_all as if the planned ground (plan_ground) were already there.
+func can_build_all_with(cells: Array, ground: Dictionary) -> bool:
+	if cells.is_empty():
+		return false
+	var lvl := -99
+	for c in cells:
+		var b: bool
+		var l: int
+		if ground.has(c):
+			b = ground[c][0]
+			l = ground[c][1]
+		else:
+			b = can_build(c)
+			l = level_at(c)
+		if not b or (lvl != -99 and l != lvl):
+			return false
+		lvl = l
+	return true
 
 
 ## Would these roads (a tile's paths, its new cells at `level`) leave a ramp on a cell where the road bends or
