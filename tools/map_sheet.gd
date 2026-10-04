@@ -44,13 +44,13 @@ func _init() -> void:
 	b._kk_sea(seen, lists)
 	var palette := b._kk_material()
 	for tile in lists:
-		var hm: Array = KayKit.hex_mesh(tile)
+		var hm: Array = KayKit.hex_mesh(String(tile).get_slice("@", 0))
 		var vary: bool = String(tile).begins_with("hex_grass") or String(tile).begins_with("hex_coast")
 		for xf in lists[tile]:
 			var mi := MeshInstance3D.new()
 			mi.mesh = hm[0]
-			var mat := palette
-			if vary:
+			var mat: Material = b._kk_sand_material() if String(tile).ends_with("@sand") else palette
+			if vary and not String(tile).ends_with("@sand"):
 				# the per-hex shade the game sets as MultiMesh instance colors
 				var v := 0.94 + 0.1 * b._kk_hash(Hex.from_world((xf as Transform3D).origin), 60 + int((xf as Transform3D).origin.y * 3.0))
 				mat = (palette as BaseMaterial3D).duplicate()

@@ -48,6 +48,8 @@ static func triangles(root: Node) -> Array:
 			var mat := m.get_active_material(s) as BaseMaterial3D
 			var base := mat.albedo_color if mat else Color(0.8, 0.8, 0.8)
 			var img := _tex_image(mat.albedo_texture) if mat else null
+			var uv_scale := Vector2(mat.uv1_scale.x, mat.uv1_scale.y) if mat else Vector2.ONE
+			var uv_off := Vector2(mat.uv1_offset.x, mat.uv1_offset.y) if mat else Vector2.ZERO
 			var wv := PackedVector3Array()
 			wv.resize(vs.size())
 			var bones = arr[Mesh.ARRAY_BONES]
@@ -71,7 +73,7 @@ static func triangles(root: Node) -> Array:
 				var i2 := idx[t + 2] if idx.size() > 0 else t + 2
 				var col := base
 				if img and uvs.size() > 0:
-					var uv := (uvs[i0] + uvs[i1] + uvs[i2]) / 3.0
+					var uv := (uvs[i0] + uvs[i1] + uvs[i2]) / 3.0 * uv_scale + uv_off
 					uv = Vector2(fposmod(uv.x, 1.0), fposmod(uv.y, 1.0))
 					col = base * img.get_pixel(clampi(int(uv.x * img.get_width()), 0, img.get_width() - 1), clampi(int(uv.y * img.get_height()), 0, img.get_height() - 1))
 				out.append([wv[i0], wv[i1], wv[i2], col])

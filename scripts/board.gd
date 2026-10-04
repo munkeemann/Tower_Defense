@@ -58,7 +58,8 @@ const KK_COASTS := {3: ["hex_coast_B", 3], 6: ["hex_coast_B", 2], 12: ["hex_coas
 const KK_SHORE := ["hills_A_trees", "hills_B_trees", "hills_C_trees", "hills_A", "hills_B_trees", "mountain_A_grass",
 	"mountain_B_grass_trees", "mountain_C_grass_trees"]
 const KK_SHORE_CHANCE := 0.18
-const KK_SEA_Y := -LEVEL_H      # the sea ring sits a level below your tiles, so the island stands on cliffs
+const KK_SEA_Y := -LEVEL_H      # the sea sits a level below your tiles, so the island stands on cliffs
+const KK_BEACH_Y := KK_SEA_Y + 0.3   # a ring of beach hexes just above the water, all around the island
 const KK_WATER_DECOR := ["waterlily_A", "waterlily_B", "waterplant_A", "waterplant_B", "waterplant_C"]
 ## Small things on open grass hexes of your tiles (a grassy knoll with dirt sides, stones, a lone pine), like the
 ## details on the pack's samples. They're cleared when a tower goes on the hex.
@@ -1090,12 +1091,12 @@ func make_tile(r: RandomNumberGenerator, n_ent := 0) -> Dictionary:
 			roads[c] = true
 	# a tile can sit a level above or below the road it joins
 	var rise := 0
-	# (rarely: flat runs of tiles leave room for the bigger towers, and read like the KayKit samples)
-	var up: float = 0.2 if biome_id == "highlands" else 0.1
+	# (often: the map climbs and dips across 3 levels, like the terraces of the KayKit samples)
+	var up: float = 0.42 if biome_id == "highlands" else 0.3
 	var rr := r.randf()
 	if rr < up:
 		rise = 1
-	elif rr < up + 0.07:
+	elif rr < up + 0.2:
 		rise = -1
 	return {"entrances": sides, "paths": paths, "features": _gen_features(roads, r), "rise": rise}
 
@@ -1211,7 +1212,7 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 		var seeds: Array = []
 		for c in (roads.keys() if bridge else free):
 			var cc: Vector2i = c
-			if Hex.length(cc) <= Hex.HALF - 1 and not Hex.BAND.has(cc):
+			if Hex.length(cc) <= Hex.HALF - 1 and not Hex.BAND.has(cc) and (not bridge or _straight_road(cc, roads)):
 				seeds.append(cc)
 		if not seeds.is_empty():
 			var start: Vector2i = seeds[r.randi() % seeds.size()]
@@ -1224,14 +1225,14 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 				var n: Vector2i = from + E[r.randi() % 6]
 				if n in pond or Hex.length(n) > Hex.HALF or Hex.BAND.has(n):
 					continue
-				if roads.has(n) and not bridge:
+				if roads.has(n) and (not bridge or not _straight_road(n, roads)):
 					continue
 				pond.append(n)
 			for c in pond:
 				taken[c] = true
 				feats.append({"cell": c, "type": "pond"})
 	var interior := func(c: Vector2i) -> bool: return Hex.length(c) <= Hex.HALF - 1 and not roads.has(c) and not taken.has(c)
-	if r.randf() < 0.2:
+	if r.randf() < 0.45:
 		for c in free:
 			if interior.call(c):
 				taken[c] = true
@@ -1256,6 +1257,15 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 		var kinds: Array = GameData.NEUTRALS.keys()
 		put.call("neutral", kinds[r.randi() % kinds.size()], true)
 	return feats
+
+
+## A road cell the road runs straight through (exactly two road neighbors, on opposite sides): where a bridge fits.
+func _straight_road(c: Vector2i, roads: Dictionary) -> bool:
+	var sides: Array = []
+	for i in 6:
+		if roads.has(c + E[i]):
+			sides.append(i)
+	return sides.size() == 2 and (int(sides[1]) - int(sides[0])) == 3
 
 
 ## A card turned by k steps of 60 degrees.
@@ -1368,15 +1378,7 @@ func commit_tile(plan: Dictionary, wave := 0) -> Array:
 				terrain[g] = T.WATER
 				fresh.append(g)
 				continue
-		var h := level
-		if Hex.BAND.has(off):
-			for side in Hex.BAND[off]:
-				if placed.has(t + E[side]):
-					var m: Vector2i = g + E[side]
-					if height.has(m) and not road.has(g):
-						h = height[m]
-						break
-		height[g] = h
+		height[g] = level   # (the shared half cells on a seam keep the first tile's height: see above)
 		terrain[g] = T.GRASS
 		fresh.append(g)
 	# features on the tile's own fresh cells
@@ -1386,7 +1388,7 @@ func commit_tile(plan: Dictionary, wave := 0) -> Array:
 		var f: Dictionary = feats[g]
 		match String(f["type"]):
 			"plateau":
-				height[g] = mini(level + 1, MAX_LEVEL)
+				height[g] = mini(level + 1, MAX_LEVEL - 1)
 			"tree":
 				terrain[g] = T.TREE
 			"rock":
@@ -2058,19 +2060,20 @@ func _kk_rebuild() -> void:
 	_kk_sea(seen, lists)
 	for tile in lists:
 		var xs: Array = lists[tile]
+		var model := String(tile).get_slice("@", 0)   # "model@sand": that model in the palette's sand color
 		if not _kk_mm.has(tile):
 			var mmi := MultiMeshInstance3D.new()
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
 			mm.use_colors = true
-			mm.mesh = KayKit.hex_mesh(tile)[0]
+			mm.mesh = KayKit.hex_mesh(model)[0]
 			mmi.multimesh = mm
-			mmi.material_override = _kk_material()
+			mmi.material_override = _kk_sand_material() if String(tile).ends_with("@sand") else _kk_material()
 			add_child(mmi)
 			_kk_mm[tile] = mmi
 		var mm2: MultiMesh = (_kk_mm[tile] as MultiMeshInstance3D).multimesh
 		mm2.instance_count = xs.size()
-		var inner: Transform3D = KayKit.hex_mesh(tile)[1]
+		var inner: Transform3D = KayKit.hex_mesh(model)[1]
 		var vary: bool = String(tile).begins_with("hex_grass") or String(tile).begins_with("hex_coast")
 		for i in xs.size():
 			var xf: Transform3D = xs[i]
@@ -2135,8 +2138,9 @@ func _kk_add(lists: Dictionary, tile: String, pos: Vector3, k: int) -> void:
 	_kk_add_yaw(lists, tile, pos, KK_BASE_YAW + 60.0 * k)
 
 
-## The sea around the island: a ring of beaches and coast tiles turned so their grass meets the land, the odd hill or
-## mountain on the shore, and open water one hex further out (with lilies here and there). Redrawn as the island grows.
+## The sea around the island: a clean ring of beach hexes in the palette's sand color (the pack's coast tiles don't
+## line up hex to hex, so their mix looked ragged), the odd hill or mountain on the shore, and open water one hex
+## further out (with lilies here and there). Redrawn as the island grows.
 func _kk_sea(island: Dictionary, lists: Dictionary) -> void:
 	var shore := {}
 	for g in island:
@@ -2157,16 +2161,12 @@ func _kk_sea(island: Dictionary, lists: Dictionary) -> void:
 		for d in E:
 			if not island.has(n + d) and not shore.has(n + d):
 				sea[n + d] = true
+		var b := Hex.to_world(n) + Vector3(0, KK_BEACH_Y, 0)
 		if hills.has(n):
-			_kk_add(lists, "hex_grass", p, 0)
-			_kk_add(lists, KK_SHORE[int(_kk_hash(n, 2) * KK_SHORE.size()) % KK_SHORE.size()], p, int(_kk_hash(n, 3) * 6.0))
+			_kk_add(lists, "hex_grass", b, 0)
+			_kk_add(lists, KK_SHORE[int(_kk_hash(n, 2) * KK_SHORE.size()) % KK_SHORE.size()], b, int(_kk_hash(n, 3) * 6.0))
 			continue
-		var m := 0
-		for i in 6:
-			if island.has(n + E[i]) or hills.has(n + E[i]):
-				m |= 1 << i
-		var c := _kk_coast(m)
-		_kk_add(lists, c[0], p, c[1])
+		_kk_add(lists, "hex_grass@sand", b, 0)
 	for n in sea:
 		_kk_add(lists, "hex_water", Hex.to_world(n) + Vector3(0, KK_SEA_Y, 0), 0)
 		_kk_water_decor(n, lists, 0.18, KK_SEA_Y)
@@ -2207,6 +2207,40 @@ func _kk_hash(c: Vector2i, salt: int) -> float:
 
 var _kk_mat: Material = null
 var _kk_mat_biome := "-"
+var _kk_sand: Material = null
+var _kk_sand_biome := "-"
+
+
+## The palette material with every UV pinned to the pack's beach sand (found on a coast tile), so a plain hex
+## comes out sand colored in any palette.
+func _kk_sand_material() -> Material:
+	if _kk_sand_biome == biome_id and _kk_sand:
+		return _kk_sand
+	var m := (_kk_material() as BaseMaterial3D).duplicate() as BaseMaterial3D
+	var uv := Vector2(-1, -1)
+	var mesh: Mesh = KayKit.hex_mesh("hex_coast_A")[0]
+	var base := mesh.surface_get_material(0) as BaseMaterial3D
+	var img := base.albedo_texture.get_image() if base and base.albedo_texture else null
+	if img:
+		if img.is_compressed():
+			img.decompress()
+		var arr := mesh.surface_get_arrays(0)
+		var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
+		var best := 0.0
+		for u in uvs:
+			var c := img.get_pixel(clampi(int(u.x * img.get_width()), 0, img.get_width() - 1), clampi(int(u.y * img.get_height()), 0, img.get_height() - 1))
+			if c.r > 0.8 and c.r > c.g + 0.1 and c.g > c.b + 0.1 and c.r + c.g + c.b > best:   # the lightest beach sand
+				best = c.r + c.g + c.b
+				uv = u
+	if uv.x >= 0.0:
+		m.uv1_scale = Vector3.ZERO
+		m.uv1_offset = Vector3(uv.x, uv.y, 0)
+	else:
+		m.albedo_texture = null
+		m.albedo_color = Color(0.86, 0.69, 0.5)
+	_kk_sand = m
+	_kk_sand_biome = biome_id
+	return m
 
 
 ## The material every KayKit tile and decoration on the map shares: the pack's palette for this biome, a bit matte.
