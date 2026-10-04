@@ -179,6 +179,7 @@ Deepwood) changes how often tiles are raised and how many ponds they carry.
 | B (or G) / N then click | Builder raises ground (high ground = more range) / Digger lowers it |
 | C | Castle talents |
 | K | Damage chart (top right): shown, see-through, hidden |
+| J | Compendium: every tower, enemy, boss, neutral building and commander (pauses the run; also on the main menu) |
 | Space / V / P / M | Start wave / game speed / pause / sound on-off |
 | Menu button | Set the run aside; Resume it from the main menu |
 | F11 or Alt+Enter | Fullscreen on / off (remembered; also a button on the main menu) |

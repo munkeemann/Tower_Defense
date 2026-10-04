@@ -245,7 +245,7 @@ func _build_top() -> void:
 	p.offset_top = 8
 	root.add_child(p)
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 18 if kenney else 28)
+	h.add_theme_constant_override("separation", 15 if kenney else 22)
 	p.add_child(h)
 	top_wave = _title("Wave 0/30", 23)
 	top_hp = _title("Castle 20/20", 23, HP_C)
@@ -267,8 +267,9 @@ func _build_top() -> void:
 	pause_btn = _button("Pause [P]", func(): game.toggle_pause())
 	mute_btn = _button("Sound [M]", func(): game.toggle_mute())
 	var help_btn := _button("Help [H]", func(): help_panel.visible = not help_panel.visible)
+	var comp_btn := _button("Compendium [J]", func(): toggle_compendium())
 	var menu_btn := _button("Menu", func(): game.open_menu())
-	for b in [speed_btn, pause_btn, mute_btn, help_btn, menu_btn]:
+	for b in [speed_btn, pause_btn, mute_btn, help_btn, comp_btn, menu_btn]:
 		h.add_child(b)
 
 
@@ -524,7 +525,7 @@ func refresh_top() -> void:
 	top_fronts.text = "Fronts %d" % game.board.battlefronts()
 	top_phase.text = game.phase_text()
 	speed_btn.text = "Speed %dx [V]" % int(game.speed)
-	mute_btn.text = "Sound: %s [M]" % ("Off" if game.audio.muted else "On")
+	mute_btn.text = "Muted [M]" if game.audio.muted else "Sound [M]"
 
 
 # ------------------------------------------------------------------ tower info panel
@@ -1483,6 +1484,7 @@ func show_menu(stats: Dictionary) -> void:
 	foot.add_child(_button("Sound: %s" % ("Off" if game.audio.muted else "On"), func():
 		game.toggle_mute()
 		show_menu(game.stats), 16))
+	foot.add_child(_button("Compendium", func(): toggle_compendium(), 16))
 	foot.add_child(_button("Fullscreen: %s  [F11]" % ("On" if game.is_fullscreen() else "Off"), func(): game.toggle_fullscreen(), 16))
 	foot.add_child(_button("Quit", func(): game.get_tree().quit()))
 
@@ -1705,3 +1707,299 @@ func show_council() -> void:
 	foot.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_child(foot)
 	foot.add_child(_button("Back", func(): show_menu(game.stats), 18))
+
+
+# ------------------------------------------------------------------ compendium (menu and J in a run)
+
+var comp_root: Control = null
+var _comp_tab := "towers"
+var _comp_filter := ""            # towers: "" for every color, a faction id, or "shared"
+var _comp_pick := ""              # what the detail pane shows
+var _comp_list: VBoxContainer
+var _comp_detail: VBoxContainer
+var _comp_paused := false
+const COMP_TABS := [["towers", "Towers"], ["enemies", "Enemies"], ["bosses", "Bosses"], ["buildings", "Buildings"],
+	["commanders", "Commanders"]]
+
+
+func compendium_open() -> bool:
+	return comp_root != null and is_instance_valid(comp_root)
+
+
+## Opens or closes the compendium. In a run it pauses the game while it's open.
+func toggle_compendium() -> void:
+	if compendium_open():
+		close_compendium()
+		return
+	game.sfx("click")
+	if game.state != Game.S.MENU and not game.paused:
+		game._set_paused(true)
+		_comp_paused = true
+	_build_compendium()
+
+
+func close_compendium() -> void:
+	if compendium_open():
+		comp_root.queue_free()
+	comp_root = null
+	if _comp_paused:
+		_comp_paused = false
+		game._set_paused(false)
+
+
+func _build_compendium() -> void:
+	if compendium_open():
+		comp_root.queue_free()
+	comp_root = Control.new()
+	comp_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(comp_root)
+	var shade := ColorRect.new()
+	shade.color = Color(0.03, 0.02, 0.05, 0.7)
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	comp_root.add_child(shade)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	comp_root.add_child(center)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _panel_box(20, Color(0.05, 0.04, 0.07, 0.96), GOLD_C.darkened(0.3), 2, 16, 16))
+	center.add_child(panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	panel.add_child(v)
+	var head := HBoxContainer.new()
+	var t := _title("Compendium", 34, GOLD_C)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(t)
+	head.add_child(_button("Close  [J / Esc]", func(): close_compendium(), 15))
+	v.add_child(head)
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 8)
+	v.add_child(tabs)
+	for tb in COMP_TABS:
+		var b := _button(tb[1], func():
+			_comp_tab = tb[0]
+			_comp_pick = ""
+			_build_compendium(), 16)
+		if tb[0] == _comp_tab:
+			b.add_theme_color_override("font_color", GOLD_C)
+		tabs.add_child(b)
+	if _comp_tab == "towers":
+		var filt := HBoxContainer.new()
+		filt.add_theme_constant_override("separation", 6)
+		v.add_child(filt)
+		var opts: Array = [["", "Every color", TEXT_C]]
+		for fid in GameData.FACTIONS:
+			opts.append([fid, String(GameData.FACTIONS[fid]["pie"]), GameData.FACTIONS[fid]["color"]])
+		opts.append(["shared", "Shared", TEXT_C])
+		for o in opts:
+			var b := _button(o[1], func():
+				_comp_filter = o[0]
+				_comp_pick = ""
+				_build_compendium(), 14)
+			b.add_theme_color_override("font_color", (o[2] as Color) if o[0] != _comp_filter else GOLD_C)
+			filt.add_child(b)
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 14)
+	v.add_child(body)
+	var ls := ScrollContainer.new()
+	ls.custom_minimum_size = Vector2(300, 560)
+	ls.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	body.add_child(ls)
+	_comp_list = VBoxContainer.new()
+	_comp_list.add_theme_constant_override("separation", 3)
+	_comp_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ls.add_child(_comp_list)
+	var ds := ScrollContainer.new()
+	ds.custom_minimum_size = Vector2(640, 560)
+	ds.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	body.add_child(ds)
+	_comp_detail = VBoxContainer.new()
+	_comp_detail.add_theme_constant_override("separation", 6)
+	ds.add_child(_comp_detail)
+	var items := _comp_items()
+	var last_group := ""
+	for it in items:
+		if String(it[3]) != last_group:
+			last_group = it[3]
+			_comp_list.add_child(_label(last_group, 14, DIM_C))
+		var b := _button(it[1], func():
+			_comp_pick = it[0]
+			_show_comp_detail(), 14)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_color_override("font_color", it[2])
+		_comp_list.add_child(b)
+	if _comp_pick == "" and not items.is_empty():
+		_comp_pick = items[0][0]
+	_show_comp_detail()
+
+
+## The list for the open tab: [key, label, colour, group heading] each.
+func _comp_items() -> Array:
+	var out: Array = []
+	match _comp_tab:
+		"towers":
+			var groups: Array = []
+			for fid in GameData.FACTIONS:
+				if _comp_filter in ["", fid]:
+					var f: Dictionary = GameData.FACTIONS[fid]
+					groups.append(["%s (%s)" % [f["name"], f["pie"]], f["towers"], f["color"]])
+			if _comp_filter in ["", "shared"]:
+				groups.append(["Shared (every color)", GameData.SHARED_TOWERS, TEXT_C])
+			for g in groups:
+				var ids: Array = (g[1] as Array).duplicate()
+				ids.sort_custom(func(a, b): return GameData.tier_of(a) < GameData.tier_of(b) or (GameData.tier_of(a) == GameData.tier_of(b) and int(GameData.TOWERS[a]["cost"]) < int(GameData.TOWERS[b]["cost"])))
+				for tid in ids:
+					out.append(["t:" + tid, "%s  (%s)" % [GameData.TOWERS[tid]["name"], GameData.TIER_NAMES[GameData.tier_of(tid)]], (g[2] as Color).lerp(Color.WHITE, 0.25), g[0]])
+		"enemies", "bosses":
+			var ids: Array = GameData.ENEMIES.keys().filter(func(k): return GameData.ENEMIES[k].get("boss", false) == (_comp_tab == "bosses"))
+			ids.sort_custom(func(a, b): return int(GameData.ENEMIES[a]["min_wave"]) < int(GameData.ENEMIES[b]["min_wave"]))
+			for eid in ids:
+				var ed: Dictionary = GameData.ENEMIES[eid]
+				var grp := "Bosses" if _comp_tab == "bosses" else ("Flyers" if ed.get("flying", false) else "On foot")
+				out.append(["e:" + eid, String(ed["name"]), (ed["color"] as Color).lerp(Color.WHITE, 0.35), grp])
+			out.sort_custom(func(a, b): return String(a[3]) > String(b[3]) if a[3] != b[3] else false)
+		"buildings":
+			for grp in [["tower", "Empower towers next to them"], ["economy", "Resources after every wave"], ["realm", "Empower your realm"]]:
+				for k in GameData.NEUTRALS:
+					if GameData.NEUTRALS[k].get("group", "tower") == grp[0]:
+						out.append(["n:" + k, String(GameData.NEUTRALS[k]["name"]), Color(1.0, 0.8, 0.45), grp[1]])
+		"commanders":
+			for hid in GameData.HEROES:
+				var hd: Dictionary = GameData.HEROES[hid]
+				var f: Dictionary = GameData.FACTIONS[hd["faction"]]
+				out.append(["h:" + hid, String(hd["name"]), (f["color"] as Color).lerp(Color.WHITE, 0.25), "%s (%s)" % [f["name"], f["pie"]]])
+	return out
+
+
+func _show_comp_detail() -> void:
+	for c in _comp_detail.get_children():
+		c.queue_free()
+	var key := _comp_pick
+	if key == "":
+		return
+	var kind := key.substr(0, 1)
+	var id := key.substr(2)
+	var lines: Array = []          # [text, size, colour]
+	match kind:
+		"t":
+			var d: Dictionary = GameData.TOWERS[id]
+			var owner := "Shared (every color)"
+			for fid in GameData.FACTIONS:
+				if id in GameData.FACTIONS[fid]["towers"]:
+					owner = "%s (%s)" % [GameData.FACTIONS[fid]["name"], GameData.FACTIONS[fid]["pie"]]
+			_comp_detail.add_child(_title(d["name"], 30, (d["color"] as Color).lerp(Color.WHITE, 0.2)))
+			lines.append([owner, 15, DIM_C])
+			lines.append([String(d["desc"]), 16, TEXT_C])
+			lines.append([game.tower_stat_line(id) + ".", 15, TEXT_C])
+			var shape: Dictionary = GameData.shape_of(id)
+			var arc := GameData.arc_of(id)
+			lines.append(["%d gold, %d cop%s per blueprint.  Footprint: %s (%d hex%s), %s." % [int(d["cost"]), int(d.get("copies", 1)),
+				"y" if int(d.get("copies", 1)) == 1 else "ies", shape["name"], (shape["cells"] as Array).size(),
+				"" if (shape["cells"] as Array).size() == 1 else "es", "fires all around" if arc >= 359.0 else "fires in a %d degree arc" % int(arc)], 15, TEXT_C])
+			if not String(d["attack"]).begins_with("aura") and float(d.get("rate", 0.0)) > 0.0:
+				lines.append(["About %d damage per second at level I (one target)." % int(round(float(d["dmg"]) * float(d["rate"]))), 15, TEXT_C])
+			for x in _comp_tower_effects(d):
+				lines.append([x, 15, Color(0.75, 0.9, 1.0)])
+			if GameData.SPECS.has(id):
+				lines.append(["At level III, choose one:", 16, GOLD_C])
+				for sp in GameData.SPECS[id]:
+					lines.append(["  %s: %s" % [sp["name"], sp["desc"]], 15, TEXT_C])
+		"e":
+			var ed: Dictionary = GameData.ENEMIES[id]
+			_comp_detail.add_child(_title(ed["name"], 30, (ed["color"] as Color).lerp(Color.WHITE, 0.3)))
+			lines.append(["%d health, speed %.2f, armor %d%%, magic resist %d%%." % [int(ed["hp"]), float(ed["speed"]),
+				int(round(float(ed["armor"]) * 100)), int(round(float(ed["resist"]) * 100))], 16, TEXT_C])
+			lines.append(["Health grows with every wave (and with difficulty).", 14, DIM_C])
+			if ed.get("boss", false):
+				lines.append(["A boss: arrives on wave 10, 20 or 30 (which one is rolled each run, shown in Threat Intel).", 15, Color(1, 0.6, 0.45)])
+			elif int(ed["min_wave"]) < 900:
+				lines.append(["First seen on wave %d." % int(ed["min_wave"]), 15, TEXT_C])
+			lines.append(["Worth %d gold; reaching the castle costs it %d health." % [int(ed["gold"]), int(ed["leak"])], 15, TEXT_C])
+			for x in _comp_enemy_traits(ed):
+				lines.append([x, 15, Color(1.0, 0.75, 0.55)])
+			for th in GameData.THREATS:
+				var tt: Dictionary = GameData.THREATS[th]
+				if tt["enemy"] == id:
+					lines.append(["Threat '%s': %s" % [tt["name"], tt["desc"]], 15, Color(1, 0.6, 0.4)])
+		"n":
+			var nd: Dictionary = GameData.NEUTRALS[id]
+			_comp_detail.add_child(_title(nd["name"], 30, Color(1.0, 0.8, 0.45)))
+			lines.append([String(nd["desc"]), 16, TEXT_C])
+			lines.append(["Neutral buildings come on new tiles (the tile bar names one before you place it). Once the tile is yours, it works for you; several of a kind stack.", 15, DIM_C])
+		"h":
+			var hd: Dictionary = GameData.HEROES[id]
+			var f: Dictionary = GameData.FACTIONS[hd["faction"]]
+			_comp_detail.add_child(_title(hd["name"], 30, (f["color"] as Color).lerp(Color.WHITE, 0.2)))
+			lines.append(["Commands %s (%s). %s" % [f["name"], f["pie"], "Free." if int(hd["cost"]) == 0 else "Unlocked for %d Renown." % int(hd["cost"])], 15, DIM_C])
+			for pw in hd["powers"]:
+				lines.append(["- " + String(pw), 16, TEXT_C])
+			if hd.has("sig"):
+				lines.append(["Signature, %s: %s" % [hd["sig"]["name"], hd["sig"]["desc"]], 16, GOLD_C])
+			lines.append(["The color's own passive, %s: %s" % [f["passive_name"], f["passive_desc"]], 15, RECON_C])
+	for ln in lines:
+		_comp_detail.add_child(_wrap_label(ln[0], 630, ln[1], ln[2]))
+
+
+## Plain-words lines for a tower's special effects.
+func _comp_tower_effects(d: Dictionary) -> Array:
+	var out: Array = []
+	var a := String(d["attack"])
+	var kinds := {"arrow": "Shoots homing arrows.", "bolt": "Fires bolts in a straight line.", "lob": "Lobs shots that land in an arc (ground only).",
+		"orb": "Fires slow homing orbs.", "chain": "Lightning that jumps between enemies.", "slam": "Slams the ground where its target stands.",
+		"aura_dmg": "Pulses damage around itself.", "aura_buff": "Boosts the towers around it.", "aura_curse": "Curses the enemies around it.",
+		"breath": "Breathes along a straight line where it faces.", "grasp": "Seizes several enemies at once.", "smite": "Calls down a pillar of light on its target."}
+	if kinds.has(a):
+		out.append(kinds[a])
+	if d.has("splash"):
+		out.append("Splash: %.1f tiles." % float(d["splash"]))
+	if d.has("slow"):
+		out.append("Slows %d%% for %.1f s." % [int(round(float(d["slow"][0]) * 100)), float(d["slow"][1])])
+	if d.has("dot"):
+		out.append("Burns or poisons for %d damage a second over %.0f s." % [int(d["dot"][0]), float(d["dot"][1])])
+	if d.has("stun"):
+		out.append("%d%% chance to stun for %.1f s." % [int(round(float(d["stun"][0]) * 100)), float(d["stun"][1])])
+	if d.has("chain"):
+		out.append("Jumps to %d more enemies." % int(d["chain"]))
+	if d.get("pierce", false):
+		out.append("Pierces every enemy in its line.")
+	if d.has("pct"):
+		out.append("Each hit rips %d%% of the target's current health (bosses resist)." % int(round(float(d["pct"]) * 100)))
+	if d.has("curse"):
+		out.append("Cursed enemies take +%d%% damage from everything." % int(round(float(d["curse"]) * 100)))
+	if d.has("push"):
+		out.append("Can drag enemies back along the road.")
+	if d.has("vuln"):
+		out.append("Hit enemies take +%d%% damage for %.0f s." % [int(round(float(d["vuln"][0]) * 100)), float(d["vuln"][1])])
+	if d.has("grasp"):
+		out.append("Holds up to %d enemies at once." % int(d["grasp"]))
+	if d.has("raise"):
+		out.append("Walkers dying in its reach rise as zombies (up to %d at once)." % int(d["raise"]["max"]))
+	if d.has("buff"):
+		var b: Dictionary = d["buff"]
+		for k in b:
+			out.append("Towers in reach get +%d%% %s." % [int(round(float(b[k]) * 100)), "damage" if k == "dmg" else "attack speed"])
+	if d.get("static", false):
+		out.append("Never turns: aim it with R / Shift+R when you place it.")
+	if d.get("detect", false):
+		out.append("Sees camouflaged enemies.")
+	return out
+
+
+func _comp_enemy_traits(ed: Dictionary) -> Array:
+	var out: Array = []
+	if ed.get("flying", false):
+		out.append("Flies straight from where its road starts to the castle: only towers that hit air can stop it.")
+	if ed.has("split"):
+		out.append("Splits into %d smaller ones when killed." % int(ed["split"]["count"]))
+	if ed.has("heal"):
+		out.append("Heals nearby enemies %d health a second." % int(ed["heal"]["hps"]))
+	if ed.has("regen"):
+		out.append("Regenerates %d health a second." % int(ed["regen"]))
+	if ed.has("summon"):
+		out.append("Summons %d %s every %.1f s." % [int(ed["summon"]["count"]), GameData.ENEMIES[ed["summon"]["type"]]["name"], float(ed["summon"]["every"])])
+	if float(ed["armor"]) >= 0.3:
+		out.append("Armored: physical damage is cut; magic works best.")
+	if float(ed["resist"]) >= 0.3:
+		out.append("Resists magic: physical damage works best.")
+	return out

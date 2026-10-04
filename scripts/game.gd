@@ -3217,6 +3217,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## shift: Shift+R turns towers and tiles the other way.
 func _handle_key(code: Key, shift := false) -> void:
+	if code == KEY_J or (code == KEY_ESCAPE and hud.compendium_open()):
+		if state != S.MENU or hud.compendium_open():
+			hud.toggle_compendium()
+		return
+	if hud.compendium_open():
+		return
 	if state == S.EXPAND:
 		match code:
 			KEY_R: _rotate_tile(-1 if shift else 1)
