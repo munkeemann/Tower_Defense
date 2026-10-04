@@ -287,6 +287,8 @@ func take_damage(amount: float, dtype: String, source: Tower = null, silent := f
 		var mult := (2.5 if shred else (1.5 if dtype == "magic" else 1.0)) * (1.0 + float(game.mods.get("shield_break", 0.0)))
 		var soak: float = minf(shield, amount * mult)
 		shield -= soak
+		if source:
+			source.damage_done += soak   # breaking shields is the tower's work too (damage chart)
 		amount -= soak / mult
 		if shield <= 0.0:
 			shield = 0.0

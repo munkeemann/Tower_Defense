@@ -50,6 +50,9 @@ const DIFFICULTIES := [
 	{"name": "Hard", "hp": 1.7, "count": 1.25, "exits": 2, "desc": "Tougher, larger waves. Two roads leave the castle (+100 gold): join them into one chokepoint."},
 	{"name": "Brutal", "hp": 2.3, "count": 1.4, "exits": 3, "desc": "For Tower Dominion veterans. Three roads leave the castle (+200 gold)."},
 ]
+## Hard and Brutal ease in: their health and size multipliers grow from 1.0 on wave 1 to full strength by this wave
+## (playtests: with two or three roads to cover from the first wave, the full multipliers ended most runs by wave 5).
+const DIFF_RAMP := 10
 
 ## The color pie. Every run is one color (set by your commander). You draft that color's own towers plus
 ## the shared towers every color can use. "passive" is folded into the run's modifiers like a hero's fx.
@@ -169,7 +172,7 @@ const TOWERS := {
 	"storm": {"name": "Stormcaller Oak", "tier": 3, "copies": 1, "cost": 280, "attack": "chain", "dmg": 75.0, "rate": 0.7, "range": 5.1,
 		"dtype": "magic", "air": true, "ground": true, "chain": 4, "shred": true, "color": Color(0.4, 0.6, 1.0),
 		"desc": "Lightning that arcs between up to 5 enemies."},
-	"hive": {"name": "Wasp Hive", "tier": 2, "copies": 2, "cost": 165, "attack": "arrow", "dmg": 8.5, "rate": 5.0, "range": 4.0,
+	"hive": {"name": "Wasp Hive", "tier": 2, "copies": 2, "cost": 165, "attack": "arrow", "dmg": 12.0, "rate": 5.0, "range": 4.0,
 		"dtype": "phys", "air": true, "ground": true, "air_bonus": 2.0, "detect": true, "color": Color(0.95, 0.8, 0.2),
 		"desc": "A swarm of stingers. Double damage to flyers; the swarm sniffs out camouflaged enemies."},
 	"moonwell": {"name": "Moonwell", "tier": 2, "copies": 2, "cost": 150, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.6,
@@ -188,7 +191,7 @@ const TOWERS := {
 	"dwarf_mortar": {"name": "Siege Mortar", "tier": 3, "copies": 1, "cost": 320, "attack": "lob", "dmg": 270.0, "rate": 0.25, "range": 10.5,
 		"dtype": "phys", "air": false, "ground": true, "splash": 1.9, "color": Color(0.45, 0.4, 0.36),
 		"desc": "Colossal range and blast radius. Can't hit flyers."},
-	"dwarf_gyro": {"name": "Flak Battery", "tier": 2, "copies": 1, "cost": 180, "attack": "arrow", "dmg": 24.0, "rate": 2.4, "range": 5.8,
+	"dwarf_gyro": {"name": "Flak Battery", "tier": 2, "copies": 1, "cost": 180, "attack": "arrow", "dmg": 30.0, "rate": 2.4, "range": 5.8,
 		"dtype": "phys", "air": true, "ground": false, "air_bonus": 1.5, "color": Color(0.85, 0.62, 0.3),
 		"desc": "Twin rotary flak guns that shred flyers. Can't hit the ground."},
 	# ---------------- Blue: the Tidal Court (merfolk) ----------------
@@ -293,7 +296,7 @@ const ENEMIES := {
 		"cost": 2, "min_wave": 9, "flying": true, "color": Color(0.95, 0.8, 0.2), "size": 0.6, "h": 1.0},
 	"frostimp": {"name": "Frost Imp", "hp": 80.0, "speed": 1.3, "armor": 0.0, "resist": 0.5, "gold": 7, "leak": 1,
 		"cost": 3, "min_wave": 13, "color": Color(0.3, 0.6, 0.9), "size": 0.7, "h": 1.6},
-	"gargoyle": {"name": "Gargoyle", "hp": 125.0, "speed": 0.8, "armor": 0.5, "resist": 0.1, "gold": 10, "leak": 2,
+	"gargoyle": {"name": "Gargoyle", "hp": 110.0, "speed": 0.8, "armor": 0.3, "resist": 0.1, "gold": 10, "leak": 2,
 		"cost": 4, "min_wave": 16, "flying": true, "color": Color(0.6, 0.7, 0.35), "size": 0.9, "h": 1.4},
 	"spikeback": {"name": "Spikeback", "hp": 230.0, "speed": 0.7, "armor": 0.45, "resist": 0.2, "gold": 12, "leak": 3,
 		"cost": 5, "min_wave": 18, "color": Color(0.3, 0.45, 0.3), "size": 1.0, "h": 1.9},

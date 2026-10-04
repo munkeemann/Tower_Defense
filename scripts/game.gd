@@ -14,7 +14,7 @@ const RAISE := "__raise"   # placing mode: a Builder raising ground
 const DIG := "__dig"       # placing mode: a Digger lowering ground
 const SPEEDS := [1.0, 2.0, 3.0]
 ## Boss health by wave, whichever boss this run rolled for that slot.
-const BOSS_HP := {10: 2600.0, 20: 6500.0, 30: 16000.0}
+const BOSS_HP := {10: 2600.0, 20: 11000.0, 30: 30000.0}   # (playtests: the old 6500 / 16000 bosses barely scratched a late defense)
 const BOSS_GOLD := {10: 120, 20: 250, 30: 500}
 const BOSS_LEAK := {10: 10, 20: 15, 30: 20}
 ## A new road out of the castle (another battlefront) opens before these waves. Empty on the hex map:
@@ -222,6 +222,15 @@ func _ready() -> void:
 		get_tree().quit()
 	elif autotest:
 		start_run(faction, hero)
+		for x in args:
+			if x.begins_with("--give="):
+				# test runs: start with these blueprints (--give=knight_hall:2,sunlance)
+				for part in x.substr(7).split(","):
+					var kv := part.split(":")
+					owned[kv[0]] = int(owned.get(kv[0], 0)) + (int(kv[1]) if kv.size() > 1 else 1)
+				hud.build_tower_bar()
+			if x.begins_with("--gold="):
+				gold += int(x.substr(7))
 		cycle_speed(); cycle_speed()
 		print("AUTOTEST threats=%s bosses=%s hero=%s biome=%s" % [str(threats.map(func(t): return "%s@%d" % [t["id"], t["wave"]])), str(boss_plan), hero, board.biome_id])
 	else:
@@ -1418,7 +1427,7 @@ func _next_step() -> void:
 func _enter_build() -> void:
 	state = S.BUILD
 	var boss: String = boss_plan.get(wave + 1, "")
-	next_wave_list = WaveBuilder.generate(wave + 1, rng, float(_diff()["count"]), roster, boss)
+	next_wave_list = WaveBuilder.generate(wave + 1, rng, diff_mult("count", wave + 1), roster, boss)
 	var fronts := board.battlefronts()
 	var label := "Start Wave %d  [Space]" % (wave + 1)
 	hud.set_start(true, label, WaveBuilder.summary(next_wave_list) + "\nFrom %d road end%s" % [fronts, "" if fronts == 1 else "s"])
@@ -1863,6 +1872,18 @@ func tier_open(tid: String) -> bool:
 	return owned.has(tid) or wave + 1 >= int(GameData.TIER_WAVE[GameData.tier_of(tid)])
 
 
+## Is there a clear, level patch near a road where this tower fits right now? (Small towers always count as fitting.)
+func _fits_somewhere(tid: String) -> bool:
+	if (GameData.shape_of(tid)["cells"] as Array).size() < 4:
+		return true
+	for pc in board.path_cells:
+		for c in Hex.disc(pc, 3):
+			for f in 6:
+				if board.can_build_all(GameData.footprint(tid, c, f)):
+					return true
+	return false
+
+
 func _copies_for(tid: String) -> int:
 	return GameData.copies_for(tid) + int(hero_fx.get("bonus_copies", {}).get(tid, 0)) + int(mods["extra_copies"])
 
@@ -1902,6 +1923,8 @@ func _roll_item(kind: String, used: Dictionary) -> Dictionary:
 			var total := 0.0
 			for tid in pool:
 				var x := 1.0 if owned.has(tid) else (3.0 if wave < 12 else 1.5)
+				if not _fits_somewhere(tid):
+					x *= 0.2   # (playtests: big blueprints with no clear, level patch left were dead picks)
 				w.append(x)
 				total += x
 			var roll := rng.randf() * total
@@ -2362,7 +2385,13 @@ func sig_rate_bonus(tid: String) -> float:
 
 
 func hp_mult_for_wave() -> float:
-	return WaveBuilder.hp_mult(wave) * float(_diff()["hp"])
+	return WaveBuilder.hp_mult(wave) * diff_mult("hp", wave)
+
+
+## The difficulty's multiplier (hp / count) on wave w: Hard and Brutal ease in over GameData.DIFF_RAMP waves.
+func diff_mult(key: String, w: int) -> float:
+	var full := float(_diff()[key])
+	return 1.0 + (full - 1.0) * clampf(float(w - 1) / float(GameData.DIFF_RAMP - 1), 0.0, 1.0)
 
 
 func _diff() -> Dictionary:
@@ -2472,7 +2501,7 @@ func spawn_enemy(type_id: String, r: PackedVector3Array, progress := 0.0) -> Ene
 	var mult := WaveBuilder.hp_mult(wave)
 	if d.get("boss", false):
 		mult = float(BOSS_HP.get(wave, float(d["hp"]) * (1.0 + 0.02 * wave))) / float(d["hp"])
-	mult *= float(_diff()["hp"])
+	mult *= diff_mult("hp", wave)
 	e.setup(self, type_id, r, mult, progress)
 	enemies.append(e)
 	# Hunter's Mark: the first few of a wave, and every boss, take extra damage all the way in
