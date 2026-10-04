@@ -822,6 +822,7 @@ static var blender_towers := true
 ## The KayKit character a Blender tower stands at its Crew marker: like KK_TOWER crews (char, gear, idle, attack, cut, h).
 const BLENDER_CREW := {
 	"ballista": {"char": "Engineer.glb", "idle": "Idle_A", "attack": "Interact", "h": 1.15},
+	"arcane": {"char": "Mage.glb", "gear": [["staff", "r"]], "idle": "Idle_A", "attack": "Ranged_Magic_Shoot", "h": 1.1},
 }
 const TEAM_COLUMN := {"blue": 0, "red": 1, "yellow": 2, "green": 3}   # team swatches along the atlas's bottom row
 static var _atlas_mats := {}
@@ -880,14 +881,14 @@ static func _blender_tower(id: String, root: Node3D) -> Node3D:
 	muzzles.sort_custom(func(a, b): return String(a.name) < String(b.name))
 	if not muzzles.is_empty():
 		root.set_meta("muzzles", muzzles)
-	var spot := head.find_child("Crew", true, false) as Node3D
+	var spot := scene.find_child("Crew", true, false) as Node3D   # under Head: turns with it; elsewhere: stays put
 	var c: Dictionary = BLENDER_CREW.get(id, {})
 	if spot and not c.is_empty():
 		var ch := KayKit.character(c["char"], "", float(c.get("h", 1.25)))
 		if not ch.is_empty():
 			for g in c.get("gear", []):
 				KayKit.hold(ch, g[0], g[1])
-			spot.add_child(ch["root"])   # stands on the turntable and turns with the head
+			spot.add_child(ch["root"])
 			var cap: AnimationPlayer = ch["anim"]
 			var idle := KayKit.clip(cap, [c.get("idle", "Idle_A"), "Idle_A"])
 			if idle != "":

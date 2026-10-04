@@ -458,7 +458,7 @@ func _tower_test(tid: String) -> bool:
 	var yaw0 := t.head.rotation.y
 	var turned := false
 	var t0 := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t0 < 25000 and (fires < 4 or _tt_shots.size() < 4):
+	while Time.get_ticks_msec() - t0 < 25000 and (fires < 4 or t.attacks < 4):
 		await get_tree().process_frame
 		if absf(angle_difference(t.head.rotation.y, yaw0)) > 0.02:
 			turned = true
@@ -478,11 +478,12 @@ func _tower_test(tid: String) -> bool:
 			var m := muzzle.global_position
 			var off := absf(Vector2(s.x - hp.x, s.z - hp.z).length() - Vector2(m.x - hp.x, m.z - hp.z).length())
 			worst = maxf(worst, maxf(off, absf(s.y - m.y)))
-	print("TOWERTEST shots=%d rig_fires=%d head_turned=%s muzzle_offset=%.3f" % [_tt_shots.size(), fires, turned, worst])
-	if _tt_shots.is_empty():
-		print("TOWERTEST FAIL it never fired")
+	print("TOWERTEST attacks=%d projectiles=%d rig_fires=%d head_turned=%s muzzle_offset=%.3f" % [t.attacks, _tt_shots.size(),
+		fires, turned, worst])
+	if t.attacks == 0:
+		print("TOWERTEST FAIL it never attacked")
 		ok = false
-	if blender and fires < _tt_shots.size() - 1:
+	if blender and fires < t.attacks - 1:
 		print("TOWERTEST FAIL the fire animation did not play on every shot")
 		ok = false
 	if blender and worst > 0.05:
@@ -514,9 +515,12 @@ func _tt_note(n: Node) -> void:
 		_tt_origin.call_deferred(n)
 
 
-## Where a bolt started: its position now, walked back along its flight by what it has travelled.
+## Where a projectile started: its position now (bolts: walked back along their flight by what they've travelled).
 func _tt_origin(p: Projectile) -> void:
-	if not is_instance_valid(p) or p.kind != Projectile.K.BOLT:
+	if not is_instance_valid(p):
+		return
+	if p.kind != Projectile.K.BOLT:
+		_tt_shots.append(p.position)
 		return
 	var t: Tower = p.packet.get("tower")
 	var travelled: float = t.range_world() * 1.15 - p.travel_left

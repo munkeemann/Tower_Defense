@@ -49,6 +49,7 @@ var _spinners: Array = []     # KayKit pieces that turn and bob (floating gems):
 var _rig: AnimationPlayer     # Blender towers: the machine's own animations (idle / fire / reload)
 var _rig_back := 0.0          # seconds until the rig eases back into its idle
 var _muzzle_nodes: Array = [] # Blender towers: markers where shots leave
+var attacks := 0              # how many times it has attacked (shots, pulses, breaths...): tests read it
 
 
 const SIZE_SCALE := [1.0, 1.15, 1.3, 1.45, 1.55, 1.7, 1.85]
@@ -273,6 +274,8 @@ func _process(delta: float) -> void:
 	var a := attack()
 	var kk := _model.has_meta("kaykit")
 	if a == "aura_buff":
+		if _rig:
+			return   # Blender towers animate themselves (idle)
 		if not kk:
 			head.position.y += sin(_anim * 2.0) * 0.002
 		if id == "banner":
@@ -284,7 +287,7 @@ func _process(delta: float) -> void:
 	if _recoil > 0.0:
 		_recoil = max(0.0, _recoil - delta * 4.0)
 	if a == "aura_dmg":
-		if id == "chapel":
+		if id == "chapel" and _rig == null:
 			head.rotate_y(delta * 1.2)
 		if cooldown <= 0.0 and _any_in_range():
 			cooldown = 1.0 / fire_rate()
@@ -343,6 +346,7 @@ func _any_in_range() -> bool:
 
 
 func _pulse() -> void:
+	attacks += 1
 	var r := range_world()
 	var pkt := make_packet()
 	for e in game.enemies.duplicate():
@@ -410,6 +414,7 @@ func _muzzle_world(i: int) -> Vector3:
 
 
 func _fire(t: Enemy) -> void:
+	attacks += 1
 	var r := range_world()
 	match attack():
 		"breath":

@@ -11,7 +11,7 @@ Conventions (they match the game, see scripts/hex.gd and GameData.SHAPES):
   the team row (blue, red, yellow, green) for your color.
 """
 import bpy, bmesh, math, os
-from mathutils import Vector, Matrix, Euler
+from mathutils import Vector, Matrix, Euler, Quaternion
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) if "__file__" in globals() \
     else r"C:\Users\maxja\Vibe code\tower-realms"
@@ -295,8 +295,15 @@ def teamify(obj):
 
 
 def view3d_override(obj=None):
-    """Context for bpy.ops calls made from the MCP connector (which runs outside any editor)."""
-    win = bpy.context.window_manager.windows[0]
+    """Context for bpy.ops calls made from the MCP connector (which runs outside any editor). In a background run
+    (blender -b, no windows) there's nothing to override: the active object is enough."""
+    if obj is not None:
+        bpy.context.view_layer.objects.active = obj
+    wm = bpy.context.window_manager
+    if not wm.windows or not any(a.type == "VIEW_3D" for a in wm.windows[0].screen.areas):
+        import contextlib
+        return contextlib.nullcontext()
+    win = wm.windows[0]
     area = next(a for a in win.screen.areas if a.type == "VIEW_3D")
     region = next(r for r in area.regions if r.type == "WINDOW")
     kw = dict(window=win, area=area, region=region)
@@ -401,8 +408,8 @@ def export_tower(coll_name, path):
     coll = bpy.data.collections[coll_name]
     rig = next((o for o in coll.objects if o.type == "ARMATURE"), None)
     keep = rig.animation_data.action if rig and rig.animation_data else None
-    with view3d_override():
-        bpy.ops.object.select_all(action="DESELECT")
+    for o in bpy.context.view_layer.objects:
+        o.select_set(False)
     for o in coll.objects:
         o.hide_set(False)
         o.select_set(True)
@@ -446,3 +453,151 @@ def kk_import(rel, coll, parent=None, loc=(0, 0, 0), rot_z=0.0, scale=1.0, name=
         o["kaykit"] = rel
     merge_duplicate_materials()
     return roots
+
+
+# ------------------------------------------------------------------------------------------- tower scaffolding
+TOWERS_DIR = os.path.join(REPO, "assets", "towers")
+
+
+def start_tower(tid, cells, keep=("Guides", "Palette", "Palette2")):
+    """Turns the open file into tower `tid`'s source: drops every other tower collection, lays KayKit grass guide hexes
+    under the footprint (game scale and turn), and saves as assets/towers/src/<tid>.blend. Returns the collection."""
+    scn = bpy.context.scene
+    for c in list(scn.collection.children):
+        if c.name not in keep:
+            for o in list(c.all_objects):
+                bpy.data.objects.remove(o, do_unlink=True)
+            bpy.data.collections.remove(c)
+    guides = collection("Guides")
+    for o in [o for o in guides.objects if o.name.startswith("guide_hex")]:
+        bpy.data.objects.remove(o, do_unlink=True)
+    mid = footprint_mid(cells)
+    for i, (q, s) in enumerate(cells):
+        for o in kk_import("hex/hex_grass", guides, None, tuple(hex_to_world(q, s, mid)), 30.0, 1.0, "guide_hex_%d" % i):
+            o.scale = (1.2 / 1.1547005, 1.2 / 1.1547005, 1.1)
+            o.hide_select = True
+    for m in list(bpy.data.meshes):
+        if m.users == 0:
+            bpy.data.meshes.remove(m)
+    col = collection(tid.capitalize())
+    os.makedirs(os.path.join(TOWERS_DIR, "src"), exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(TOWERS_DIR, "src", tid + ".blend"), relative_remap=True)
+    return col
+
+
+def plinth(cells, col, root, top=0.34, name="Base"):
+    """The shared Blender-tower foundation: a dark stone course and a lighter bevelled wall following the footprint's
+    hex outline (the look the Ballista set)."""
+    bm = bmesh.new(); prism(bm, outline(cells, 0.05), -0.06, 0.16)
+    paint(mesh_obj(name + "_Plinth", bm, col, root), "stone_dark")
+    bm = bmesh.new(); prism(bm, outline(cells, 0.13), 0.16, top)
+    o = paint(mesh_obj(name + "_Wall", bm, col, root), "stone", lo=0.05, hi=0.6)
+    b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.035; b.segments = 1; b.limit_method = "ANGLE"
+    return o
+
+
+def make_rig(coll, parent, bones, name="Rig", scale=1.0):
+    """An armature under `parent` from {bone: (head, tail, parent bone)}, laid out at 1.0 and scaled by `scale`.
+    Pose bones use quaternions."""
+    old = bpy.data.objects.get(name)
+    if old:
+        bpy.data.objects.remove(old, do_unlink=True)
+    arm = bpy.data.armatures.new(name)
+    rig = bpy.data.objects.new(name, arm)
+    coll.objects.link(rig)
+    rig.parent = parent
+    arm.display_type = "STICK"
+    rig.show_in_front = True
+    bpy.context.view_layer.objects.active = rig
+    with view3d_override(rig):
+        bpy.ops.object.mode_set(mode="EDIT")
+        eb = {}
+        for bname, (h, t, par) in bones.items():
+            b = arm.edit_bones.new(bname)
+            b.head = Vector(h) * scale
+            b.tail = Vector(t) * scale
+            b.roll = 0.0
+            if par:
+                b.parent = eb[par]
+            eb[bname] = b
+        bpy.ops.object.mode_set(mode="OBJECT")
+    for pb in rig.pose.bones:
+        pb.rotation_mode = "QUATERNION"
+    return rig
+
+
+def rig_part(name, bm, swatch, rig, bone, coll, team=False, bevel=0.012, scale=1.0, mat=None, **kw):
+    """A piece laid out at 1.0 (scaled by `scale`), painted from the atlas (or given `mat`), bevelled, and rigid-skinned
+    to one bone of `rig`."""
+    if scale != 1.0:
+        bmesh.ops.scale(bm, vec=(scale,) * 3, verts=bm.verts)
+    o = mesh_obj(name, bm, coll, rig)
+    if mat is not None:
+        o.data.materials.clear()
+        o.data.materials.append(mat)
+        if not o.data.uv_layers:
+            o.data.uv_layers.new(name="UVMap")
+    else:
+        paint(o, swatch, team=team, **kw)
+    if bevel > 0:
+        b = o.modifiers.new("Bevel", "BEVEL")
+        b.width = bevel * scale
+        b.segments = 1
+        b.limit_method = "ANGLE"
+        b.angle_limit = math.radians(40)
+    skin_to(o, rig, bone)
+    return o
+
+
+def glow_mat(name, color, strength=2.5):
+    """A flat glowing material (crystals, halos, light) exported as a glTF emissive color."""
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    bsdf = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+    bsdf.inputs["Base Color"].default_value = (*color[:3], 1)
+    bsdf.inputs["Emission Color"].default_value = (*color[:3], 1)
+    bsdf.inputs["Emission Strength"].default_value = strength
+    bsdf.inputs["Roughness"].default_value = 0.35
+    return m
+
+
+def arm_space_quat(pb, axis, deg):
+    """A rotation of `deg` about an armature-space axis, as this bone's local pose rotation."""
+    r = pb.bone.matrix_local.to_quaternion()
+    return r.inverted() @ Quaternion(Vector(axis), math.radians(deg)) @ r
+
+
+def arm_space_loc(pb, delta):
+    return pb.bone.matrix_local.to_3x3().inverted() @ Vector(delta)
+
+
+def rest_pose(rig):
+    for b in rig.pose.bones:
+        b.location = (0, 0, 0)
+        b.rotation_quaternion = (1, 0, 0, 0)
+        b.scale = (1, 1, 1)
+
+
+def key_pose(rig, frame):
+    for b in rig.pose.bones:
+        b.keyframe_insert("location", frame=frame)
+        b.keyframe_insert("rotation_quaternion", frame=frame)
+        b.keyframe_insert("scale", frame=frame)
+
+
+def new_action(rig, name, length):
+    old = bpy.data.actions.get(name)
+    if old:
+        bpy.data.actions.remove(old)
+    act = bpy.data.actions.new(name)
+    act.use_fake_user = True
+    rig.animation_data_create()
+    rig.animation_data.action = act
+    act.frame_range = (0, length)
+    act.use_frame_range = True
+    return act
+
+
+def smooth(t):
+    t = min(max(t, 0.0), 1.0)
+    return t * t * (3 - 2 * t)
