@@ -6,6 +6,10 @@ extends RefCounted
 ## spot near the road for the one that covers the most of every route, values towers by damage per gold, saves for
 ## better towers, upgrades its proven towers with the stronger specialization, guards the flight lines before fliers
 ## come, raises its best towers with Builders and drafts with the threats in mind.
+## Tiles: low drops them anywhere; mid goes for long roads and merges with a little thought for open ground; high plans
+## ahead for its big blueprints: it previews each placement's ground (Board.plan_ground), takes the one that opens a
+## spot for a 4-5 hex tower it holds, rerolls with Runes when none does, and levels a nearly-flat patch with Builders
+## and Diggers.
 ## Every run ends with one `PLAYTEST {json}` line: the result plus a per-wave log (health, leaks, unspent gold, wave
 ## length, crowds) and each tower's damage, for tools/playtest_report.py.
 
@@ -138,13 +142,13 @@ func _buy_talent(path: String, idx: int) -> void:
 
 
 ## A rough damage per second for a tower at a level (and specialization): hits per second times how many enemies
-## each attack tends to reach.
-static func est_dps(tid: String, level := 1, fx := {}) -> float:
+## each attack tends to reach. cap: the most one hit can usefully deal (overkill on small enemies is wasted).
+static func est_dps(tid: String, level := 1, fx := {}, cap := INF) -> float:
 	var d: Dictionary = GameData.TOWERS[tid]
 	var a := String(d["attack"])
 	if a == "aura_buff" or a == "aura_curse":
 		return 0.0
-	var dmg: float = float(d["dmg"]) * GameData.LEVEL_DMG[level - 1] * (1.0 + float(fx.get("dmg", 0.0)))
+	var dmg: float = minf(cap, float(d["dmg"]) * GameData.LEVEL_DMG[level - 1] * (1.0 + float(fx.get("dmg", 0.0))))
 	var rate: float = float(d["rate"]) * GameData.LEVEL_RATE[level - 1] * (1.0 + float(fx.get("rate", 0.0)))
 	var targets := 1.0 + 0.9 * (float(d.get("splash", 0.0)) + float(fx.get("splash", 0.0)))
 	match a:
@@ -153,6 +157,7 @@ static func est_dps(tid: String, level := 1, fx := {}) -> float:
 		"beam", "breath", "aura_dmg": targets *= 2.5
 		"grasp": targets *= 0.8 * (float(d.get("grasp", 3)) + float(fx.get("grasp", 0)))
 		"muster": targets *= 1.3 * float(d["muster"]["hits"])
+		"lob": targets *= 0.75   # shells land where the target was going: some miss
 	targets *= 1.0 + 0.8 * float(fx.get("multishot", 0))
 	var dps: float = dmg * rate * targets
 	var dot: Array = fx.get("dot", d.get("dot", []))
@@ -162,6 +167,15 @@ static func est_dps(tid: String, level := 1, fx := {}) -> float:
 		if d.has(k) or fx.has(k):
 			dps *= 1.12
 	return dps
+
+
+## est_dps with this wave's overkill cap: a hit bigger than a couple of this wave's enemies is partly wasted.
+func _dps(tid: String, level := 1, fx := {}) -> float:
+	return est_dps(tid, level, fx, 120.0 * _hp_scale())
+
+
+func _hp_scale() -> float:
+	return WaveBuilder.hp_mult(g.wave + 1) * g.diff_mult("hp", g.wave + 1)
 
 
 func _air_coming() -> bool:
@@ -211,7 +225,130 @@ func expand() -> void:
 	if skill == 0:
 		_low_expand()
 	else:
-		g._auto_expand()
+		_plan_expand(skill == 2)
+
+
+## Representative big shapes for "open ground": 5-hex arrow (Trebuchet) and battery (Royal Bombard), shared by every color.
+const BIG_PROBES := ["trebuchet", "bombard"]
+
+
+## Owned blueprints of 4-5 hex towers that fit nowhere right now (what a planner wants room for).
+func _homeless_big() -> Array:
+	var out: Array = []
+	for tid in g.owned:
+		if int(g.owned[tid]) > 0 and (GameData.shape_of(tid)["cells"] as Array).size() >= 4 and not g._fits_somewhere(tid):
+			out.append(tid)
+	return out
+
+
+## How a tile placement scores: long roads and merges (and few new battlefronts), plus open ground for big towers.
+func _tile_score(plan: Dictionary, space_w: float, homeless: Array, fronts: int) -> float:
+	var road_len := 0
+	for r in plan["roads"]:
+		road_len += r.size()
+	var score: float = road_len + g.rng.randf() * 2.0
+	score += 6.0 * (plan["merges"].size() - 1)
+	score -= (3.0 + 2.0 * fronts) * maxf(0.0, float(plan["new_ports"]) - 1.0)
+	if space_w <= 0.0 and homeless.is_empty():
+		return score
+	var ground: Dictionary = g.board.plan_ground(plan)
+	var anchors: Array = ground.keys().filter(func(c): return ground[c][0])
+	var patches := 0
+	for tid in BIG_PROBES:
+		for c in anchors:
+			for f in [0, 2, 4]:
+				if g.board.can_build_all_with(GameData.footprint(tid, c, f), ground):
+					patches += 1
+					break
+	score += space_w * minf(float(patches), 6.0)
+	for tid in homeless:
+		var fits := false
+		for c in anchors:
+			for f in 6:
+				if g.board.can_build_all_with(GameData.footprint(tid, c, f), ground):
+					fits = true
+					break
+			if fits:
+				break
+		if fits:
+			score += 14.0
+	return score
+
+
+func _plan_expand(veteran: bool) -> void:
+	var homeless: Array = _homeless_big() if veteran else []
+	var space_w := 1.0 if veteran else 0.3
+	var fronts: int = g.board.battlefronts()
+	var cards: Array = g._roll_tile_cards(1)
+	for attempt in 3:
+		var best := {}
+		var best_s := -INF
+		for c in cards:
+			for p in g._card_placements(c):
+				var plan: Dictionary = g.board.plan_tile(p[0], c, p[1])
+				var s := _tile_score(plan, space_w, homeless, fronts)
+				if s > best_s:
+					best_s = s
+					best = plan
+		# reroll a tile that adds battlefronts on a busy realm, or (veteran) one with no room for a big blueprint held
+		var bad_front := not best.is_empty() and int(best["new_ports"]) > 1 and fronts >= 3
+		var no_room := veteran and not homeless.is_empty() and best_s < 14.0
+		if attempt < 2 and g.recon >= GameData.REROLL_COST and (bad_front or no_room):
+			g.recon -= GameData.REROLL_COST
+			log["rerolls"] = int(log.get("rerolls", 0)) + 1
+			cards = g._roll_tile_cards(1)
+			continue
+		if not best.is_empty():
+			g.board.commit_tile(best, g.wave + 1)
+			g.run_stats["tiles"] = int(g.run_stats.get("tiles", 0)) + 1
+			g.recompute_buffs()
+			g._claim_with_towers()
+		return
+
+
+## Veteran: a big blueprint has nowhere to go, but a patch near the road is clear and only uneven: level it with
+## Builders (raise the low hexes) and Diggers (lower the high ones). True if it did.
+func _level_for_big() -> bool:
+	if g.builders + g.diggers <= 0:
+		return false
+	for tid in _homeless_big():
+		if g.gold < g.tower_cost(tid) * 0.6:
+			continue
+		var best: Array = []
+		var best_v := 0.0
+		for c in _cands:
+			for f in 6:
+				var cells := GameData.footprint(tid, c, f)
+				if not cells.all(func(x): return g.board.can_build(x)):
+					continue
+				var levels: Array = cells.map(func(x): return g.board.level_at(x))
+				for L in [levels.min(), levels.max()]:
+					var ups: Array = []
+					var downs: Array = []
+					for i in cells.size():
+						for k in absi(int(L) - int(levels[i])):
+							(ups if int(levels[i]) < int(L) else downs).append(cells[i])
+					if ups.size() > g.builders or downs.size() > g.diggers or ups.size() + downs.size() == 0:
+						continue
+					if not ups.all(func(x): return g.board.can_raise(x)) or not downs.all(func(x): return g.board.can_lower(x)):
+						continue
+					var v := _cover_at(tid, g.footprint_center(cells), f, _reach(tid, c)) / float(1 + ups.size() + downs.size())
+					if v > best_v:
+						best_v = v
+						best = [ups, downs]
+		if best.is_empty():
+			continue
+		for x in best[0]:
+			g.placing = Game.RAISE
+			g.try_raise(x)
+		for x in best[1]:
+			g.placing = Game.DIG
+			g.try_dig(x)
+		g.placing = ""
+		log["leveled"] = int(log.get("leveled", 0)) + 1
+		_phase_key = -1
+		return true
+	return false
 
 
 # ---- low: a newcomer
@@ -319,6 +456,25 @@ func _phase_setup() -> void:
 			if not seen.has(c):
 				seen[c] = true
 				_cands.append(c)
+	# how much damage already reaches each point: well-defended stretches count for less (spread the defense)
+	for pts in [_pts, _air]:
+		for pw in pts:
+			pw.append(0.0)
+	for t in g.towers:
+		if t.is_support():
+			continue
+		var r: float = t.range_world()
+		var dps := _dps(t.id, t.level, t.fx)
+		var sets: Array = []
+		if t.data.get("ground", false):
+			sets.append(_pts)
+		if t.data.get("air", false):
+			sets.append(_air)
+		for pts in sets:
+			for pw in pts:
+				var p: Vector3 = pw[0]
+				if Vector2(p.x - t.position.x, p.z - t.position.z).length() <= r:
+					pw[2] = float(pw[2]) + dps
 	_cover.clear()
 	for t in g.towers:
 		_cover[t] = _cover_at(t.id, t.position, t.facing, t.range_world())
@@ -334,6 +490,7 @@ func _cover_at(tid: String, wp: Vector3, f: int, r: float) -> float:
 	var arc := GameData.arc_of(tid)
 	var fd := Hex.dir_world(f)
 	var lw := float(d.get("line", 0.0)) * GameData.TILE
+	var need := 30.0 * _hp_scale()   # the damage a stretch of road wants before more stops paying off
 	var s := 0.0
 	var sets: Array = []
 	if d.get("ground", false):
@@ -355,7 +512,7 @@ func _cover_at(tid: String, wp: Vector3, f: int, r: float) -> float:
 				var v := Vector2(dx, dz)
 				if v.length() > 0.1 and v.normalized().dot(Vector2(fd.x, fd.z)) < cos(deg_to_rad(arc * 0.5)):
 					continue
-			s += float(pw[1])
+			s += float(pw[1]) / (1.0 + float(pw[2]) / need)
 	return s
 
 
@@ -396,7 +553,7 @@ func _best_support_spot(tid: String) -> Array:
 				if t.is_support():
 					continue
 				if Vector2(t.position.x - wp.x, t.position.z - wp.z).length() <= r:
-					s += est_dps(t.id, t.level, t.fx) * float(_cover.get(t, 1.0))
+					s += _dps(t.id, t.level, t.fx) * float(_cover.get(t, 1.0))
 			if s > best_s:
 				best_s = s
 				best = c
@@ -436,7 +593,7 @@ func _best_spec(t: Tower) -> int:
 	var best_v := -INF
 	for i in specs.size():
 		var fx: Dictionary = specs[i]["fx"]
-		var v := _buff_frac(t.id, 3, fx) * 100.0 if t.is_support() else est_dps(t.id, 3, fx)
+		var v := _buff_frac(t.id, 3, fx) * 100.0 if t.is_support() else _dps(t.id, 3, fx)
 		v *= 1.0 + 0.5 * float(fx.has("detect")) * float(_need_detect()) + 0.1 * float(fx.get("range", 0.0)) * 10.0
 		if v > best_v:
 			best_v = v
@@ -450,6 +607,8 @@ func _high_build() -> void:
 		return
 	_act_t = 1.0
 	_high_talents()
+	_phase_setup()
+	_level_for_big()
 	for step in 10:
 		_phase_setup()
 		# Builders: raise the tower doing the most work (more range)
@@ -459,7 +618,7 @@ func _high_build() -> void:
 			for t in g.towers:
 				if t.is_support() or not t.cells.all(func(x): return g.board.can_raise(x)):
 					continue
-				var v := est_dps(t.id, t.level, t.fx) * float(_cover.get(t, 0.0))
+				var v := _dps(t.id, t.level, t.fx) * float(_cover.get(t, 0.0))
 				if v > tv:
 					tv = v
 					top = t
@@ -482,7 +641,7 @@ func _high_build() -> void:
 			var spot: Array = _best_support_spot(tid) if sup else _best_spot(tid)
 			if spot[0] == Board.NONE:
 				continue
-			var v: float = (float(spot[2]) * _buff_frac(tid) if sup else est_dps(tid) * float(spot[2])) * _value_mult(tid) / cost
+			var v: float = (float(spot[2]) * _buff_frac(tid) if sup else _dps(tid) * float(spot[2])) * _value_mult(tid) / cost
 			if g.gold >= cost:
 				opts.append([v, "build", tid, spot[0], spot[1]])
 			elif cost <= g.gold + 140 + 12 * g.wave:
@@ -496,12 +655,12 @@ func _high_build() -> void:
 				var aura := 0.0
 				for o in g.towers:
 					if not o.is_support() and Vector2(o.position.x - t.position.x, o.position.z - t.position.z).length() <= t.range_world():
-						aura += est_dps(o.id, o.level, o.fx) * float(_cover.get(o, 1.0))
+						aura += _dps(o.id, o.level, o.fx) * float(_cover.get(o, 1.0))
 				var nfx: Dictionary = GameData.SPECS[t.id][_best_spec(t)]["fx"] if g.needs_spec(t) else t.fx
 				gain = aura * (_buff_frac(t.id, t.level + 1, nfx) - _buff_frac(t.id, t.level, t.fx))
 			else:
 				var nfx2: Dictionary = GameData.SPECS[t.id][_best_spec(t)]["fx"] if g.needs_spec(t) else t.fx
-				gain = (est_dps(t.id, t.level + 1, nfx2) - est_dps(t.id, t.level, t.fx)) * float(_cover.get(t, 0.0)) * 1.1
+				gain = (_dps(t.id, t.level + 1, nfx2) - _dps(t.id, t.level, t.fx)) * float(_cover.get(t, 0.0)) * 1.1
 			var v2 := gain * _value_mult(t.id) / float(c)
 			if g.gold >= c:
 				opts.append([v2, "upgrade", t])
@@ -571,7 +730,7 @@ func _high_pick_pair() -> int:
 				"blueprint":
 					var tid: String = it["tower"]
 					var d: Dictionary = GameData.TOWERS[tid]
-					var per_gold := est_dps(tid) / float(g.tower_cost(tid)) if d["attack"] != "aura_buff" else 0.25 * _buff_frac(tid)
+					var per_gold := _dps(tid) / float(g.tower_cost(tid)) if d["attack"] != "aura_buff" else 0.25 * _buff_frac(tid)
 					s += 1.0 + 4.0 * per_gold + 0.35 * GameData.tier_of(tid) + 0.4 * (_value_mult(tid) - 1.0)
 					s -= 0.35 * int(g.owned.get(tid, 0))
 				"doctrine": s += 1.2
