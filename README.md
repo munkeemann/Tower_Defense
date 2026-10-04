@@ -228,8 +228,12 @@ KayKit (Kay Lousberg, CC0, in `assets/kaykit`, wrapped by `scripts/kaykit.gd`) s
     Deepwood Fall orange, Highlands Winter white, Lakelands the default yellow-green.
   Set `Board.KAYKIT_TERRAIN = false` to go back to the generated board and the old look.
 - **Castle and buildings** take your color's KayKit team color (`KayKit.TEAM`: blue, green, red or yellow).
-- **Enemies**: humanoid enemies are KayKit characters with real walk and death animations (`Models.KK_ENEMY`).
-  All characters share one animation library per rig (`KayKit.library`).
+- **Enemies**: humanoid enemies are KayKit characters with real walk and death animations, their pack's weapons in
+  hand and, where it suits them, an alternate skin (`Models.KK_ENEMY`, `KayKit.hold`, `KayKit.reskin`). The early
+  waves are an orc warband: grey orcs with clubs (Goblin), green orcs with axes (Orc Brute) and war-drummer orcs
+  (Goblin Shaman); then a blue horned imp (Frost Imp), a vampire lord (Hexguard), a black knight (Ironclad) and a
+  fur-clad barbarian with a spiked shield (Spikeback). The Orc Raider's file has no texture of its own, so it always
+  takes one of its two skins. All characters share one animation library per rig (`KayKit.library`).
 - **Towers**: 17 towers are built from KayKit buildings and props laid on their footprint hexes, with a crew
   member (archer, knight, mage, dwarf engineer, druid, skeleton...) holding real gear. The crew turns to aim and
   plays an attack animation on every shot (`Models.KK_TOWER`, `Tower._crew_act`). Bombards turn both cannons.

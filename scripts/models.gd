@@ -964,20 +964,23 @@ static func _ai_enemy(id: String, d: Dictionary) -> Dictionary:
 	return {"root": root, "body": body, "anim": ap, "walk": walk, "death": death}
 
 
-## Enemies played by KayKit characters (assets/kaykit): [file, rig, walk clip, death clip]. Sized to the enemy's "h".
+## Enemies played by KayKit characters (assets/kaykit): [file, rig, walk clip, death clip, gear [[file, hand]], skin].
+## Sized to the enemy's "h". The skin is another of the character's textures (assets/kaykit/chars); the Orc Raider
+## always needs one (its file comes without its texture). The early waves are an orc warband: grey orcs with clubs,
+## green brutes with axes and war-drummer shamans.
 ## Non-humanoids (slimes, wasps, harpies, gargoyles, the dragon) keep their Quaternius models.
 const KK_ENEMY := {
-	"goblin": ["OrcRaider.glb", "Medium", "Walking_B", "Death_A"],
+	"goblin": ["OrcRaider.glb", "Medium", "Walking_B", "Death_A", [["Orc_Club", "r"]], "orc_texture_B.png"],
 	"wolf": ["Werewolf_Wolf.glb", "Medium", "Running_A", "Death_B"],
-	"orc": ["Barbarian_Large.glb", "Large", "Walking_A", "Death_A"],
-	"shaman": ["Witch.glb", "Medium", "Walking_C", "Death_A"],
-	"hexguard": ["Tiefling.glb", "Medium", "Walking_A", "Death_B"],
-	"ironclad": ["BlackKnight.glb", "Medium", "Walking_A", "Death_A"],
-	"frostimp": ["Vampire.glb", "Medium", "Running_B", "Death_B"],
-	"spikeback": ["Werewolf_Man.glb", "Medium", "Walking_B", "Death_A"],
-	"skeleton": ["Skeleton_Minion.glb", "Medium", "Skeletons_Walking", "Skeletons_Death"],
+	"orc": ["OrcRaider.glb", "Medium", "Walking_A", "Death_A", [["Orc_Axe", "r"]], "orc_texture_A.png"],
+	"shaman": ["OrcRaider.glb", "Medium", "Walking_A", "Death_A", [["Orc_Wardrum", "l"], ["Orc_WardrumStick", "r"]], "orc_texture_B.png"],
+	"hexguard": ["Vampire.glb", "Medium", "Walking_A", "Death_B", [["Vampire_Sword", "r"]]],
+	"ironclad": ["BlackKnight.glb", "Medium", "Walking_A", "Death_A", [["BlackKnight_Sword", "r"], ["BlackKnight_Shield", "l"]]],
+	"frostimp": ["Tiefling.glb", "Medium", "Running_B", "Death_B", [["Tiefling_Sword", "r"]], "tiefling_texture_b.png"],
+	"spikeback": ["Barbarian_Large.glb", "Large", "Walking_A", "Death_A", [["axe_1handed_Large", "r"], ["shield_spikes", "l"]], "barbarian_texture_alt_B.png"],
+	"skeleton": ["Skeleton_Minion.glb", "Medium", "Skeletons_Walking", "Skeletons_Death", [["Skeleton_Blade", "r"]]],
 	"troll": ["FrostGolem.glb", "Large", "Walking_A", "Death_A"],
-	"lich": ["Skeleton_Mage.glb", "Medium", "Walking_C", "Skeletons_Death"],
+	"lich": ["Skeleton_Mage.glb", "Medium", "Walking_C", "Skeletons_Death", [["Skeleton_Staff", "r"]]],
 }
 
 
@@ -988,6 +991,10 @@ static func _kk_enemy(id: String, d: Dictionary) -> Dictionary:
 	var c := KayKit.character(k[0], k[1], float(d.get("h", 1.5)))
 	if c.is_empty():
 		return {}
+	if k.size() > 5:
+		KayKit.reskin(c, k[5])
+	for g in (k[4] if k.size() > 4 else []):
+		KayKit.hold(c, g[0], g[1])
 	var ap: AnimationPlayer = c["anim"]
 	var walk := KayKit.clip(ap, [k[2], "Walking_A"])
 	if walk != "":

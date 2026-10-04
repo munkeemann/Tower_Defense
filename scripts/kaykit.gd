@@ -139,13 +139,38 @@ static func hex_mesh(name: String) -> Array:
 	return out
 
 
-## Puts a gear model (assets/kaykit/gear, e.g. "bow_withString", "staff") in a character's hand ("r" or "l").
+static var _skins := {}
+
+
+## Gives a character another of its pack's textures (e.g. "orc_texture_B.png" in assets/kaykit/chars).
+static func reskin(ch: Dictionary, texture_file: String) -> void:
+	var model: Node = ch.get("model")
+	if model == null or not ResourceLoader.exists(CHARS + texture_file):
+		return
+	var tex: Texture2D = load(CHARS + texture_file)
+	for node in model.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		for s in mi.mesh.get_surface_count():
+			var base := mi.mesh.surface_get_material(s) as BaseMaterial3D
+			if base == null:
+				continue
+			var key := "%d|%s" % [base.get_instance_id(), texture_file]
+			if not _skins.has(key):
+				var m := base.duplicate() as BaseMaterial3D
+				m.albedo_texture = tex
+				_skins[key] = m
+			mi.set_surface_override_material(s, _skins[key])
+
+
+## Puts a gear model (assets/kaykit/gear, e.g. "bow_withString", "staff", "Orc_Axe") in a character's hand ("r" or "l").
 static func hold(ch: Dictionary, gear: String, hand := "r") -> Node3D:
 	var model: Node = ch.get("model")
 	if model == null:
 		return null
 	var skel := model.find_child("Skeleton3D", true, false) as Skeleton3D
 	var ps := scene(GEAR + gear + ".gltf")
+	if ps == null:
+		ps = scene(GEAR + gear + ".glb")
 	if skel == null or ps == null:
 		return null
 	var at := BoneAttachment3D.new()
