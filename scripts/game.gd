@@ -14,7 +14,7 @@ const RAISE := "__raise"   # placing mode: a Builder raising ground
 const DIG := "__dig"       # placing mode: a Digger lowering ground
 const SPEEDS := [1.0, 2.0, 3.0]
 ## Boss health by wave, whichever boss this run rolled for that slot.
-const BOSS_HP := {10: 2600.0, 20: 11000.0, 30: 30000.0}   # (playtests: the old 6500 / 16000 bosses barely scratched a late defense)
+const BOSS_HP := {10: 2600.0, 20: 16000.0, 30: 36000.0}   # (playtests: the old 6500 / 16000 bosses barely scratched a late defense)
 const BOSS_GOLD := {10: 120, 20: 250, 30: 500}
 const BOSS_LEAK := {10: 10, 20: 15, 30: 20}
 ## A new road out of the castle (another battlefront) opens before these waves. Empty on the hex map:
@@ -1205,6 +1205,7 @@ func start_run(fid: String, hero_id := "") -> void:
 	_set_paused(false)
 	_clear_world()
 	faction = fid
+	_t4_offered = false
 	if not GameData.HEROES.has(hero_id) or GameData.HEROES[hero_id]["faction"] != fid:
 		hero_id = default_hero(fid)
 	hero = hero_id
@@ -1212,7 +1213,7 @@ func start_run(fid: String, hero_id := "") -> void:
 	hero_fx = _merge_fx(GameData.FACTIONS[fid].get("passive", {}), GameData.HEROES[hero]["fx"] if hero != "" else {})
 	stats["hero_" + fid] = hero
 	# each extra road out of the castle (harder difficulties) comes with gold to hold it
-	gold = GameData.START_GOLD + 40 * meta_level("gold") + 100 * (int(_diff().get("exits", 1)) - 1)
+	gold = GameData.START_GOLD + 40 * meta_level("gold") + GameData.EXTRA_ROAD_GOLD * (int(_diff().get("exits", 1)) - 1)
 	max_hp = GameData.START_HP + int(hero_fx.get("hp", 0)) + 3 * meta_level("keep")
 	hp = max_hp
 	wave = 0
@@ -1913,10 +1914,10 @@ func _roll_kind(exclude: Array) -> String:
 	return kinds[kinds.size() - 1]
 
 
-func _roll_item(kind: String, used: Dictionary) -> Dictionary:
+func _roll_item(kind: String, used: Dictionary, tier := 0) -> Dictionary:
 	match kind:
 		"blueprint":
-			var pool: Array = run_towers().filter(func(t): return not used.has(t) and tier_open(t))
+			var pool: Array = run_towers().filter(func(t): return not used.has(t) and tier_open(t) and (tier == 0 or GameData.tier_of(t) == tier))
 			if pool.is_empty():
 				pool = run_towers().filter(func(t): return tier_open(t))
 			var w: Array = []
@@ -1978,12 +1979,23 @@ func _roll_item(kind: String, used: Dictionary) -> Dictionary:
 
 
 ## Three options, each a pair of different kinds of item. Early on, most pairs lead with a blueprint.
+## The first reward once Tier IV opens leads with a legendary blueprint (a moment every long run gets).
+var _t4_offered := false
+
+
 func _roll_pairs(n: int) -> Array:
 	var out: Array = []
 	var used := {}
 	for i in n:
 		var k1 := "blueprint" if rng.randf() < 0.7 else _roll_kind([])
-		var a := _roll_item(k1, used)
+		var a: Dictionary
+		if i == 0 and not _t4_offered and wave + 1 >= int(GameData.TIER_WAVE[4]) \
+				and run_towers().any(func(t): return GameData.tier_of(t) == 4):
+			_t4_offered = true
+			k1 = "blueprint"
+			a = _roll_item(k1, used, 4)
+		else:
+			a = _roll_item(k1, used)
 		var b := _roll_item(_roll_kind([k1]), used)
 		out.append({"items": [a, b]})
 	return out
@@ -2578,7 +2590,7 @@ func enemy_killed(e: Enemy) -> void:
 	enemies.erase(e)
 	var base_gold: float = float(BOSS_GOLD.get(wave, e.data["gold"])) / (1.0 + wave * 0.015) if e.is_boss else float(e.data["gold"])
 	var g: int = int(round(base_gold * (1.0 + wave * 0.015) * (1.0 + float(hero_fx.get("kill_gold", 0.0)) + float(mods["kill_gold"])
-		+ 0.1 * board.neutral_count("tavern")))) + int(mods["bounty"])
+		+ 0.1 * board.neutral_count("tavern")) * float(_diff().get("gold", 1.0)))) + int(mods["bounty"])
 	_add_gold(g)
 	run_stats["kills"] += 1
 	VFX.death(world, e.aim_pos(), e.data["color"], e.is_boss)
