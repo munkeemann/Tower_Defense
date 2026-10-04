@@ -541,7 +541,10 @@ static func _fp_tower(id: String, root: Node3D, head: Node3D) -> bool:
 ## an attack clip when the tower fires. Cells are the footprint facing north (front cell [0, 0], see GameData.SHAPES).
 ## "{t}" in a model name becomes your color's KayKit team color (Models.team). Pieces stand on whatever was placed
 ## before them at their spot (a torch on a block, a cannon on a tower), measured from the meshes.
-##   parts:   [cell, model, scale, yaw degrees (optional), [x, z] nudge within the cell (optional)]
+##   plinth:  [height, color]: a hex stone base under every hex of the footprint, so the tower reads as one structure
+##   parts:   [cell, model, scale, yaw degrees (optional), [x, z] nudge within the cell (optional),
+##            {"float": lift above what's below, "spin": degrees a second, "bob": up-down sway} (optional)]
+##   head_at: [cell, height]: where shots leave from when nothing aims (else from up high over the middle)
 ##   turrets: [cell, model, scale, yaw, nudge, pitch]: weapons that turn to aim; the first is the tower's head
 ##   crew:    {cell, char, gear [[file, hand]], idle, attack, cut (how much of the attack clip plays before easing
 ##            back to idle), h (height), at [x, z] nudge, ground (stand on the ground), aim (false: always face front)}
@@ -562,11 +565,13 @@ const KK_TOWER := {
 			[[0, 0], "hex/building_barracks_{t}", 1.15], [[0, -1], "hex/cannonball_pallet", 2.6, 60.0],
 			[[0, 1], "hex/building_tent_{t}", 1.2]],
 		"turrets": [[[1, -1], "hex/cannon_{t}_accent", 1.6, 180.0], [[-1, 0], "hex/cannon_{t}_accent", 1.6, 180.0]]},
-	"arcane": {"parts": [[[0, 0], "hex/building_tower_base_{t}", 1.7], [[0, 1], "hex/building_tower_B_{t}", 1.25]],
+	"arcane": {"plinth": [0.18, Color(0.6, 0.6, 0.64)], "parts": [[[0, 0], "hex/building_tower_base_{t}", 1.7], [[0, 1], "dungeon/column", 1.15],
+			[[0, 1], "props/Gem_Small", 6.0, 0.0, null, {"float": 0.45, "spin": 45.0, "bob": 0.1}],
+			[[0, 1], "dungeon/candle_triple", 0.45, 0.0, [0.6, 0.35]]],
 		"crew": {"cell": [0, 0], "char": "Mage.glb", "gear": [["staff", "r"]], "idle": "Idle_A", "attack": "Ranged_Magic_Shoot"}},
-	"chapel": {"parts": [[[0, 0], "hex/building_church_{t}", 1.7], [[-1, 0], "hex/building_shrine_{t}", 1.3, 30.0],
-			[[1, -1], "dungeon/pillar_decorated", 0.4], [[0, -1], "dungeon/floor_foundation_allsides", 0.5],
-			[[0, -1], "dungeon/candle_triple", 0.6, 0.0, [0.4, 0.35]]],
+	"chapel": {"plinth": [0.15, Color(0.6, 0.6, 0.64)], "parts": [[[0, 0], "hex/building_church_{t}", 1.7], [[-1, 0], "props/paladin_statue", 0.8, 180.0],
+			[[1, -1], "dungeon/pillar_decorated", 0.4], [[0, -1], "dungeon/candle_triple", 0.6, 0.0, [0.45, 0.35]],
+			[[0, -1], "dungeon/candle_triple", 0.5, 70.0, [-0.5, 0.3]]],
 		"crew": {"cell": [0, -1], "char": "Paladin.glb", "gear": [["sword_1handed", "r"], ["shield_badge_color", "l"]], "idle": "Idle_A",
 			"attack": "Ranged_Magic_Raise", "at": [0.0, -0.15], "aim": false}},
 	"banner": {"parts": [[[0, 0], "hex/weaponrack", 3.5, 0.0, [0.55, 0.35]], [[0, 0], "dungeon/torch_lit", 0.8, 0.0, [-0.6, 0.4]]],
@@ -597,6 +602,34 @@ const KK_TOWER := {
 		"crew": {"cell": [0, 0], "char": "Engineer.glb", "gear": [["engineer_Wrench", "r"]], "idle": "Idle_A", "attack": "Use_Item",
 			"at": [0.95, 0.3], "ground": true}},
 	"mer_tide": {"parts": [[[0, 0], "hex/building_watermill_{t}", 1.45]]},
+	# ---- rebuilt from pack props (they used to be Meshy models)
+	"spore": {"parts": [[[0, 0], "props/Mushroom", 4.2], [[0, 1], "props/Mushroom", 2.8, 50.0, [0.35, 0.15]],
+			[[0, 1], "props/Mushroom", 2.0, 120.0, [-0.5, -0.3]], [[0, 1], "props/Basket_Mushrooms", 1.0, 30.0, [0.25, 0.65]],
+			[[0, 0], "forest/Bush_1_C_Color1", 0.55, 0.0, [-0.6, 0.35]]],
+		"crew": {"cell": [0, 1], "char": "Druid.glb", "gear": [["druid_staff", "r"]], "idle": "Idle_A", "attack": "Throw",
+			"at": [-0.3, 0.55], "ground": true}},
+	"storm": {"parts": [[[0, 0], "forest/Tree_3_A_Color1", 0.75], [[1, 0], "forest/Bush_1_E_Color1", 0.8, 40.0],
+			[[-1, 1], "forest/Rock_3_A_Color1", 0.9, 20.0, [0.2, 0.0]],
+			[[0, 0], "props/Gem_Small", 6.5, 0.0, null, {"float": 1.0, "spin": 60.0, "bob": 0.14}]],
+		"crew": {"cell": [-1, 1], "char": "Druid.glb", "gear": [["druid_staff", "r"]], "idle": "Idle_A", "attack": "Ranged_Magic_Raise",
+			"at": [0.35, -0.3], "ground": true, "aim": false},
+		"head_at": [[0, 0], 3.6]},   # lightning leaps from the storm crystal
+	"plague_cauldron": {"plinth": [0.18, Color(0.33, 0.31, 0.37)], "parts": [[[0, 0], "props/Cauldron", 1.5],
+			[[0, 0], "dungeon/candle_triple", 0.45, 0.0, [0.75, 0.35]], [[0, 1], "props/Potionstation_decorated", 0.6, 180.0],
+			[[0, 1], "dungeon/torch_lit", 0.5, 0.0, [-0.75, 0.35]]],
+		"crew": {"cell": [0, 0], "char": "Skeleton_Mage.glb", "gear": [["Skeleton_Staff", "r"]], "idle": "Skeletons_Idle", "attack": "Throw",
+			"at": [0.0, 0.8]}},
+	"soul_obelisk": {"plinth": [0.18, Color(0.33, 0.31, 0.37)], "parts": [[[0, 0], "dungeon/pillar", 0.62],
+			[[0, 0], "props/Gem_Medium", 3.6, 0.0, null, {"float": 0.5, "spin": 50.0, "bob": 0.12}],
+			[[0, 1], "dungeon/column", 0.5, 0.0, [0.55, 0.3]], [[0, 1], "dungeon/candle_triple", 0.45, 0.0, [-0.6, 0.45]]],
+		"crew": {"cell": [0, 1], "char": "Skeleton_Mage.glb", "gear": [["Skeleton_Staff", "r"]], "idle": "Skeletons_Idle",
+			"attack": "Ranged_Magic_Raise", "at": [-0.15, -0.1], "aim": false},
+		"head_at": [[0, 0], 3.6]},
+	"hex_tomb": {"plinth": [0.18, Color(0.33, 0.31, 0.37)], "parts": [[[0, 0], "dungeon/wall_archedwindow_gated", 0.46],
+			[[-1, 0], "dungeon/pillar_decorated", 0.46, 30.0], [[1, -1], "dungeon/pillar_decorated", 0.46, -30.0],
+			[[0, -1], "props/Vampire_Throne", 0.62], [[0, -1], "dungeon/candle_triple", 0.45, 0.0, [0.6, -0.3]],
+			[[0, -1], "dungeon/candle_triple", 0.4, 90.0, [-0.6, -0.3]]],
+		"head_at": [[0, 0], 1.2]},
 	"mer_harpoon": {"parts": [[[0, 0], "hex/building_tower_base_{t}", 1.6], [[0, 1], "hex/building_shipyard_{t}", 1.05, 180.0],
 			[[0, 2], "hex/boat", 3.0, 30.0]],
 		"crew": {"cell": [0, 0], "char": "Survivalist.glb", "gear": [["crossbow_2handed", "r"]], "idle": "Ranged_2H_Aiming", "attack": "Ranged_2H_Shoot"}},
@@ -609,6 +642,45 @@ const KK_TOWER := {
 ## KayKit team color for buildings (Game sets it from your color at the start of a run).
 static var team := "blue"
 static var _kk_heights := {}   # tower id -> the measured standing heights of its pieces, in build order
+
+
+static var _plinth_meshes := {}
+
+
+## A low hex-shaped stone base the size of one cell (top a shade lighter than its sides), for under a tower.
+static func _kk_plinth(h: float, col: Color) -> MeshInstance3D:
+	var key := "%.3f|%s" % [h, col.to_html()]
+	if not _plinth_meshes.has(key):
+		Hex.setup()
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var top := col.lightened(0.06)
+		var side := col.darkened(0.14)
+		var c := Vector3(0, h, 0)
+		for i in 6:
+			var a: Vector3 = Hex.CORNER[i]
+			var b: Vector3 = Hex.CORNER[(i + 1) % 6]
+			var at := a + Vector3(0, h, 0)
+			var bt := b + Vector3(0, h, 0)
+			st.set_color(top)
+			st.set_normal(Vector3.UP)
+			for v in [c, bt, at]:
+				st.add_vertex(v)
+			var out := ((a + b) * 0.5).normalized()
+			st.set_color(side)
+			st.set_normal(out)
+			for v in [at, bt, b, at, b, a]:
+				st.add_vertex(v)
+		var m := StandardMaterial3D.new()
+		m.vertex_color_use_as_albedo = true
+		m.roughness = 0.9
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var mesh := st.commit()
+		mesh.surface_set_material(0, m)
+		_plinth_meshes[key] = mesh
+	var mi := MeshInstance3D.new()
+	mi.mesh = _plinth_meshes[key]
+	return mi
 
 
 ## Where a KayKit tower piece goes: its cell's middle relative to the footprint's middle, plus its nudge.
@@ -642,6 +714,13 @@ static func _kk_tower(id: String, root: Node3D, head: Node3D) -> bool:
 	var fresh := hs.is_empty()
 	var k := 0
 	var placed: Array = []
+	if spec.has("plinth"):
+		for cc in cells:
+			var pl := _kk_plinth(float(spec["plinth"][0]), spec["plinth"][1])
+			pl.position = _kk_spot(cc, null, mid)
+			root.add_child(pl)
+			placed.append(pl)
+	var spinners: Array = []
 	for p in spec.get("parts", []):
 		var n := KayKit.model(String(p[1]).replace("{t}", team))
 		if n == null:
@@ -649,12 +728,16 @@ static func _kk_tower(id: String, root: Node3D, head: Node3D) -> bool:
 		var at := _kk_spot(p[0], p[4] if p.size() > 4 else null, mid)
 		if fresh:
 			hs.append(_kk_top(placed, at))
-		n.position = at + Vector3(0, hs[k], 0)
+		var opts: Dictionary = p[5] if p.size() > 5 else {}
+		n.position = at + Vector3(0, hs[k] + float(opts.get("float", 0.0)), 0)
 		k += 1
 		n.scale = Vector3.ONE * float(p[2])
 		n.rotation_degrees.y = float(p[3]) if p.size() > 3 else 0.0
 		root.add_child(n)
-		placed.append(n)
+		if opts.has("spin") or opts.has("bob"):
+			spinners.append([n, deg_to_rad(float(opts.get("spin", 0.0))), float(opts.get("bob", 0.0)), n.position.y])
+		else:
+			placed.append(n)   # (floating pieces aren't stood on)
 	var turrets: Array = []
 	var muzzle_y := 0.6
 	for i in (spec.get("turrets", []) as Array).size():
@@ -714,8 +797,13 @@ static func _kk_tower(id: String, root: Node3D, head: Node3D) -> bool:
 	if fresh:
 		_kk_heights[id] = hs
 	if not aims:
-		head.position = Vector3(0, _local_aabb(root).size.y * 0.6, 0)   # nothing aims: shots and pulses leave from up high
+		if spec.has("head_at"):
+			head.position = _kk_spot(spec["head_at"][0], null, mid) + Vector3(0, float(spec["head_at"][1]), 0)
+		else:
+			head.position = Vector3(0, _local_aabb(root).size.y * 0.6, 0)   # nothing aims: shots and pulses leave from up high
 		muzzle_y = 0.2
+	if not spinners.is_empty():
+		root.set_meta("spinners", spinners)
 	if turrets.size() > 1:
 		root.set_meta("turrets", turrets)
 	root.set_meta("muzzle_y", muzzle_y)

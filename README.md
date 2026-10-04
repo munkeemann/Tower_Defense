@@ -239,7 +239,12 @@ KayKit (Kay Lousberg, CC0, in `assets/kaykit`, wrapped by `scripts/kaykit.gd`) s
 - **Towers**: 17 towers are built from KayKit buildings and props laid on their footprint hexes, with a crew
   member (archer, knight, mage, dwarf engineer, druid, skeleton...) holding real gear. The crew turns to aim and
   plays an attack animation on every shot (`Models.KK_TOWER`, `Tower._crew_act`). Bombards turn both cannons.
-  The other towers keep their Meshy footprint art.
+  Magic and Grave towers are built from props of the Mystery packs: the Arcane Spire and the Stormcaller Oak have
+  floating, spinning crystals (the Vampire's gems), the Soul Obelisk a soul gem on a tall pillar, the Plague
+  Cauldron the Witch's cauldron and potion station with a skeleton alchemist, the Hex Tomb a crypt wall, pillars
+  and the Vampire's throne, the Spore Mound giant mushrooms, the Chapel a golden paladin statue. Towers can stand
+  on a hex stone plinth spanning their footprint (`plinth`), and pieces can float, spin and bob (`Tower._spinners`).
+  The other towers (gryphon, treant, hive, flak battery, whirlpool, siren and the creatures) keep their Meshy art.
 - `--no-kaykit` runs with the models from before the KayKit swap, for before/after checks.
 - `tools/tower_sheet.gd` draws towers on their hexes into a PNG with no window (a small software rasterizer in
   `tools/snap.gd`), so tower art can be checked in headless runs; `tools/map_sheet.gd` does the same for a grown

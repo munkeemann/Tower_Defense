@@ -45,6 +45,7 @@ var _crew_idle := ""
 var _crew_attack := ""
 var _crew_cut := 1.0
 var _crew_back := 0.0         # seconds until the crew eases back into its idle
+var _spinners: Array = []     # KayKit pieces that turn and bob (floating gems): [node, turn speed, bob height, base y]
 
 
 const SIZE_SCALE := [1.0, 1.15, 1.3, 1.45, 1.55, 1.7, 1.85]
@@ -71,6 +72,7 @@ func setup(g: Game, tid: String, anchor: Vector2i, facing_ := 4) -> void:
 	Models.overlay(_model, Models.rim_mat(GameData.FACTIONS[game.faction]["color"]))
 	_fitted = _model.has_meta("fitted")
 	_turrets = _model.get_meta("turrets", [])
+	_spinners = _model.get_meta("spinners", [])
 	_muzzle_y = float(_model.get_meta("muzzle_y", 0.2))
 	if _model.has_meta("crew_ap"):
 		_crew = _model.get_meta("crew_ap")
@@ -250,6 +252,9 @@ func make_packet() -> Dictionary:
 
 func _process(delta: float) -> void:
 	_anim += delta
+	for s in _spinners:
+		(s[0] as Node3D).rotate_y(float(s[1]) * delta)
+		(s[0] as Node3D).position.y = float(s[3]) + sin(_anim * 1.7) * float(s[2])
 	if _crew_back > 0.0:
 		_crew_back -= delta
 		if _crew_back <= 0.0 and _crew_idle != "":
