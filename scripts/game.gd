@@ -606,6 +606,16 @@ func _input_test() -> bool:
 	if tid == "" or placing != tid:
 		print("INPUTTEST FAIL hotkey 1 did not start placing '%s'" % tid)
 		return false
+	var f0 := place_facing
+	await _it_key(KEY_R)
+	var f1 := place_facing
+	await _it_key(KEY_R, true)
+	await _it_key(KEY_R, true)
+	print("INPUTTEST facing %d -> R %d -> Shift+R x2 %d" % [f0, f1, place_facing])
+	if f1 != (f0 + 1) % 6 or place_facing != posmod(f0 - 1, 6):
+		print("INPUTTEST FAIL R and Shift+R did not turn the tower opposite ways")
+		ok = false
+	place_facing = f0
 	# a clear hex beside the road that can be raised, and that the mouse ray really lands on (raised ground in front
 	# of a hex can hide it)
 	var target := Board.NONE
@@ -726,10 +736,11 @@ func _it_mouse(at: Vector2, click := false) -> void:
 
 
 ## Presses and releases a key.
-func _it_key(code: Key) -> void:
+func _it_key(code: Key, shift := false) -> void:
 	for pressed in [true, false]:
 		var k := InputEventKey.new()
 		k.keycode = code
+		k.shift_pressed = shift
 		k.pressed = pressed
 		Input.parse_input_event(k)
 		await get_tree().process_frame
@@ -832,18 +843,13 @@ func _build_overlay() -> void:
 		overlay.add_child(n)
 	_hover_marker = _hex_marker(Color(1, 1, 1), 0.18)
 	overlay.add_child(_hover_marker)
-	var hm := CylinderMesh.new()
-	hm.top_radius = Hex.R * 0.93
-	hm.bottom_radius = Hex.R * 0.93
-	hm.height = 0.04
-	hm.radial_segments = 6
-	hm.rings = 1
+	var hm := Hex.plate_mesh(Hex.R * 0.93, 0.04)
 	var rmat := StandardMaterial3D.new()
 	rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	rmat.vertex_color_use_as_albedo = true
 	rmat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	hm.material = rmat
+	hm.surface_set_material(0, rmat)
 	var rmm := MultiMesh.new()
 	rmm.transform_format = MultiMesh.TRANSFORM_3D
 	rmm.use_colors = true
@@ -919,14 +925,8 @@ func _show_outline(mi: MeshInstance3D, cells: Array, col := Color(-1, 0, 0)) -> 
 
 
 func _hex_marker(col: Color, alpha: float) -> MeshInstance3D:
-	var cm := CylinderMesh.new()
-	cm.top_radius = Hex.R * 0.92
-	cm.bottom_radius = Hex.R * 0.92
-	cm.height = 0.05
-	cm.radial_segments = 6
-	cm.rings = 1
 	var mi := MeshInstance3D.new()
-	mi.mesh = cm
+	mi.mesh = Hex.plate_mesh(Hex.R * 0.92, 0.05)
 	mi.material_override = Models.mat(col, 0.0, alpha)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visible = false
@@ -1668,20 +1668,22 @@ func _update_tile_hover() -> void:
 		board.show_tile_preview(_plan)
 
 
-func _rotate_tile() -> void:
+## step 1 turns clockwise (R), -1 the other way (Shift+R).
+func _rotate_tile(step := 1) -> void:
 	if tile_pick < 0:
 		return
 	# turn to the next rotation that fits this spot
 	var cur: int = _plan.get("rot", _variant_offset)
 	var card: Dictionary = tile_cards[tile_pick]
 	for k in range(1, 7):
-		var p := board.plan_tile(_hover_slot, card, (cur + k) % 6) if _hover_slot in _slots else {}
+		var r := posmod(cur + k * step, 6)
+		var p := board.plan_tile(_hover_slot, card, r) if _hover_slot in _slots else {}
 		if not p.is_empty():
-			_variant_offset = (cur + k) % 6
+			_variant_offset = r
 			_plan = p
 			break
 	if _plan.is_empty():
-		_variant_offset = (_variant_offset + 1) % 6
+		_variant_offset = posmod(_variant_offset + step, 6)
 	board.show_tile_preview(_plan)
 	sfx("click")
 
@@ -2683,7 +2685,7 @@ func begin_placing(tid: String) -> void:
 	deselect()
 	placing = tid
 	if GameData.arc_of(tid) < 359.0 or GameData.shape_of(tid)["cells"].size() > 1:
-		hud.toast("R turns the tower", Color(0.8, 0.95, 0.7))
+		hud.toast("R turns the tower (Shift+R the other way)", Color(0.8, 0.95, 0.7))
 	var m := Models.tower(tid, GameData.TOWERS[tid]["color"])
 	_ghost = m["root"]
 	_set_transparency(_ghost, 0.45)
@@ -3084,13 +3086,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		var k := event as InputEventKey
 		if not k.pressed or k.echo:
 			return
-		_handle_key(k.keycode)
+		_handle_key(k.keycode, k.shift_pressed)
 
 
-func _handle_key(code: Key) -> void:
+## shift: Shift+R turns towers and tiles the other way.
+func _handle_key(code: Key, shift := false) -> void:
 	if state == S.EXPAND:
 		match code:
-			KEY_R: _rotate_tile()
+			KEY_R: _rotate_tile(-1 if shift else 1)
 			KEY_C: hud.toggle_castle()
 			KEY_M: toggle_mute()
 			KEY_P: toggle_pause()
@@ -3117,7 +3120,7 @@ func _handle_key(code: Key) -> void:
 			hud.help_panel.visible = not hud.help_panel.visible
 		KEY_R:
 			if placing != "" and placing != RAISE and placing != DIG:
-				place_facing = (place_facing + 1) % 6
+				place_facing = posmod(place_facing + (-1 if shift else 1), 6)
 				sfx("click")
 		KEY_B, KEY_G:
 			begin_raise()

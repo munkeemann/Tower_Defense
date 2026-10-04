@@ -312,11 +312,11 @@ func _build_bottom() -> void:
 	help_panel.add_child(_label(
 		"WASD / right-drag: camera   Wheel: zoom   Q/E: rotate\n" +
 		"Before each wave: place a hex tile on a glowing spot\n" +
-		"  (R turns it; touching sides must match)\n" +
+		"  (R / Shift+R turn it; touching sides must match)\n" +
 		"Every open road end is an enemy entry point:\n" +
 		"  merge roads to close them, forks open more\n" +
 		"1-9: build on your tiles (uses a blueprint copy)\n" +
-		"  R turns the tower: big ones fill several hexes\n" +
+		"  R / Shift+R turn the tower: big ones fill several hexes\n" +
 		"Click tower: select   U: upgrade   X: sell   T: target\n" +
 		"Level III: choose a specialization\n" +
 		"F: ability   B: Builder (raise)   N: Digger (lower)\n" +
