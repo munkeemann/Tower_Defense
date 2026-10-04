@@ -164,6 +164,15 @@ The visual style follows Tower Dominion's clean readability:
 - **UI:** Windows' built-in Bahnschrift font, loaded from the system and not bundled (other systems fall back to
   Godot's font). Panels are near-black, buttons are slanted, and titles are bold and italic.
 
+### UI skin
+
+The HUD wears Kenney's UI Pack: RPG Expansion (CC0, `assets/ui/kenney_rpg`): wooden frames for panels, slate
+stone buttons that warm to wood when hovered and turn gold when live, parchment tooltips, cards tinted in their
+faction's or reward's color, and the gauntlet cursor. `scripts/ui_skin.gd` builds the nine-slice styles and
+`Hud._make_theme` / `_card_box` / `_panel_box` use them. `--no-kenney` brings back the flat dark look.
+`tools/ui_snap.gd` draws the real HUD headless into PNGs (menu, heroes, council, run, tile, rewards, info, castle, end):
+`Godot --headless --path . --script res://tools/ui_snap.gd -- <out dir> [screens] [--hover] [--deck] [--no-kenney]`.
+
 ## Sound
 
 The sound effects in `assets/audio/` were generated with ElevenLabs by `tools/sfx_batch.py`. It reads your

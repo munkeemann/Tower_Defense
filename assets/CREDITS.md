@@ -2,7 +2,7 @@
 
 All third-party models are CC0 (public domain). No attribution is required, but thanks to:
 
-- **Kenney** (kenney.nl): Tower Defense Kit (`td/`), Castle Kit (`castle/`), Nature Kit (`nature/`)
+- **Kenney** (kenney.nl): Tower Defense Kit (`td/`), Castle Kit (`castle/`), Nature Kit (`nature/`), UI Pack (`ui/kenney_ui/`) and UI Pack: RPG Expansion (`ui/kenney_rpg/`, the HUD skin and cursor)
 - **Quaternius** (quaternius.com): Ultimate Monsters (`monsters/`)
 - **Kay Lousberg / KayKit** (kaylousberg.com): Character Pack: Skeletons (`skeletons/`), and in `kaykit/`: Medieval
   Hexagon Pack (Extra), Adventurers (Extra), Mystery Monthly Series 4 and 5, Character Animations, Skeletons, Fantasy

@@ -69,10 +69,17 @@ const TEXT_C := Color(0.93, 0.9, 0.85)
 const DIM_C := Color(0.65, 0.62, 0.6)
 const RECON_C := Color(0.55, 0.85, 1.0)
 
+var kenney := false   # Kenney RPG skin (UiSkin) instead of the flat dark styles
+
 
 func setup(g: Game) -> void:
 	game = g
 	layer = 10
+	if "--no-kenney" in OS.get_cmdline_user_args():
+		UiSkin.enabled = false
+	kenney = UiSkin.available()
+	if kenney and DisplayServer.get_name() != "headless":
+		UiSkin.apply_cursor()
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	root = Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -108,6 +115,21 @@ func _sb(bg: Color, border := Color(0, 0, 0, 0), bw := 0, radius := 8, pad := 10
 	return s
 
 
+## A colored card (faction, hero, reward, talent): Kenney's wood-framed card washed in col (strength: how lit it is),
+## or the flat dark card with a col border.
+func _card_box(col: Color, strength: float, bg: Color, border: Color, bw: int, radius: int) -> StyleBox:
+	if kenney:
+		return UiSkin.card(col, strength)
+	return _sb(bg, border, bw, radius)
+
+
+## A panel: Kenney's wooden frame (or its sunken board), or the flat dark panel.
+func _panel_box(pad: float, bg: Color, border: Color, bw: int, radius: int, flat_pad: int, sunken := false) -> StyleBox:
+	if kenney:
+		return UiSkin.inset(pad) if sunken else UiSkin.panel(pad)
+	return _sb(bg, border, bw, radius, flat_pad)
+
+
 ## Fonts: Windows' own Bahnschrift (a condensed DIN-style face, loaded from the system rather than bundled),
 ## semibold for text and a bold slanted cut for titles and numbers. Falls back to Godot's font elsewhere.
 var body_font: Font
@@ -141,21 +163,36 @@ func _make_theme() -> Theme:
 	var t := Theme.new()
 	t.default_font = body_font
 	t.default_font_size = 16
-	# Tower Dominion-style chrome: near-black panels, slanted buttons, yellow for anything live
-	t.set_stylebox("panel", "PanelContainer", _sb(Color(0.03, 0.03, 0.04, 0.86), Color(0, 0, 0, 0), 0, 4))
-	t.set_stylebox("normal", "Button", _sb(Color(0.06, 0.06, 0.07, 0.94), Color(1, 1, 1, 0.14), 1, 3, 10, -0.18))
-	t.set_stylebox("hover", "Button", _sb(Color(0.12, 0.11, 0.09, 0.97), GOLD_C, 2, 3, 10, -0.18))
-	t.set_stylebox("pressed", "Button", _sb(Color(0.3, 0.24, 0.08, 0.97), GOLD_C, 2, 3, 10, -0.18))
-	t.set_stylebox("disabled", "Button", _sb(Color(0.05, 0.05, 0.06, 0.8), Color(1, 1, 1, 0.06), 1, 3, 10, -0.18))
+	if kenney:
+		# Kenney RPG: wooden frames, slate stone buttons that warm to wood when hovered, parchment tooltips
+		t.set_stylebox("panel", "PanelContainer", UiSkin.panel())
+		for st in ["normal", "hover", "pressed", "disabled"]:
+			t.set_stylebox(st, "Button", UiSkin.button(st))
+		t.set_stylebox("hover_pressed", "Button", UiSkin.button("pressed"))
+		t.set_color("font_pressed_color", "Button", Color(1, 0.95, 0.8))
+		t.set_color("font_hover_pressed_color", "Button", Color(1, 0.95, 0.8))
+	else:
+		# Tower Dominion-style chrome: near-black panels, slanted buttons, yellow for anything live
+		t.set_stylebox("panel", "PanelContainer", _sb(Color(0.03, 0.03, 0.04, 0.86), Color(0, 0, 0, 0), 0, 4))
+		t.set_stylebox("normal", "Button", _sb(Color(0.06, 0.06, 0.07, 0.94), Color(1, 1, 1, 0.14), 1, 3, 10, -0.18))
+		t.set_stylebox("hover", "Button", _sb(Color(0.12, 0.11, 0.09, 0.97), GOLD_C, 2, 3, 10, -0.18))
+		t.set_stylebox("pressed", "Button", _sb(Color(0.3, 0.24, 0.08, 0.97), GOLD_C, 2, 3, 10, -0.18))
+		t.set_stylebox("disabled", "Button", _sb(Color(0.05, 0.05, 0.06, 0.8), Color(1, 1, 1, 0.06), 1, 3, 10, -0.18))
 	t.set_stylebox("focus", "Button", StyleBoxEmpty.new())
 	t.set_color("font_color", "Button", TEXT_C)
 	t.set_color("font_hover_color", "Button", Color(1, 1, 1))
 	t.set_color("font_disabled_color", "Button", Color(0.5, 0.48, 0.46))
 	t.set_color("font_color", "Label", TEXT_C)
 	t.set_color("font_outline_color", "Label", Color(0.02, 0.01, 0.03, 0.85))
-	t.set_constant("outline_size", "Label", 0)
-	t.set_stylebox("panel", "TooltipPanel", _sb(Color(0.02, 0.02, 0.03, 0.96), Color(1, 1, 1, 0.12), 1, 3))
-	t.set_color("font_color", "TooltipLabel", TEXT_C)
+	t.set_constant("outline_size", "Label", 3 if kenney else 0)   # keeps light text crisp on the wood
+	if kenney:
+		t.set_color("font_outline_color", "Button", Color(0.08, 0.05, 0.03, 0.7))
+		t.set_constant("outline_size", "Button", 3)
+		t.set_stylebox("panel", "TooltipPanel", UiSkin.parchment())
+		t.set_color("font_color", "TooltipLabel", UiSkin.INK)
+	else:
+		t.set_stylebox("panel", "TooltipPanel", _sb(Color(0.02, 0.02, 0.03, 0.96), Color(1, 1, 1, 0.12), 1, 3))
+		t.set_color("font_color", "TooltipLabel", TEXT_C)
 	return t
 
 
@@ -202,7 +239,7 @@ func _build_top() -> void:
 	p.offset_top = 8
 	root.add_child(p)
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 28)
+	h.add_theme_constant_override("separation", 18 if kenney else 28)
 	p.add_child(h)
 	top_wave = _title("Wave 0/30", 23)
 	top_hp = _title("Castle 20/20", 23, HP_C)
@@ -216,6 +253,8 @@ func _build_top() -> void:
 	top_phase = _label("", 18, DIM_C)
 	top_phase.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_phase.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	top_phase.clip_text = true   # long phase lines trim instead of pushing the buttons off screen
+	top_phase.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	for l in [top_wave, top_hp, top_gold, top_recon, top_fronts, top_phase]:
 		h.add_child(l)
 	speed_btn = _button("Speed 1x [V]", func(): game.cycle_speed())
@@ -320,18 +359,27 @@ func build_tower_bar() -> void:
 	refresh_tower_bar()
 
 
-var _card_sb: StyleBoxFlat
+var _card_sb: StyleBox
 
 
-func _card_normal() -> StyleBoxFlat:
+func _card_normal() -> StyleBox:
 	if _card_sb == null:
-		_card_sb = _sb(Color(0.05, 0.05, 0.06, 0.94), Color(1, 1, 1, 0.12), 1, 4)
+		_card_sb = UiSkin.square("normal") if kenney else _sb(Color(0.05, 0.05, 0.06, 0.94), Color(1, 1, 1, 0.12), 1, 4)
 	return _card_sb
 
 
-## Build-bar cards: dark and square, lit yellow when hovered.
+## The card style of whatever you're placing right now.
+func _card_live() -> StyleBox:
+	return UiSkin.square("live") if kenney else _sb(Color(0.3, 0.25, 0.15), GOLD_C, 2, 6)
+
+
+## Build-bar cards: square stone (dark and square in the flat look), lit when hovered.
 func _card_style(b: Button) -> void:
 	b.add_theme_stylebox_override("normal", _card_normal())
+	if kenney:
+		for st in ["hover", "pressed", "disabled"]:
+			b.add_theme_stylebox_override(st, UiSkin.square(st))
+		return
 	b.add_theme_stylebox_override("hover", _sb(Color(0.11, 0.1, 0.08, 0.97), GOLD_C, 2, 4))
 	b.add_theme_stylebox_override("pressed", _sb(Color(0.3, 0.24, 0.08, 0.97), GOLD_C, 2, 4))
 	b.add_theme_stylebox_override("disabled", _sb(Color(0.04, 0.04, 0.05, 0.8), Color(1, 1, 1, 0.05), 1, 4))
@@ -380,7 +428,7 @@ func refresh_tower_bar() -> void:
 		ib.disabled = int(it[2]) <= 0
 		ib.modulate = Color(1, 1, 1) if int(it[2]) > 0 else Color(0.6, 0.6, 0.6)
 		if game.placing == it[3]:
-			ib.add_theme_stylebox_override("normal", _sb(Color(0.3, 0.25, 0.15), GOLD_C, 2, 6))
+			ib.add_theme_stylebox_override("normal", _card_live())
 		else:
 			ib.add_theme_stylebox_override("normal", _card_normal())
 	if castle_btn and is_instance_valid(castle_btn):
@@ -405,7 +453,7 @@ func refresh_tower_bar() -> void:
 			b.tooltip_text = tower_tooltip(tid) + "\n\nDraft this blueprint after a wave to build more."
 		b.modulate = Color(1, 1, 1) if owned else Color(0.55, 0.55, 0.55)
 		if game.placing == tid:
-			b.add_theme_stylebox_override("normal", _sb(Color(0.3, 0.25, 0.15), GOLD_C, 2, 6))
+			b.add_theme_stylebox_override("normal", _card_live())
 		else:
 			b.add_theme_stylebox_override("normal", _card_normal())
 
@@ -596,7 +644,7 @@ func _build_choices() -> void:
 	choice_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(choice_row)
 	choice_detail = PanelContainer.new()
-	choice_detail.add_theme_stylebox_override("panel", _sb(Color(0.06, 0.05, 0.08, 0.93), Color(1, 1, 1, 0.15), 1, 10, 14))
+	choice_detail.add_theme_stylebox_override("panel", _panel_box(16, Color(0.06, 0.05, 0.08, 0.93), Color(1, 1, 1, 0.15), 1, 10, 14, true))
 	choice_detail.custom_minimum_size = Vector2(760, 112)
 	choice_detail.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	choice_detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -630,9 +678,9 @@ func show_choices(title: String, sub: String, options: Array, on_pick: Callable,
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = Vector2(250, 372)
-		b.add_theme_stylebox_override("normal", _sb(Color(0.08, 0.07, 0.1, 0.94), col.darkened(0.2), 2, 10))
-		b.add_theme_stylebox_override("hover", _sb(Color(0.16, 0.13, 0.2, 0.97), col, 3, 10))
-		b.add_theme_stylebox_override("pressed", _sb(Color(0.22, 0.18, 0.12, 0.97), col, 3, 10))
+		b.add_theme_stylebox_override("normal", _card_box(col, 0.3, Color(0.08, 0.07, 0.1, 0.94), col.darkened(0.2), 2, 10))
+		b.add_theme_stylebox_override("hover", _card_box(col, 0.55, Color(0.16, 0.13, 0.2, 0.97), col, 3, 10))
+		b.add_theme_stylebox_override("pressed", _card_box(col, 0.42, Color(0.22, 0.18, 0.12, 0.97), col, 3, 10))
 		var vb := VBoxContainer.new()
 		vb.set_anchors_preset(Control.PRESET_FULL_RECT)
 		vb.offset_left = 14
@@ -683,9 +731,9 @@ func show_pair_choices(title: String, options: Array, on_pick: Callable, skip_te
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = Vector2(300, 196)
-		b.add_theme_stylebox_override("normal", _sb(Color(0.08, 0.07, 0.1, 0.94), col.darkened(0.35), 2, 12))
-		b.add_theme_stylebox_override("hover", _sb(Color(0.16, 0.13, 0.2, 0.97), col, 3, 12))
-		b.add_theme_stylebox_override("pressed", _sb(Color(0.22, 0.18, 0.12, 0.97), col, 3, 12))
+		b.add_theme_stylebox_override("normal", _card_box(col, 0.25, Color(0.08, 0.07, 0.1, 0.94), col.darkened(0.35), 2, 12))
+		b.add_theme_stylebox_override("hover", _card_box(col, 0.55, Color(0.16, 0.13, 0.2, 0.97), col, 3, 12))
+		b.add_theme_stylebox_override("pressed", _card_box(col, 0.42, Color(0.22, 0.18, 0.12, 0.97), col, 3, 12))
 		var h := HBoxContainer.new()
 		h.set_anchors_preset(Control.PRESET_FULL_RECT)
 		h.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1053,7 +1101,7 @@ func _build_hint() -> void:
 	tile_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	tile_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	tile_panel.offset_top = 60
-	tile_panel.add_theme_stylebox_override("panel", _sb(Color(0.06, 0.05, 0.08, 0.92), Color(1, 0.85, 0.4, 0.5), 2, 12, 12))
+	tile_panel.add_theme_stylebox_override("panel", _panel_box(14, Color(0.06, 0.05, 0.08, 0.92), Color(1, 0.85, 0.4, 0.5), 2, 12, 12))
 	root.add_child(tile_panel)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 16)
@@ -1120,7 +1168,7 @@ func _build_castle() -> void:
 	castle_root.set_anchors_preset(Control.PRESET_CENTER)
 	castle_root.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	castle_root.grow_vertical = Control.GROW_DIRECTION_BOTH
-	castle_root.add_theme_stylebox_override("panel", _sb(Color(0.05, 0.04, 0.07, 0.95), GOLD_C.darkened(0.3), 2, 14, 18))
+	castle_root.add_theme_stylebox_override("panel", _panel_box(20, Color(0.05, 0.04, 0.07, 0.95), GOLD_C.darkened(0.3), 2, 14, 18))
 	root.add_child(castle_root)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
@@ -1178,16 +1226,16 @@ func _style_castle() -> void:
 		match st:
 			"owned":
 				b.text = "%s\nOwned" % node["name"]
-				b.add_theme_stylebox_override("normal", _sb(col.darkened(0.55), col, 2, 8))
-				b.add_theme_stylebox_override("disabled", _sb(col.darkened(0.55), col, 2, 8))
+				b.add_theme_stylebox_override("normal", _card_box(col, 0.7, col.darkened(0.55), col, 2, 8))
+				b.add_theme_stylebox_override("disabled", _card_box(col, 0.7, col.darkened(0.55), col, 2, 8))
 				b.disabled = true
 			"maxed":
 				b.text = "%s\nRank %d/%d" % [node["name"], rank, GameData.TALENT_MAX_RANK]
-				b.add_theme_stylebox_override("disabled", _sb(col.darkened(0.55), col, 2, 8))
+				b.add_theme_stylebox_override("disabled", _card_box(col, 0.7, col.darkened(0.55), col, 2, 8))
 				b.disabled = true
 			"locked":
 				b.text = "%s\n%d gold" % [node["name"], cost]
-				b.add_theme_stylebox_override("disabled", _sb(Color(0.1, 0.1, 0.12, 0.9), Color(0.3, 0.3, 0.3), 1, 8))
+				b.add_theme_stylebox_override("disabled", _card_box(Color(0.3, 0.3, 0.32), 0.3, Color(0.1, 0.1, 0.12, 0.9), Color(0.3, 0.3, 0.3), 1, 8))
 				b.disabled = true
 			_:
 				if pick:
@@ -1196,8 +1244,9 @@ func _style_castle() -> void:
 					b.text = "%s%s\n%d gold" % [node["name"], "  x%d" % rank if rank > 0 else "", cost]
 				else:
 					b.text = "%s\n%d gold" % [node["name"], cost]
-				b.add_theme_stylebox_override("normal", _sb(Color(0.1, 0.09, 0.12, 0.95), col.darkened(0.2), 2, 8))
-				b.add_theme_stylebox_override("disabled", _sb(Color(0.1, 0.09, 0.12, 0.95), col.darkened(0.6), 1, 8))
+				b.add_theme_stylebox_override("normal", _card_box(col, 0.35, Color(0.1, 0.09, 0.12, 0.95), col.darkened(0.2), 2, 8))
+				b.add_theme_stylebox_override("hover", _card_box(col, 0.55, Color(0.16, 0.13, 0.2, 0.97), col, 2, 8))
+				b.add_theme_stylebox_override("disabled", _card_box(col, 0.12, Color(0.1, 0.09, 0.12, 0.95), col.darkened(0.6), 1, 8))
 				b.disabled = game.gold < cost
 
 
@@ -1352,9 +1401,9 @@ func _faction_card(fid: String, stats: Dictionary) -> Button:
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(300, 470)
-	b.add_theme_stylebox_override("normal", _sb(Color(0.07, 0.06, 0.09, 0.94), col.darkened(0.3), 2, 12))
-	b.add_theme_stylebox_override("hover", _sb(Color(0.13, 0.11, 0.16, 0.97), col, 3, 12))
-	b.add_theme_stylebox_override("pressed", _sb(Color(0.2, 0.16, 0.1, 0.97), col, 3, 12))
+	b.add_theme_stylebox_override("normal", _card_box(col, 0.28, Color(0.07, 0.06, 0.09, 0.94), col.darkened(0.3), 2, 12))
+	b.add_theme_stylebox_override("hover", _card_box(col, 0.5, Color(0.13, 0.11, 0.16, 0.97), col, 3, 12))
+	b.add_theme_stylebox_override("pressed", _card_box(col, 0.4, Color(0.2, 0.16, 0.1, 0.97), col, 3, 12))
 	b.pressed.connect(show_hero_select.bind(fid))
 	var vb := VBoxContainer.new()
 	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1410,7 +1459,7 @@ func show_end(victory: bool, lines: String) -> void:
 	end_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_child(end_root)
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", _sb(Color(0.05, 0.04, 0.07, 0.95), GOLD_C if victory else HP_C, 2, 12, 28))
+	p.add_theme_stylebox_override("panel", _panel_box(30, Color(0.05, 0.04, 0.07, 0.95), GOLD_C if victory else HP_C, 2, 12, 28))
 	end_root.add_child(p)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 14)
@@ -1482,9 +1531,10 @@ func show_hero_select(fid: String) -> void:
 		var b := Button.new()
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = Vector2(250, 390)
-		b.add_theme_stylebox_override("normal", _sb(Color(0.07, 0.06, 0.09, 0.95), col.darkened(0.3) if unlocked else Color(0.3, 0.3, 0.3), 2, 12))
-		b.add_theme_stylebox_override("hover", _sb(Color(0.13, 0.11, 0.16, 0.97), col, 3, 12))
-		b.add_theme_stylebox_override("pressed", _sb(Color(0.2, 0.16, 0.1, 0.97), col, 3, 12))
+		b.add_theme_stylebox_override("normal", _card_box(col if unlocked else Color(0.35, 0.35, 0.37), 0.28, Color(0.07, 0.06, 0.09, 0.95),
+			col.darkened(0.3) if unlocked else Color(0.3, 0.3, 0.3), 2, 12))
+		b.add_theme_stylebox_override("hover", _card_box(col, 0.5, Color(0.13, 0.11, 0.16, 0.97), col, 3, 12))
+		b.add_theme_stylebox_override("pressed", _card_box(col, 0.4, Color(0.2, 0.16, 0.1, 0.97), col, 3, 12))
 		var vb := VBoxContainer.new()
 		vb.set_anchors_preset(Control.PRESET_FULL_RECT)
 		vb.offset_left = 14
