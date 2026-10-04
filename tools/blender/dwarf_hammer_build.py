@@ -65,7 +65,7 @@ def build_base():
     glow_obj("Boiler_Fire", bm, col, root, EMBER, 1.2)
     for i, (rel, loc, sc) in enumerate((("resources/Gold_Bars_Stack_Small", (BR.x + 0.45, BR.y - 0.35, T), 0.5),
                                         ("resources/Iron_Bars_Stack_Medium", (BR.x - 0.5, BR.y - 0.4, T), 0.5),
-                                        ("resources/Fuel_A_Barrel", (BL.x - 0.45, BL.y - 0.45, T), 0.55))):
+                                        ("dungeon/barrel_large", (BL.x - 0.45, BL.y - 0.45, T), 0.33))):
         kk_import(rel, col, root, loc, rnd.uniform(0, 360), sc, name="Prop_KK_%d" % i)
     empty("Head", col, root, (F.x, F.y, T + UP_Z), 0.5, "SINGLE_ARROW")
     return root

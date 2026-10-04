@@ -238,12 +238,12 @@ def bm_beam(bm, p0, p1, w, h, w1=None, h1=None, up=(0, 0, 1)):
     for (p, ww, hh) in ((p0, w, h), (p1, w1, h1)):
         for sx, sz in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
             vs.append(bm.verts.new(p + x * (sx * ww / 2) + z * (sz * hh / 2)))
-    a, b = vs[:4], vs[4:]
-    bm.faces.new((a[3], a[2], a[1], a[0]))
-    bm.faces.new((b[0], b[1], b[2], b[3]))
+    a, b = vs[:4], vs[4:]       # wound so every face points out (single-sided materials cull the backs)
+    bm.faces.new((a[0], a[1], a[2], a[3]))
+    bm.faces.new((b[3], b[2], b[1], b[0]))
     for i in range(4):
         j = (i + 1) % 4
-        bm.faces.new((a[i], a[j], b[j], b[i]))
+        bm.faces.new((b[i], b[j], a[j], a[i]))
     return bm
 
 

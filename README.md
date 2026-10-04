@@ -280,6 +280,8 @@ KayKit (Kay Lousberg, CC0, in `assets/kaykit`, wrapped by `scripts/kaykit.gd`) s
   - `blender -b --factory-startup --python tools/blender/build_tower.py -- <id> [preview dir]` builds one in a
     background Blender. It saves `assets/towers/src/<id>.blend`, exports the GLB and renders previews.
     `assets/towers/src/gallery.blend` links them all side by side.
+  - `blender -b --factory-startup --python tools/blender/audit_normals.py -- <id> [<id> ...]` lists inside-out
+    pieces (faces wound inward, which the game's single-sided materials cull, so you see the far side's inside).
   - The `.blend` files are git-ignored like all art, since they hold KayKit meshes. Tweak them in Blender and
     re-export with `export_tower()`.
   - Our own geometry is UV-mapped into the hex pack's atlas, so it shares KayKit's colors. Faces on the `kk_team`

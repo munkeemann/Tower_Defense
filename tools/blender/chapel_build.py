@@ -71,12 +71,12 @@ def build_base():
     # back gable
     hw = NAVE_W / 2
     vs = [bm.verts.new(v) for v in ((-hw, NAVE_Y0, WALL_TOP), (hw, NAVE_Y0, WALL_TOP), (0, NAVE_Y0, RIDGE - 0.05))]
-    bm.faces.new((vs[1], vs[0], vs[2]))
+    bm.faces.new((vs[0], vs[1], vs[2]))
     vs2 = [bm.verts.new(v.co + Vector((0, 0.3, 0))) for v in vs]
-    bm.faces.new((vs2[0], vs2[1], vs2[2]))
+    bm.faces.new((vs2[1], vs2[0], vs2[2]))
     for i in range(3):
         j = (i + 1) % 3
-        bm.faces.new((vs[i], vs[j], vs2[j], vs2[i]))
+        bm.faces.new((vs2[i], vs2[j], vs[j], vs[i]))
     o = paint(mesh_obj("Nave_Walls", bm, col, root), "stone", lo=0.05, hi=0.65)
     b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.02; b.segments = 1; b.limit_method = "ANGLE"
     bm = bmesh.new()

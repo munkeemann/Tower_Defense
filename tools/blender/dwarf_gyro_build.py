@@ -58,7 +58,7 @@ def build_base():
     bm_cyl(bm, 0.09, 0.11, 0.9, (e.x + 0.3, e.y - 0.05, T + 0.8), seg=8)
     paint(mesh_obj("Engine", bm, col, root), "iron", lo=0.05, hi=0.55)
     for i, (rel, loc, sc) in enumerate((("resources/Parts_Cog", (e.x - 0.25, e.y, T + 0.45), 0.6),
-                                        ("resources/Fuel_B_Barrel", (BK.x - 0.65, BK.y + 0.05, T), 0.55))):
+                                        ("dungeon/barrel_large", (BK.x - 0.7, BK.y + 0.05, T), 0.33))):
         kk_import(rel, col, root, loc, rnd.uniform(0, 360), sc, name="Prop_KK_%d" % i)
     empty("Head", col, root, (0, 0, T + 0.14), 0.5, "SINGLE_ARROW")
     return root

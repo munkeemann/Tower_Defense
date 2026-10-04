@@ -19,6 +19,7 @@ the slider drags the string back, a new bolt drops in). The rest pose is cocked 
 import bpy, bmesh, math
 from mathutils import Vector, Matrix, Quaternion, Euler
 
+TID = "ballista"
 CELLS = [(0, 0), (0, 1), (0, 2)]
 MID = footprint_mid(CELLS)
 FRONT = hex_to_world(0, 0, MID)          # front cell center (0, 2.078)

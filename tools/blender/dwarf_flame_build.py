@@ -2,9 +2,9 @@
 
     blender -b --factory-startup --python tools/blender/build_tower.py -- dwarf_flame <preview dir>
 
-Back cell: a riveted iron boiler on a brick firebox (glowing grate), a smoking chimney and a pressure gauge, where a
-dwarf engineer works the valve (Crew). Front cell: pipes feed a squat nozzle housing whose spout is a snarling iron
-face with a glowing throat. It's an aura (it doesn't turn): fire bursts in its cone. idle: the chimney smokes, the gauge
+Back cell: a riveted iron boiler on a brick firebox (glowing grate), a smoking chimney, a pressure gauge and a stack
+of kegs, where a dwarf engineer works the valve (Crew). Front cell: pipes feed a squat nozzle housing whose spout is
+a snarling iron face with a glowing throat. It's an aura (it doesn't turn): fire bursts in its cone. idle: the chimney smokes, the gauge
 needle twitches, the boiler hums. fire (every burst): the spout jolts back, its throat flares, the chimney puffs.
 """
 import bpy, bmesh, math, random
@@ -52,7 +52,7 @@ def build_base():
     for sx in (-1, 1):
         bm_beam(bm, Vector((B.x + sx * 0.18, B.y + 0.35, T + 0.75)), Vector((FRONT.x + sx * 0.18, FRONT.y - 0.55, T + 0.6)), 0.09, 0.09)
     paint(mesh_obj("Pipes", bm, col, root), "gold", lo=0.15, hi=0.55)
-    for i, (rel, loc, sc) in enumerate((("resources/Fuel_A_Barrels", (B.x + 0.6, B.y + 0.5, T), 0.55),
+    for i, (rel, loc, sc) in enumerate((("dungeon/barrel_small_stack", (B.x + 0.6, B.y + 0.5, T), 0.4),
                                         ("resources/Parts_Pile_Small", (B.x - 0.6, B.y + 0.5, T), 0.55),
                                         ("resources/Iron_Bars_Stack_Small", (FRONT.x + 0.65, FRONT.y - 0.55, T), 0.5))):
         kk_import(rel, col, root, loc, rnd.uniform(0, 360), sc, name="Prop_KK_%d" % i)
