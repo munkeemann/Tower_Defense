@@ -485,14 +485,61 @@ def start_tower(tid, cells, keep=("Guides", "Palette", "Palette2")):
     return col
 
 
-def plinth(cells, col, root, top=0.34, name="Base"):
+def plinth(cells, col, root, top=0.34, name="Base", turf=False, stone="stone", course="stone_dark"):
     """The shared Blender-tower foundation: a dark stone course and a lighter bevelled wall following the footprint's
-    hex outline (the look the Ballista set)."""
+    hex outline (the look the Ballista set). turf: a mossy grass layer on top (the elves' towers); returns its top."""
     bm = bmesh.new(); prism(bm, outline(cells, 0.05), -0.06, 0.16)
-    paint(mesh_obj(name + "_Plinth", bm, col, root), "stone_dark")
+    paint(mesh_obj(name + "_Plinth", bm, col, root), course)
     bm = bmesh.new(); prism(bm, outline(cells, 0.13), 0.16, top)
-    o = paint(mesh_obj(name + "_Wall", bm, col, root), "stone", lo=0.05, hi=0.6)
+    o = paint(mesh_obj(name + "_Wall", bm, col, root), stone, lo=0.05, hi=0.6)
     b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.035; b.segments = 1; b.limit_method = "ANGLE"
+    if turf:
+        bm = bmesh.new(); prism(bm, outline(cells, 0.17), top - 0.01, top + 0.05)
+        o = paint(mesh_obj(name + "_Turf", bm, col, root), "grass", lo=0.15, hi=0.45)
+        b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.025; b.segments = 1; b.limit_method = "ANGLE"
+        return top + 0.05
+    return top
+
+
+def bm_ellipsoid(bm, center, radii, rot=(0, 0, 0), u=10, v=7):
+    """An ellipsoid (a squashed UV sphere) with radii (x, y, z), turned by rot (degrees)."""
+    m = (Matrix.Translation(Vector(center)) @ Euler([math.radians(a) for a in rot]).to_matrix().to_4x4()
+         @ Matrix.Diagonal((radii[0], radii[1], radii[2], 1)))
+    bmesh.ops.create_uvsphere(bm, u_segments=u, v_segments=v, radius=1.0, matrix=m)
+    return bm
+
+
+def bm_rock(bm, rnd, c, size, z0, h):
+    """A rough rock block (a turned, uneven box) standing on z0."""
+    rot = (rnd.uniform(-8, 8), rnd.uniform(-8, 8), rnd.uniform(0, 90))
+    bm_box(bm, (size * rnd.uniform(0.85, 1.15), size * rnd.uniform(0.8, 1.1), h), (c.x, c.y, z0 + h / 2), rot)
+
+
+def bm_spikes(bm, rnd, c, n, h0, h1, r, spread, sides=4):
+    """A cluster of pointed shards (crystals, flames, thorns) around c: one tall in the middle, n-1 around it."""
+    c = Vector(c)
+    for k in range(n):
+        a = math.radians(360.0 * k / max(1, n - 1) + rnd.uniform(-12, 12))
+        d = 0.0 if k == 0 else spread
+        cc = c + Vector((math.cos(a) * d, math.sin(a) * d, 0))
+        h = h1 if k == 0 else rnd.uniform(h0, h1 * 0.75)
+        lean = Vector((math.cos(a), math.sin(a), 0)) * (0.0 if k == 0 else h * 0.18)
+        top = bm.verts.new(cc + lean + Vector((0, 0, h)))
+        ms = [bm.verts.new(cc + Vector((math.cos(math.radians(360.0 * j / sides + 45)) * r,
+                                        math.sin(math.radians(360.0 * j / sides + 45)) * r, 0))) for j in range(sides)]
+        base = bm.verts.new(cc)
+        for j in range(sides):
+            bm.faces.new((ms[j], ms[(j + 1) % sides], top))
+            bm.faces.new((ms[(j + 1) % sides], ms[j], base))
+    return bm
+
+
+def glow_obj(name, bm, coll, parent, color, strength=1.4):
+    """A mesh object with a glowing material (no atlas UVs needed)."""
+    o = mesh_obj(name, bm, coll, parent)
+    o.data.materials.append(glow_mat(name.split("_")[0].lower() + "_glow_%02x%02x%02x" % tuple(int(c * 255) for c in color[:3]),
+                                     color, strength))
+    o.data.uv_layers.new(name="UVMap")
     return o
 
 

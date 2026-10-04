@@ -77,6 +77,16 @@ func _init() -> void:
 		var nn := (b.neutrals[c]["node"] as Node3D).duplicate() as Node3D
 		nn.transform = (b.neutrals[c]["node"] as Node3D).global_transform
 		stage.add_child(nn)
+	# the open sea around it, as the game draws it (a patch of it a little bigger than the island)
+	if b.ocean_mi:
+		var bb := Models._local_aabb(stage)
+		var sea_mi := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(bb.size.x, bb.size.z) + Vector2(16, 16)
+		sea_mi.mesh = pm
+		sea_mi.material_override = b.ocean_mi.material_override
+		stage.add_child(sea_mi)
+		sea_mi.position = Vector3(bb.get_center().x, b.ocean_mi.position.y, bb.get_center().z)
 	await process_frame
 	# seen from the run's opening camera (turned CameraRig.START_YAW around the castle), over the open sea
 	var yaw := CameraRig.START_YAW

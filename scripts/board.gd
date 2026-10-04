@@ -61,11 +61,13 @@ const KK_SHORE_CHANCE := 0.18
 const KK_SEA_Y := -LEVEL_H      # the sea ring sits a level below your tiles, so the island stands on cliffs
 const KK_WATER_DECOR := ["waterlily_A", "waterlily_B", "waterplant_A", "waterplant_B", "waterplant_C"]
 ## Small things on open grass hexes of your tiles (a grassy knoll with dirt sides, stones, a lone pine), like the
-## details on the pack's samples. They're cleared when a tower goes on the hex.
+## details on the pack's samples. Clutter (knolls, stones, and cut stumps on tree hexes) is cleared when a tower goes on
+## the hex; trees (KK_DECOR_BLOCKS, and every tree hex) and big rocks block building.
 const KK_DECOR := {"deco_knoll_a": "hill_single_A", "deco_knoll_b": "hill_single_B", "deco_knoll_c": "hill_single_C",
 	"deco_stone": "rock_single_B", "deco_stones": "rock_single_D", "deco_pine": "tree_single_B"}
 const KK_DECOR_PICK := ["deco_knoll_a", "deco_knoll_b", "deco_knoll_c", "deco_knoll_a", "deco_stone", "deco_stones", "deco_pine", "deco_pine"]
 const KK_DECOR_CHANCE := 0.28
+const KK_DECOR_BLOCKS := ["deco_pine"]   # decorations that stand in the way (a tree): their hex can't be built on
 ## The pack's alternate palettes, by biome (the rest keep the default yellow-green).
 const KK_PALETTE := {"greenvale": "Summer", "highlands": "Winter", "deepwood": "Fall"}
 var team := "blue"   # KayKit team color for the castle (Game sets it from your color)
@@ -726,6 +728,7 @@ func _rebuild_water() -> void:
 
 
 var ocean_color := Color(0.25, 0.55, 0.75)   # the sea's color (Game matches the sky to it)
+var ocean_mi: MeshInstance3D                  # the open sea (tools draw it too)
 
 
 ## KayKit island: open sea all round. A plane just under the water tiles' surface, in the tiles' own material with its
@@ -771,6 +774,7 @@ func _build_ocean() -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.position = Vector3(0, KK_SEA_Y + top * LEVEL_H - 0.004, 0)
 	add_child(mi)
+	ocean_mi = mi
 
 
 ## The dark hex floor far below the island (the KayKit samples' backdrop); the fallback if the water tile is missing.
@@ -1511,6 +1515,7 @@ func _spawn_tile_scenery(cells: Array) -> void:
 				var tp: String = trees[rng.randi() % trees.size()]
 				if rng.randf() < 0.18 and _prop_sets.has("prop_log"):
 					tp = "prop_log"
+					terrain[g] = T.GRASS   # a cut stump is only clutter: build over it and it's cleared
 				_alloc_prop(tp, g, {"pos": p0, "rot": rng.randf() * TAU, "scale": rng.randf_range(0.8, 1.05)})
 			T.ROCK:
 				var rk := "prop_outcrop" if (_prop_sets.has("prop_outcrop") and rng.randf() < (0.6 if biome_id == "highlands" else 0.3)) else "prop_rock"
@@ -1523,6 +1528,8 @@ func _spawn_tile_scenery(cells: Array) -> void:
 					var a := _kk_hash(g, 52) * TAU
 					var off := Vector3(cos(a), 0, sin(a)) * (0.12 + _kk_hash(g, 53) * 0.3)
 					_alloc_prop(deco, g, {"pos": p0 + off, "rot": _kk_hash(g, 54) * TAU, "scale": 0.85 + _kk_hash(g, 55) * 0.3})
+					if deco in KK_DECOR_BLOCKS:
+						terrain[g] = T.TREE   # a lone tree blocks, like any tree hex
 
 
 func _spawn_neutral(c: Vector2i, kind: String) -> void:
