@@ -114,6 +114,7 @@ var force_biome := ""        # test flag: --biome=<id>
 var autotest := false
 var _auto_t := 0.0
 var _auto_max_wave := 30
+var playtest: Playtest = null   # autotest: the bot's skill and the run log (scripts/playtest.gd)
 var shot_dir := ""
 var _shots_taken := {}
 
@@ -174,6 +175,17 @@ func _ready() -> void:
 			difficulty = clampi(int(a.split("=")[1]), 0, GameData.DIFFICULTIES.size() - 1)
 		if a.begins_with("--seed="):
 			rng.seed = int(a.split("=")[1])   # same map every time (before/after screenshots)
+	if "--fresh" in args:
+		# a new player's profile: no War Council upgrades, nothing unlocked (playtests)
+		var keep := difficulty
+		stats.clear()
+		difficulty = keep
+	if autotest:
+		var sk := 1
+		for a in args:
+			if a.begins_with("--skill="):
+				sk = maxi(0, Playtest.SKILLS.find(a.split("=")[1]))
+		playtest = Playtest.new(self, sk)
 	if args.size() > 0:
 		# test runs: don't let a sleeping monitor throttle vsync to a crawl, and stay quiet
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
@@ -1319,6 +1331,7 @@ func _game_over(victory: bool) -> void:
 	if autotest:
 		print("AUTOTEST END victory=%s wave=%d kills=%d towers=%d gold=%d tiles=%d fronts=%d renown=+%d" % [
 			victory, wave, run_stats["kills"], towers.size(), gold, board.placed.size(), board.battlefronts(), earned])
+		playtest.report(victory)
 		get_tree().quit()
 
 
@@ -2716,6 +2729,7 @@ func _sig_fire() -> void:
 	var nm: String = sig["name"]
 	if autotest:
 		print("AUTOTEST signature %s fired on wave %d (%d enemies)" % [nm, wave, enemies.size()])
+		playtest.sig_fired += 1
 	match String(sig.get("kind", "")):
 		"haste", "frenzy":
 			sig_buff = float(sig["duration"])
@@ -3320,6 +3334,7 @@ func _save_stats() -> void:
 # ------------------------------------------------------------------ autotest (headless play-through)
 
 func _autotest_step(delta: float) -> void:
+	playtest.tick(delta)
 	_auto_t -= delta
 	if _auto_t > 0.0:
 		return
@@ -3343,7 +3358,7 @@ func _autotest_step(delta: float) -> void:
 			hud.hide_choices()
 			board.clear_slots()
 			board.clear_preview()
-			_auto_expand()
+			playtest.expand()
 			_next_step()
 		S.REWARD:
 			if _cur_step == "reward":
@@ -3358,9 +3373,10 @@ func _autotest_step(delta: float) -> void:
 				return
 			if wave >= _auto_max_wave:
 				print("AUTOTEST END reached max wave %d hp=%d" % [wave, hp])
+				playtest.report(false)
 				get_tree().quit()
 				return
-			_on_pair_pick(_auto_pick_pair())
+			_on_pair_pick(playtest.pick_pair())
 		S.BUILD, S.WAVE:
 			if shot_dir != "" and state == S.BUILD and wave == 4 and not _shots_taken.has("castle"):
 				_auto_t = 99.0
@@ -3380,7 +3396,7 @@ func _autotest_step(delta: float) -> void:
 				await _shot("ramp")
 				cam._target_dist = 40.0
 				return
-			_auto_build()
+			playtest.build_tick()
 			if state == S.BUILD:
 				start_wave()
 			var boss_here: Enemy = null
