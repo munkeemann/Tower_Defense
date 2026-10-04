@@ -437,6 +437,31 @@ func _tower_test(tid: String) -> bool:
 	if blender and (t._rig == null or t._muzzle_nodes.is_empty()):
 		print("TOWERTEST FAIL Blender tower without its rig or muzzle")
 		ok = false
+	if t.is_support():
+		# support towers never attack: check that a neighbor in reach gets the buff, then sell
+		owned["archer"] = 2
+		var near := Board.NONE
+		for c in Hex.disc(t.cell, 2):
+			if board.can_build_all(GameData.footprint("archer", c, 4)):
+				near = c
+				break
+		var buffed := false
+		if near != Board.NONE:
+			placing = "archer"
+			place_facing = 4
+			try_place(near)
+			placing = ""
+			var a2: Tower = towers.back()
+			buffed = a2 != t and a2.buff_dmg > 0.0
+			print("TOWERTEST support: archer at %s gets +%d%% damage" % [near, int(a2.buff_dmg * 100)])
+		if not buffed:
+			print("TOWERTEST FAIL the aura didn't reach a neighbor")
+			ok = false
+		select_tower(t)
+		sell_selected()
+		await get_tree().process_frame
+		print("TOWERTEST %s %s" % ["PASS" if ok and not towers.has(t) else "FAIL", tid])
+		return ok and not towers.has(t)
 	# goblins (made sturdy) start a little before the covered stretch of road
 	var first := 0
 	for i in best_route.size():
