@@ -50,6 +50,7 @@ var _rig: AnimationPlayer     # Blender towers: the machine's own animations (id
 var _rig_back := 0.0          # seconds until the rig eases back into its idle
 var _muzzle_nodes: Array = [] # Blender towers: markers where shots leave
 var attacks := 0              # how many times it has attacked (shots, pulses, breaths...): tests read it
+var _curse_ticks := 0         # Hex Tomb: half-second curse ticks with someone in reach
 
 
 const SIZE_SCALE := [1.0, 1.15, 1.3, 1.45, 1.55, 1.7, 1.85]
@@ -309,11 +310,18 @@ func _process(delta: float) -> void:
 			var r := range_world()
 			var v := curse()
 			var sl: Array = fx.get("slow", [])
+			var cursed := false
 			for e in game.enemies:
 				if not e.dead and _in_aura(e, r):
 					e.apply_vuln(v, 0.7)
+					cursed = true
 					if sl.size() == 2:
 						e.apply_slow(sl[0], sl[1])
+			if cursed:
+				_curse_ticks += 1
+				if _curse_ticks % 4 == 1:
+					attacks += 1   # the curse visibly lands every couple of seconds while anyone's in reach
+					_rig_act()
 		return
 	if id in ["arcane", "storm", "rootbinder", "moonwell"] and not kk:
 		head.position.y += sin(_anim * 2.5) * 0.003

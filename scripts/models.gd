@@ -833,6 +833,12 @@ const BLENDER_CREW := {
 	"storm": {"char": "Druid.glb", "gear": [["druid_staff", "r"]], "idle": "Idle_A", "attack": "Ranged_Magic_Raise", "h": 1.1},
 	"dwarf_flame": {"char": "Engineer.glb", "gear": [["engineer_Wrench", "r"]], "idle": "Idle_A", "attack": "Interact", "h": 1.1},
 	"dwarf_mortar": {"char": "Engineer.glb", "gear": [["engineer_Wrench", "r"]], "idle": "Idle_A", "attack": "Use_Item", "h": 1.1},
+	"bone_crypt": {"char": "Skeleton_Rogue.glb", "gear": [["Skeleton_Crossbow", "r"]], "idle": "Ranged_2H_Aiming",
+		"attack": "Ranged_2H_Shoot", "h": 1.0},
+	"plague_cauldron": {"char": "Skeleton_Mage.glb", "gear": [["Skeleton_Staff", "r"]], "idle": "Skeletons_Idle", "attack": "Throw",
+		"h": 1.1},
+	"necromancer": {"char": "Skeleton_Mage.glb", "gear": [["Skeleton_Staff", "r"]], "idle": "Skeletons_Idle",
+		"attack": "Ranged_Magic_Shoot", "h": 1.45},
 }
 const TEAM_COLUMN := {"blue": 0, "red": 1, "yellow": 2, "green": 3}   # team swatches along the atlas's bottom row
 static var _atlas_mats := {}
