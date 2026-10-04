@@ -823,6 +823,8 @@ static var blender_towers := true
 const BLENDER_CREW := {
 	"ballista": {"char": "Engineer.glb", "idle": "Idle_A", "attack": "Interact", "h": 1.15},
 	"arcane": {"char": "Mage.glb", "gear": [["staff", "r"]], "idle": "Idle_A", "attack": "Ranged_Magic_Shoot", "h": 1.1},
+	"chapel": {"char": "Paladin.glb", "gear": [["sword_1handed", "r"], ["shield_badge_color", "l"]], "idle": "Idle_A",
+		"attack": "Ranged_Magic_Raise", "h": 1.15},
 }
 const TEAM_COLUMN := {"blue": 0, "red": 1, "yellow": 2, "green": 3}   # team swatches along the atlas's bottom row
 static var _atlas_mats := {}

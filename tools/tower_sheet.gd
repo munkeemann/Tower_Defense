@@ -44,8 +44,8 @@ func _init() -> void:
 		var m := Models.tower(id, GameData.TOWERS[id]["color"])
 		var tr: Node3D = m["root"]
 		stage.add_child(tr)
-		if tr.has_meta("kaykit"):
-			(m["head"] as Node3D).rotation.y = aim
+		if tr.has_meta("kaykit") and not (tr.has_meta("blender") and String(GameData.TOWERS[id]["attack"]).begins_with("aura")):
+			(m["head"] as Node3D).rotation.y = aim   # (Blender aura towers never turn their head)
 			for tn in tr.get_meta("turrets", []):
 				(tn as Node3D).rotation.y = aim
 		if "--fire" in a and tr.has_meta("rig_ap"):
