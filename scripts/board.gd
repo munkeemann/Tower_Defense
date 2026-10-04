@@ -44,10 +44,30 @@ const KK_ROADS := {1: ["hex_road_M", 2], 2: ["hex_road_M", 1], 3: ["hex_road_C",
 	52: ["hex_road_E", 0], 53: ["hex_road_H", 3], 54: ["hex_road_I", 2], 55: ["hex_road_K", 2], 56: ["hex_road_G", 4], 58: ["hex_road_H", 4],
 	59: ["hex_road_K", 3], 61: ["hex_road_K", 4], 62: ["hex_road_K", 5], 63: ["hex_road_J", 0]}
 ## Map props drawn with KayKit decoration instead of the Meshy models, at the pack's own scale (forest props are
-## pine groves that fill their hex, like the KayKit samples).
+## pine groves that fill their hex, rocks are rocky knolls, like the KayKit samples).
 const KK_PROPS := {"prop_oak": "trees_A_medium", "prop_birch": "trees_B_medium", "prop_pine": "trees_B_large",
-	"prop_rock": "rock_single_A", "prop_outcrop": "rock_single_E", "prop_log": "tree_single_A_cut", "prop_bush": "trees_B_small",
+	"prop_rock": "hills_C", "prop_outcrop": "mountain_A_grass", "prop_log": "tree_single_A_cut", "prop_bush": "trees_B_small",
 	"prop_reeds": "waterplant_A"}
+## Coast tile for a hex of the sea ring, by which of its sides (Hex.E bit mask) face land: [tile, turns]. The pack has
+## coasts with land on 5 sides (A) or 2 neighboring sides (B); other shores use the closest one. Made by
+## tools/kaykit_coasts.gd.
+const KK_COASTS := {3: ["hex_coast_B", 3], 6: ["hex_coast_B", 2], 12: ["hex_coast_B", 1], 24: ["hex_coast_B", 0],
+	31: ["hex_coast_A", 1], 33: ["hex_coast_B", 4], 47: ["hex_coast_A", 2], 48: ["hex_coast_B", 5], 55: ["hex_coast_A", 3],
+	59: ["hex_coast_A", 4], 61: ["hex_coast_A", 5], 62: ["hex_coast_A", 0], 63: ["hex_grass", 0]}
+## Hills and mountains now and then on the shore around the island (like the rocky edges of the pack's samples).
+const KK_SHORE := ["hills_A_trees", "hills_B_trees", "hills_C_trees", "hills_A", "hills_B_trees", "mountain_A_grass",
+	"mountain_B_grass_trees", "mountain_C_grass_trees"]
+const KK_SHORE_CHANCE := 0.18
+const KK_SEA_Y := -LEVEL_H      # the sea ring sits a level below your tiles, so the island stands on cliffs
+const KK_WATER_DECOR := ["waterlily_A", "waterlily_B", "waterplant_A", "waterplant_B", "waterplant_C"]
+## Small things on open grass hexes of your tiles (a grassy knoll with dirt sides, stones, a lone pine), like the
+## details on the pack's samples. They're cleared when a tower goes on the hex.
+const KK_DECOR := {"deco_knoll_a": "hill_single_A", "deco_knoll_b": "hill_single_B", "deco_knoll_c": "hill_single_C",
+	"deco_stone": "rock_single_B", "deco_stones": "rock_single_D", "deco_pine": "tree_single_B"}
+const KK_DECOR_PICK := ["deco_knoll_a", "deco_knoll_b", "deco_knoll_c", "deco_knoll_a", "deco_stone", "deco_stones", "deco_pine", "deco_pine"]
+const KK_DECOR_CHANCE := 0.28
+## The pack's alternate palettes, by biome (the rest keep the default yellow-green).
+const KK_PALETTE := {"greenvale": "Summer", "highlands": "Winter", "deepwood": "Fall"}
 var team := "blue"   # KayKit team color for the castle (Game sets it from your color)
 const BACKDROP := -2
 const BACKDROP_Y := -1.6        # the grass around the board sits well below it, so your tiles read as a raised board
@@ -775,6 +795,8 @@ func _prop_exists(prop: String) -> bool:
 func _prop_mesh(prop: String) -> Array:
 	if _kk_on() and KK_PROPS.has(prop):
 		return KayKit.hex_mesh(KK_PROPS[prop])
+	if KK_DECOR.has(prop):
+		return KayKit.hex_mesh(KK_DECOR[prop])
 	var path := Models.CUSTOM + prop + ".glb"
 	return [Models.asset_mesh(path), Models.asset_mesh_xform(path)]
 
@@ -789,7 +811,7 @@ func _prop_base(prop: String) -> Transform3D:
 	var sz: Array = PROP_SIZE.get(prop, PROP_EXTRA.get(prop, SCATTER_SIZE.get(prop, [1.0, 1.0])))
 	_prop_long_x[prop] = bb.size.x >= bb.size.z
 	var s: float = minf(float(sz[0]) / maxf(bb.size.y, 0.001), float(sz[1]) / maxf(maxf(bb.size.x, bb.size.z), 0.001))
-	if _kk_on() and KK_PROPS.has(prop):
+	if _kk_on() and (KK_PROPS.has(prop) or KK_DECOR.has(prop)):
 		s = KK_SCALE   # KayKit decoration keeps the pack's proportions to its hex tiles
 	var c := bb.get_center()
 	_prop_h[prop] = bb.size.y * s
@@ -854,6 +876,8 @@ func _build_props() -> void:
 	for prop in PROP_EXTRA:
 		if _prop_exists(prop):
 			sets.append(prop)
+	if _kk_on():
+		sets.append_array(KK_DECOR.keys())
 	# Two batches per prop: one for your tiles (casts shadows) and one for the wild land beyond them (the far tree
 	# line), which never does: those trees are the bulk of the scene's triangles and would double the shadow work.
 	for prop in sets:
@@ -867,6 +891,8 @@ func _build_props() -> void:
 			mm.instance_count = n
 			var mmi := MultiMeshInstance3D.new()
 			mmi.multimesh = mm
+			if _kk_on() and (KK_PROPS.has(prop) or KK_DECOR.has(prop)):
+				mmi.material_override = _kk_material()
 			if wild:
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(mmi)
@@ -1442,6 +1468,12 @@ func _spawn_tile_scenery(cells: Array) -> void:
 				_alloc_prop(rk, g, {"pos": p0, "rot": rng.randf() * TAU, "scale": rng.randf_range(0.85, 1.1)})
 			T.LEY:
 				_alloc_prop("prop_crystal", g, {"pos": p0, "rot": rng.randf() * TAU, "scale": 0.5})
+			T.GRASS:
+				if _kk_on() and not path_cells.has(g) and _kk_hash(g, 50) < KK_DECOR_CHANCE:
+					var deco: String = KK_DECOR_PICK[int(_kk_hash(g, 51) * KK_DECOR_PICK.size()) % KK_DECOR_PICK.size()]
+					var a := _kk_hash(g, 52) * TAU
+					var off := Vector3(cos(a), 0, sin(a)) * (0.12 + _kk_hash(g, 53) * 0.3)
+					_alloc_prop(deco, g, {"pos": p0 + off, "rot": _kk_hash(g, 54) * TAU, "scale": 0.85 + _kk_hash(g, 55) * 0.3})
 
 
 func _spawn_neutral(c: Vector2i, kind: String) -> void:
@@ -2023,21 +2055,31 @@ func _kk_rebuild() -> void:
 				continue
 			seen[g] = true
 			_kk_cell(g, lists)
+	_kk_sea(seen, lists)
 	for tile in lists:
 		var xs: Array = lists[tile]
 		if not _kk_mm.has(tile):
 			var mmi := MultiMeshInstance3D.new()
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.use_colors = true
 			mm.mesh = KayKit.hex_mesh(tile)[0]
 			mmi.multimesh = mm
+			mmi.material_override = _kk_material()
 			add_child(mmi)
 			_kk_mm[tile] = mmi
 		var mm2: MultiMesh = (_kk_mm[tile] as MultiMeshInstance3D).multimesh
 		mm2.instance_count = xs.size()
 		var inner: Transform3D = KayKit.hex_mesh(tile)[1]
+		var vary: bool = String(tile).begins_with("hex_grass") or String(tile).begins_with("hex_coast")
 		for i in xs.size():
-			mm2.set_instance_transform(i, (xs[i] as Transform3D) * inner)
+			var xf: Transform3D = xs[i]
+			mm2.set_instance_transform(i, xf * inner)
+			# grass hexes each a shade lighter or darker, so wide fields don't read as one flat sheet
+			var v := 1.0
+			if vary:
+				v = 0.94 + 0.1 * _kk_hash(Hex.from_world(xf.origin), 60 + int(xf.origin.y * 3.0))
+			mm2.set_instance_color(i, Color(v, v, v))
 	for tile in _kk_mm:
 		if not lists.has(tile):
 			(_kk_mm[tile] as MultiMeshInstance3D).multimesh.instance_count = 0
@@ -2063,6 +2105,8 @@ func _kk_cell(g: Vector2i, lists: Dictionary) -> void:
 			tile = r[0]
 			k = r[1]
 	_kk_add(lists, tile, p + Vector3(0, top, 0), k)
+	if water and not bridges.has(g):
+		_kk_water_decor(g, lists, 0.6)
 	if bridges.has(g):
 		# a stone bridge (its deck meets the road at both ends) along the road; where the road turns over the water,
 		# a half bridge runs from the middle out to each exit
@@ -2089,6 +2133,96 @@ func _kk_cell(g: Vector2i, lists: Dictionary) -> void:
 
 func _kk_add(lists: Dictionary, tile: String, pos: Vector3, k: int) -> void:
 	_kk_add_yaw(lists, tile, pos, KK_BASE_YAW + 60.0 * k)
+
+
+## The sea around the island: a ring of beaches and coast tiles turned so their grass meets the land, the odd hill or
+## mountain on the shore, and open water one hex further out (with lilies here and there). Redrawn as the island grows.
+func _kk_sea(island: Dictionary, lists: Dictionary) -> void:
+	var shore := {}
+	for g in island:
+		for d in E:
+			if not island.has(g + d):
+				shore[g + d] = true
+	var near_port := {}
+	for pc in open_ports:
+		for d in E:
+			near_port[pc + d] = true
+	var hills := {}
+	for n in shore:
+		if not near_port.has(n) and _kk_hash(n, 1) < KK_SHORE_CHANCE:
+			hills[n] = true
+	var sea := {}
+	for n in shore:
+		var p := Hex.to_world(n) + Vector3(0, KK_SEA_Y, 0)
+		for d in E:
+			if not island.has(n + d) and not shore.has(n + d):
+				sea[n + d] = true
+		if hills.has(n):
+			_kk_add(lists, "hex_grass", p, 0)
+			_kk_add(lists, KK_SHORE[int(_kk_hash(n, 2) * KK_SHORE.size()) % KK_SHORE.size()], p, int(_kk_hash(n, 3) * 6.0))
+			continue
+		var m := 0
+		for i in 6:
+			if island.has(n + E[i]) or hills.has(n + E[i]):
+				m |= 1 << i
+		var c := _kk_coast(m)
+		_kk_add(lists, c[0], p, c[1])
+	for n in sea:
+		_kk_add(lists, "hex_water", Hex.to_world(n) + Vector3(0, KK_SEA_Y, 0), 0)
+		_kk_water_decor(n, lists, 0.18, KK_SEA_Y)
+
+
+## The coast tile whose land sides match a mask best (fewest sides wrong; on a tie, the one with less land).
+func _kk_coast(mask: int) -> Array:
+	if KK_COASTS.has(mask):
+		return KK_COASTS[mask]
+	var best: Array = ["hex_water", 0]
+	var best_score := 99
+	for m in KK_COASTS:
+		var x := int(m) ^ mask
+		var score := 0
+		for i in 6:
+			score += ((x >> i) & 1) * 10 + ((int(m) >> i) & 1)
+		if score < best_score:
+			best_score = score
+			best = KK_COASTS[m]
+	return best
+
+
+## A few lilies and reeds on a water hex, with the given chance.
+func _kk_water_decor(g: Vector2i, lists: Dictionary, chance: float, y := 0.0) -> void:
+	if _kk_hash(g, 4) >= chance:
+		return
+	for j in 1 + int(_kk_hash(g, 5) * 3.0):
+		var a := _kk_hash(g, 10 + j) * TAU
+		var r := 0.25 + _kk_hash(g, 20 + j) * 0.45
+		var item: String = KK_WATER_DECOR[int(_kk_hash(g, 30 + j) * KK_WATER_DECOR.size()) % KK_WATER_DECOR.size()]
+		_kk_add_yaw(lists, item, Hex.to_world(g) + Vector3(cos(a) * r, y - 0.2 * LEVEL_H, sin(a) * r), _kk_hash(g, 40 + j) * 360.0)
+
+
+## A steady random number in [0, 1) for a cell (the same every time this map is drawn).
+func _kk_hash(c: Vector2i, salt: int) -> float:
+	return float(posmod(hash(Vector4i(c.x, c.y, seed_value, salt)), 100003)) / 100003.0
+
+
+var _kk_mat: Material = null
+var _kk_mat_biome := "-"
+
+
+## The material every KayKit tile and decoration on the map shares: the pack's palette for this biome, a bit matte.
+func _kk_material() -> Material:
+	if _kk_mat_biome == biome_id and _kk_mat:
+		return _kk_mat
+	var base := (KayKit.hex_mesh("hex_grass")[0] as Mesh).surface_get_material(0) as BaseMaterial3D
+	var m := base.duplicate() as BaseMaterial3D
+	var pal: String = KK_PALETTE.get(biome_id, "")
+	if pal != "" and ResourceLoader.exists(KayKit.HEX + "hexagons_medieval_" + pal + ".png"):
+		m.albedo_texture = load(KayKit.HEX + "hexagons_medieval_" + pal + ".png")
+	m.roughness = 0.85
+	m.vertex_color_use_as_albedo = true   # (per-hex shade from the MultiMesh instance colors)
+	_kk_mat = m
+	_kk_mat_biome = biome_id
+	return m
 
 
 ## A KayKit piece at any yaw (bridges run edge to edge, which the pack's tiles' own turns can't do).

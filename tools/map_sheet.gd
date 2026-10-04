@@ -2,7 +2,7 @@ extends SceneTree
 ## Dev tool (headless, no window): grows a run's map for some waves and draws the KayKit island (tiles, props,
 ## castle, neutral buildings) as the game camera sees it, into a PNG with tools/snap.gd. Flat shading only: it shows
 ## layout and colors, not the game's lighting.
-## Godot --headless --path . --script res://tools/map_sheet.gd -- out.png [faction] [waves] [seed] [--bridge]
+## Godot --headless --path . --script res://tools/map_sheet.gd -- out.png [faction] [waves] [seed] [--bridge] [--biome=<id>]
 ##   --bridge: every new tile tries to put a pond across its road (to check bridges)
 
 const S := preload("res://tools/snap.gd")
@@ -19,6 +19,9 @@ func _init() -> void:
 	await process_frame
 	var g := main as Game
 	g.rng.seed = int(a[3]) if a.size() > 3 else 33
+	for x in a:
+		if x.begins_with("--biome="):
+			g.force_biome = x.substr(8)
 	g.start_run(fid)
 	g.hud.hide_choices()
 	for i in waves:
@@ -38,11 +41,21 @@ func _init() -> void:
 			if not seen.has(gc):
 				seen[gc] = true
 				b._kk_cell(gc, lists)
+	b._kk_sea(seen, lists)
+	var palette := b._kk_material()
 	for tile in lists:
 		var hm: Array = KayKit.hex_mesh(tile)
+		var vary: bool = String(tile).begins_with("hex_grass") or String(tile).begins_with("hex_coast")
 		for xf in lists[tile]:
 			var mi := MeshInstance3D.new()
 			mi.mesh = hm[0]
+			var mat := palette
+			if vary:
+				# the per-hex shade the game sets as MultiMesh instance colors
+				var v := 0.94 + 0.1 * b._kk_hash(Hex.from_world((xf as Transform3D).origin), 60 + int((xf as Transform3D).origin.y * 3.0))
+				mat = (palette as BaseMaterial3D).duplicate()
+				(mat as BaseMaterial3D).albedo_color = Color(v, v, v)
+			mi.material_override = mat
 			mi.transform = (xf as Transform3D) * (hm[1] as Transform3D)
 			stage.add_child(mi)
 	# props on your tiles
@@ -53,6 +66,7 @@ func _init() -> void:
 			if item is Dictionary and not (item as Dictionary).is_empty():
 				var mi := MeshInstance3D.new()
 				mi.mesh = mm.mesh
+				mi.material_override = (set_["mm"] as MultiMeshInstance3D).material_override
 				mi.transform = b._prop_xform(set_["prop"], item)
 				stage.add_child(mi)
 	for n in [b._castle]:
@@ -66,5 +80,8 @@ func _init() -> void:
 	await process_frame
 	var img := S.draw(stage, 1400, Vector3(0.0, 0.84, 0.545), 0.0, Vector3.ZERO, Color(0.11, 0.11, 0.115))
 	img.save_png(out)
+	# a close-up of the castle's corner of the map, about as near as the game's opening view
+	var close := S.draw(stage, 1000, Vector3(0.25, 0.84, 0.545), 52.0, b._castle.global_position + Vector3(0, 0, -4), Color(0.11, 0.11, 0.115))
+	close.save_png(out.get_basename() + "_close.png")
 	print("MAP tiles=%d cells=%d saved %s" % [b.placed.size(), seen.size(), out])
 	quit()
