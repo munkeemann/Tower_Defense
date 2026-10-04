@@ -812,12 +812,107 @@ static func _kk_tower(id: String, root: Node3D, head: Node3D) -> bool:
 	return true
 
 
+## Towers built in Blender (tools/blender/<id>_build.py, exported to assets/towers/<id>.glb). Each scene has a "Head"
+## node that turns to aim (-Z forward), "Muzzle" markers under it where shots leave, an optional "Crew" marker, a rig
+## and an AnimationPlayer with "idle" (loops), "fire" and "reload" (Tower plays fire then reload on every shot).
+## Our own parts are UV-mapped into the KayKit hex atlas; surfaces with the "kk_team" material slide along the atlas's
+## team row to your color. These win over KK_TOWER and the Meshy art; --no-blender (or --no-kaykit) turns them off.
+const BLENDER_DIR := "res://assets/towers/"
+static var blender_towers := true
+## The KayKit character a Blender tower stands at its Crew marker: like KK_TOWER crews (char, gear, idle, attack, cut, h).
+const BLENDER_CREW := {
+	"ballista": {"char": "Engineer.glb", "idle": "Idle_A", "attack": "Interact", "h": 1.15},
+}
+const TEAM_COLUMN := {"blue": 0, "red": 1, "yellow": 2, "green": 3}   # team swatches along the atlas's bottom row
+static var _atlas_mats := {}
+
+
+static func has_blender_tower(id: String) -> bool:
+	return blender_towers and KayKit.available() and ResourceLoader.exists(BLENDER_DIR + id + ".glb")
+
+
+## The hex pack's own atlas material (so Blender parts shade exactly like KayKit pieces), or a copy slid to a team color.
+static func _atlas_mat(team_name: String) -> Material:
+	if not _atlas_mats.has(team_name):
+		var mesh: Mesh = KayKit.hex_mesh("barrel")[0]
+		var base: Material = mesh.surface_get_material(0) if mesh else null
+		if team_name == "" or base == null:
+			_atlas_mats[team_name] = base
+		else:
+			var m := base.duplicate() as BaseMaterial3D
+			m.uv1_offset = Vector3(float(TEAM_COLUMN.get(team_name, 0)) / 8.0, 0.0, 0.0)
+			_atlas_mats[team_name] = m
+	return _atlas_mats[team_name]
+
+
+## Builds a Blender tower under root and returns its head (null if there is none). Root metas: "fitted", "kaykit",
+## "blender", "muzzles" (marker nodes), "rig_ap" (the AnimationPlayer) and the crew_* metas KayKit crews use.
+static func _blender_tower(id: String, root: Node3D) -> Node3D:
+	if not has_blender_tower(id):
+		return null
+	var ps := KayKit.scene(BLENDER_DIR + id + ".glb")
+	if ps == null:
+		return null
+	var scene := ps.instantiate() as Node3D
+	var head := scene.find_child("Head", true, false) as Node3D
+	if head == null:
+		scene.free()
+		return null
+	root.add_child(scene)
+	for node in scene.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(s)
+			if mat == null:
+				continue
+			if mat.resource_name == "kk_team":
+				mi.set_surface_override_material(s, _atlas_mat(team))
+			elif mat.resource_name == "hexagons_medieval":
+				mi.set_surface_override_material(s, _atlas_mat(""))
+	var ap := scene.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	if ap:
+		if ap.has_animation("idle"):
+			ap.get_animation("idle").loop_mode = Animation.LOOP_LINEAR
+			ap.play("idle")
+			ap.seek(randf() * ap.current_animation_length, true)
+		root.set_meta("rig_ap", ap)
+	var muzzles: Array = head.find_children("Muzzle*", "Node3D", true, false)
+	muzzles.sort_custom(func(a, b): return String(a.name) < String(b.name))
+	if not muzzles.is_empty():
+		root.set_meta("muzzles", muzzles)
+	var spot := head.find_child("Crew", true, false) as Node3D
+	var c: Dictionary = BLENDER_CREW.get(id, {})
+	if spot and not c.is_empty():
+		var ch := KayKit.character(c["char"], "", float(c.get("h", 1.25)))
+		if not ch.is_empty():
+			for g in c.get("gear", []):
+				KayKit.hold(ch, g[0], g[1])
+			spot.add_child(ch["root"])   # stands on the turntable and turns with the head
+			var cap: AnimationPlayer = ch["anim"]
+			var idle := KayKit.clip(cap, [c.get("idle", "Idle_A"), "Idle_A"])
+			if idle != "":
+				cap.play(idle)
+				cap.seek(randf() * cap.current_animation_length, true)
+			root.set_meta("crew_ap", cap)
+			root.set_meta("crew_idle", idle)
+			root.set_meta("crew_attack", KayKit.clip(cap, [c["attack"]]) if c.has("attack") else "")
+			root.set_meta("crew_cut", float(c.get("cut", 1.0)))
+	root.set_meta("muzzle_y", 0.0)
+	root.set_meta("fitted", true)
+	root.set_meta("kaykit", true)
+	root.set_meta("blender", true)
+	return head
+
+
 ## Returns {"root": Node3D, "head": Node3D}. The head is rotated toward targets (-Z forward).
 ## Multi-hex towers with footprint art come back with root meta "fitted" (already sized to the footprint).
 static func tower(id: String, color: Color) -> Dictionary:
 	if not has_assets():
 		return _proc_tower(id, color)
 	var root := Node3D.new()
+	var bh := _blender_tower(id, root)
+	if bh:
+		return {"root": root, "head": bh}
 	var head := Node3D.new()
 	root.add_child(head)
 	if _kk_tower(id, root, head):

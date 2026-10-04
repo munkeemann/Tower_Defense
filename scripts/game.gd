@@ -120,6 +120,8 @@ func _ready() -> void:
 	rng.randomize()
 	if "--no-kaykit" in OS.get_cmdline_user_args():
 		KayKit.enabled = false   # the models from before the KayKit swap (for before/after checks)
+	if "--no-blender" in OS.get_cmdline_user_args():
+		Models.blender_towers = false   # KK_TOWER composites instead of the Blender-made towers
 	_setup_env()
 	board = Board.new()
 	board.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -183,6 +185,13 @@ func _ready() -> void:
 	elif "--inputtest" in args:
 		await _input_test()
 		get_tree().quit()
+	elif Array(args).any(func(x): return String(x).begins_with("--towertest")):
+		var tid := "ballista"
+		for x in args:
+			if x.begins_with("--towertest="):
+				tid = x.split("=")[1]
+		var ok: bool = await _tower_test(tid)
+		get_tree().quit(0 if ok else 1)
 	elif "--menushot" in args:
 		to_menu()
 		await get_tree().create_timer(2.0).timeout
@@ -363,6 +372,155 @@ func _fps_probe() -> void:
 		print("FPSPROBE %-18s fps=%d draws=%d prims=%d" % [s[0], Engine.get_frames_per_second(),
 			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
 			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME)])
+
+
+var _tt_shots: Array = []   # --towertest: where each of the tower's projectiles started
+
+
+## Headless check for one tower (--towertest=id): build it beside the road where its arc covers the most of it, walk
+## sturdy goblins into range, check that it turns, fires, plays its Blender "fire" animation on every shot and that
+## bolts leave from its Muzzle marker, then sell it and check the refund. Prints TOWERTEST lines; true if all passed.
+func _tower_test(tid: String) -> bool:
+	start_run("crown")
+	await get_tree().process_frame
+	hud.hide_choices()
+	for i in 4:
+		_auto_expand()
+	owned[tid] = 3
+	gold = 5000
+	var ok := true
+	# the spot whose reach covers the most route points (like the bot, but exhaustive)
+	var routes: Array = board.open_ports.keys().map(func(pc): return board.route_from(pc))
+	var r := float(GameData.TOWERS[tid]["range"]) * GameData.TILE + GameData.reach_offset(tid)
+	var arc := GameData.arc_of(tid)
+	var best := Board.NONE
+	var best_f := 4
+	var best_route := PackedVector3Array()
+	var best_score := 0
+	var seen := {}
+	for pc in board.path_cells.keys():
+		for c in Hex.disc(pc, 3):
+			if seen.has(c):
+				continue
+			seen[c] = true
+			for f in 6:
+				var cells := GameData.footprint(tid, c, f)
+				if not board.can_build_all(cells):
+					continue
+				var wp := footprint_center(cells)
+				var fd := Hex.dir_world(f)
+				for route in routes:
+					var score := 0
+					for p in route:
+						var v := Vector2(p.x - wp.x, p.z - wp.z)
+						if v.length() <= r and (arc >= 359.0 or v.normalized().dot(Vector2(fd.x, fd.z)) >= cos(deg_to_rad(arc * 0.5))):
+							score += 1
+					if score > best_score:
+						best_score = score
+						best = c
+						best_f = f
+						best_route = route
+	if best == Board.NONE:
+		print("TOWERTEST FAIL no spot for %s" % tid)
+		return false
+	placing = tid
+	place_facing = best_f
+	try_place(best)
+	placing = ""
+	var t: Tower = towers.back() if not towers.is_empty() else null
+	if t == null or t.id != tid:
+		print("TOWERTEST FAIL could not place %s at %s facing %d" % [tid, best, best_f])
+		return false
+	var blender := t._model.has_meta("blender")
+	print("TOWERTEST placed %s at %s facing %d covering %d route points: blender=%s rig=%s muzzles=%d crew=%s" % [tid, best,
+		best_f, best_score, blender, t._rig != null, t._muzzle_nodes.size(), t._crew != null])
+	if blender and (t._rig == null or t._muzzle_nodes.is_empty()):
+		print("TOWERTEST FAIL Blender tower without its rig or muzzle")
+		ok = false
+	# goblins (made sturdy) start a little before the covered stretch of road
+	var first := 0
+	for i in best_route.size():
+		if t.reaches(best_route[i], t.position, t.range_world()):
+			first = i
+			break
+	var along := 0.0
+	for i in range(1, first + 1):
+		along += best_route[i - 1].distance_to(best_route[i])
+	_tt_shots.clear()
+	world.child_entered_tree.connect(_tt_note)
+	for k in 4:
+		var e := spawn_enemy("goblin", best_route, maxf(0.0, along - 2.0 - 1.5 * k))
+		e.max_hp = 1.0e6
+		e.hp = e.max_hp
+	Engine.time_scale = 2.0
+	var fires := 0
+	var last_anim := ""
+	var yaw0 := t.head.rotation.y
+	var turned := false
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 25000 and (fires < 4 or _tt_shots.size() < 4):
+		await get_tree().process_frame
+		if absf(angle_difference(t.head.rotation.y, yaw0)) > 0.02:
+			turned = true
+		if t._rig:
+			var cur := t._rig.current_animation
+			if cur == "fire" and last_anim != "fire":
+				fires += 1
+			last_anim = cur
+	Engine.time_scale = 1.0
+	world.child_entered_tree.disconnect(_tt_note)
+	var worst := 0.0
+	var muzzle := (t._muzzle_nodes[0] as Node3D) if not t._muzzle_nodes.is_empty() else null
+	var hp := t.head.global_position
+	for s in _tt_shots:
+		# the head turns between shots, so compare with the circle the muzzle sweeps around the head's pivot
+		if muzzle:
+			var m := muzzle.global_position
+			var off := absf(Vector2(s.x - hp.x, s.z - hp.z).length() - Vector2(m.x - hp.x, m.z - hp.z).length())
+			worst = maxf(worst, maxf(off, absf(s.y - m.y)))
+	print("TOWERTEST shots=%d rig_fires=%d head_turned=%s muzzle_offset=%.3f" % [_tt_shots.size(), fires, turned, worst])
+	if _tt_shots.is_empty():
+		print("TOWERTEST FAIL it never fired")
+		ok = false
+	if blender and fires < _tt_shots.size() - 1:
+		print("TOWERTEST FAIL the fire animation did not play on every shot")
+		ok = false
+	if blender and worst > 0.05:
+		print("TOWERTEST FAIL shots did not leave from the Muzzle marker")
+		ok = false
+	if not turned and arc < 359.0:
+		print("TOWERTEST note: the head never had to turn")
+	# sell it
+	select_tower(t)
+	var g0 := gold
+	var refund := t.sell_value()
+	var copies := int(owned.get(tid, 0))
+	var cells: Array = t.cells.duplicate()
+	sell_selected()
+	await get_tree().process_frame
+	var gone := not is_instance_valid(t) or not towers.has(t)
+	var freed := cells.all(func(c): return not board.towers.has(c))
+	print("TOWERTEST sold: gone=%s cells_free=%s gold %d -> %d (refund %d) copies %d -> %d" % [gone, freed, g0, gold, refund,
+		copies, int(owned.get(tid, 0))])
+	if not gone or not freed or gold != g0 + refund or int(owned.get(tid, 0)) != copies + 1:
+		print("TOWERTEST FAIL selling")
+		ok = false
+	print("TOWERTEST %s %s" % ["PASS" if ok else "FAIL", tid])
+	return ok
+
+
+func _tt_note(n: Node) -> void:
+	if n is Projectile:
+		_tt_origin.call_deferred(n)
+
+
+## Where a bolt started: its position now, walked back along its flight by what it has travelled.
+func _tt_origin(p: Projectile) -> void:
+	if not is_instance_valid(p) or p.kind != Projectile.K.BOLT:
+		return
+	var t: Tower = p.packet.get("tower")
+	var travelled: float = t.range_world() * 1.15 - p.travel_left
+	_tt_shots.append(p.position - p.dir * travelled)
 
 
 ## Drives the real input path: tile placement by mouse, hotkey -> click to build, select, upgrade, raise.

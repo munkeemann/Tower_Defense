@@ -79,7 +79,10 @@ func _render(tid: String) -> void:
 		c.queue_free()
 	var m := Models.tower(tid, GameData.TOWERS[tid]["color"])
 	var root: Node3D = m["root"]
-	if root.has_meta("kaykit"):
+	if root.has_meta("blender"):
+		# Blender towers are whole machines with a front: turn the whole tower to face the portrait
+		root.rotation.y = PI - 0.5
+	elif root.has_meta("kaykit"):
 		# KayKit crews and guns look out of the portrait
 		(m["head"] as Node3D).rotation.y = PI - 0.35
 		for tn in root.get_meta("turrets", []):

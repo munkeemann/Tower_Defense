@@ -46,6 +46,9 @@ var _crew_attack := ""
 var _crew_cut := 1.0
 var _crew_back := 0.0         # seconds until the crew eases back into its idle
 var _spinners: Array = []     # KayKit pieces that turn and bob (floating gems): [node, turn speed, bob height, base y]
+var _rig: AnimationPlayer     # Blender towers: the machine's own animations (idle / fire / reload)
+var _rig_back := 0.0          # seconds until the rig eases back into its idle
+var _muzzle_nodes: Array = [] # Blender towers: markers where shots leave
 
 
 const SIZE_SCALE := [1.0, 1.15, 1.3, 1.45, 1.55, 1.7, 1.85]
@@ -74,6 +77,9 @@ func setup(g: Game, tid: String, anchor: Vector2i, facing_ := 4) -> void:
 	_turrets = _model.get_meta("turrets", [])
 	_spinners = _model.get_meta("spinners", [])
 	_muzzle_y = float(_model.get_meta("muzzle_y", 0.2))
+	_muzzle_nodes = _model.get_meta("muzzles", [])
+	if _model.has_meta("rig_ap"):
+		_rig = _model.get_meta("rig_ap")
 	if _model.has_meta("crew_ap"):
 		_crew = _model.get_meta("crew_ap")
 		_crew_idle = _model.get_meta("crew_idle")
@@ -259,6 +265,11 @@ func _process(delta: float) -> void:
 		_crew_back -= delta
 		if _crew_back <= 0.0 and _crew_idle != "":
 			_crew.play(_crew_idle, 0.25)
+	if _rig_back > 0.0:
+		_rig_back -= delta
+		if _rig_back <= 0.0 and _rig.has_animation("idle"):
+			_rig.speed_scale = 1.0
+			_rig.play("idle", 0.2)
 	var a := attack()
 	var kk := _model.has_meta("kaykit")
 	if a == "aura_buff":
@@ -279,6 +290,7 @@ func _process(delta: float) -> void:
 			cooldown = 1.0 / fire_rate()
 			_pulse()
 			_crew_act()
+			_rig_act()
 		return
 	if a == "aura_curse":
 		# no attack: every half second, everything in reach is cursed to take more damage
@@ -308,6 +320,7 @@ func _process(delta: float) -> void:
 		cooldown = 1.0 / fire_rate()
 		_fire(t)
 		_crew_act()
+		_rig_act()
 
 
 ## The yaw (inside the tower model) that turns gun node n's -Z toward point p.
@@ -360,6 +373,23 @@ func _crew_act() -> void:
 	_crew_back = length / speed
 
 
+## A Blender tower's machine plays "fire" then "reload", sped up to fit between shots, then eases back into its idle.
+func _rig_act() -> void:
+	if _rig == null or not _rig.has_animation("fire"):
+		return
+	var gap := 1.0 / maxf(fire_rate(), 0.05)
+	var length := _rig.get_animation("fire").length
+	var reload := _rig.get_animation("reload").length if _rig.has_animation("reload") else 0.0
+	var speed := clampf((length + reload) / (gap * 0.9), 1.0, 4.0)
+	_rig.clear_queue()
+	_rig.speed_scale = speed
+	_rig.play("fire", 0.04)
+	_rig.seek(0.0, true)
+	if reload > 0.0:
+		_rig.queue("reload")
+	_rig_back = (length + reload) / speed
+
+
 func _muzzle() -> Vector3:
 	return head.global_position + Vector3(0, _muzzle_y, 0)
 
@@ -367,6 +397,8 @@ func _muzzle() -> Vector3:
 ## Where shot i of a volley leaves: the head above the centroid. Two-gun towers fire from barrels either side of it
 ## (or from their own turrets, on KayKit towers).
 func _muzzle_world(i: int) -> Vector3:
+	if not _muzzle_nodes.is_empty():
+		return (_muzzle_nodes[i % _muzzle_nodes.size()] as Node3D).global_position
 	if _turrets.size() > 1:
 		return (_turrets[i % _turrets.size()] as Node3D).global_position + Vector3(0, _muzzle_y, 0)
 	var p := _muzzle()

@@ -245,6 +245,17 @@ KayKit (Kay Lousberg, CC0, in `assets/kaykit`, wrapped by `scripts/kaykit.gd`) s
   and the Vampire's throne, the Spore Mound giant mushrooms, the Chapel a golden paladin statue. Towers can stand
   on a hex stone plinth spanning their footprint (`plinth`), and pieces can float, spin and bob (`Tower._spinners`).
   The other towers (gryphon, treant, hive, flak battery, whirlpool, siren and the creatures) keep their Meshy art.
+- **Blender-made towers** (`assets/towers/<id>.glb`) win over the KayKit composites. So far: the **Ballista**, a
+  torsion ballista on a stone dais that turns to aim, with a hexagonal bolt store under a team-colored roof and a rack
+  of spare bolts behind it. Its rig plays `idle` (the pennant flutters), `fire` (the arms snap forward, the string
+  releases, the stock kicks) and `reload` (the slider runs forward, grabs the string, the winch drags it back and a
+  new bolt drops in) on every shot, sped up to fit between shots (`Tower._rig_act`). Bolts leave from the `Muzzle`
+  marker and an engineer works the winch from the `Crew` marker (`Models.BLENDER_CREW`). They're built by
+  scripts in `tools/blender/` (`kk_helpers.py` plus one `<id>_build.py` each) through the MCP for Blender
+  connector. The `.blend` sources live in `assets/towers/src/` (git-ignored like all art, since they hold KayKit
+  meshes), so you can tweak them in Blender and re-export with `export_tower()`. Our own geometry is UV-mapped
+  into the hex pack's atlas so it shares KayKit's colors. Faces on the `kk_team` material slide along the atlas's
+  team row to your color (`Models._atlas_mat`). `--no-blender` goes back to the KayKit composites.
 - `--no-kaykit` runs with the models from before the KayKit swap, for before/after checks.
 - `tools/tower_sheet.gd` draws towers on their hexes into a PNG with no window (a small software rasterizer in
   `tools/snap.gd`), so tower art can be checked in headless runs; `tools/map_sheet.gd` does the same for a grown
@@ -274,7 +285,10 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path . -- --autotest=crown --
 Extra flags: `--difficulty=0|1|2` (without it the bot plays your saved difficulty), `--seed=<n>`, `--no-kaykit`, `--hero=<id>`, `--shotdir=<folder>` (saves screenshots at key moments;
 don't combine it with `--headless`), `--menushot` (menu, hero select, War Council), `--mapshot` (a grown
 late-game map, plus close-ups of a bridge, the castle and a lakeshore; add `--bridgetest` to force a lake crossing
-and `--biome=<id>` to pick the biome) and `--inputtest` (simulates tile placement, hotkeys, click-to-build, upgrade and raise).
+and `--biome=<id>` to pick the biome), `--inputtest` (simulates tile placement, hotkeys, click-to-build, upgrade and
+raise) and `--towertest=<id>` (builds that tower where it covers the most road, walks goblins into its arc, checks
+that its head turns, that every shot plays its `fire` animation and leaves from its muzzle, then sells it and checks
+the refund; exits 1 on failure).
 Test runs never write your save file.
 
 Bot results at the time of writing (Normal): Crown won all 30 waves; Verdant fell on wave 22 after a

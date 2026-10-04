@@ -3,7 +3,8 @@ extends SceneTree
 ## one PNG with tools/snap.gd. Every tower is drawn at the same scale.
 ## Godot --headless --path . --script res://tools/tower_sheet.gd -- out.png [team] [all | id,id,...] [--front] [--fire]
 ##   team: blue / green / red / yellow (default blue); --front views from the tower's front instead;
-##   --fire poses each crew partway through its attack clip; --zoom draws twice as big.
+##   --fire poses each crew partway through its attack clip (and Blender towers just after they let go); --zoom draws
+##   twice as big; --no-blender draws the KayKit composites instead of the Blender-made towers.
 
 const S := preload("res://tools/snap.gd")
 const TILE := 320
@@ -15,6 +16,7 @@ func _init() -> void:
 	var a := OS.get_cmdline_user_args()
 	var out := a[0] if a.size() > 0 else "user://tower_sheet.png"
 	Models.team = a[1] if a.size() > 1 and not a[1].begins_with("--") else "blue"
+	Models.blender_towers = not "--no-blender" in a
 	var ids: Array = Models.KK_TOWER.keys()
 	if a.size() > 2 and a[2] != "all" and not a[2].begins_with("--"):
 		ids = Array(a[2].split(","))
@@ -46,6 +48,12 @@ func _init() -> void:
 			(m["head"] as Node3D).rotation.y = aim
 			for tn in tr.get_meta("turrets", []):
 				(tn as Node3D).rotation.y = aim
+		if "--fire" in a and tr.has_meta("rig_ap"):
+			# Blender towers: the machine just after it lets go (arms snapped forward, bolt gone)
+			var rap: AnimationPlayer = tr.get_meta("rig_ap")
+			rap.play("fire")
+			rap.seek(0.12, true)
+			rap.pause()
 		if "--fire" in a and tr.has_meta("crew_ap") and String(tr.get_meta("crew_attack")) != "":
 			var ap: AnimationPlayer = tr.get_meta("crew_ap")
 			var clip := String(tr.get_meta("crew_attack"))
