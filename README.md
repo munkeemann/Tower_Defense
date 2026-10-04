@@ -10,8 +10,9 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
 
 ## How a run works
 
-1. **Pick a color and a commander** (see *The color pie* below). Every commander has two powers. Some are
-   free; the others are unlocked with Renown.
+1. **Pick a color and a commander** (see *The color pie* below). Every commander has two powers and a
+   **signature** passive of their own (shown bottom left in a run). Some are free; the others are unlocked with
+   Renown.
 2. **Expand the realm**: before every wave you're offered **one** random hexagonal terrain tile, which always
    fits somewhere. Point at a glowing spot to see it there as a hologram (the real tile, see-through: roads,
    ramps, ponds, high ground; red where it won't fit), then click to place it. **R** / **Shift+R** turn it (6 ways);
@@ -66,8 +67,26 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
 | **Blue**: The Tidal Court | Merfolk | Slows, pushback, stuns; loves water | Towers next to water deal +30%; tiles bring more ponds |
 | **Black**: The Bone Legion | Skeletons | Attrition, poison, % health damage vs big enemies | Poisoned enemies burst on death (15% of their max health) |
 
-Each color has its own towers plus a shared pool (Archer, Ballista, Trebuchet, Royal Bombard), its own ability
-(F) and its own commanders. Every color also has two **creatures** (one Tier II, one Tier III):
+Each color has its own towers plus a shared pool (Archer, Ballista, Trebuchet, Royal Bombard), its own castle
+talents and its own commanders. Every color also has two **creatures** (one Tier II, one Tier III).
+
+Commander signatures (`HEROES[...]["sig"]`, run by `Game._sig_*`) are passives, no button to press:
+
+| Commander | Signature |
+|---|---|
+| Lord Marshal Aldric | **Rally Cry**: when the castle is hit, all towers attack 60% faster for 6 s (at most every 20 s) |
+| Archmage Seraphine | **Arcane Tempest**: every 30 s of a wave, arcane bolts hit every enemy, flyers too |
+| Siegemaster Brann | **Opening Barrage**: the first 12 s of every wave, all towers deal +40% damage |
+| Scout-Captain Elsa | **Hunter's Mark**: the first 6 enemies of each wave, and every boss, take +50% damage |
+| Elder Thornwood | **Entangling Roots**: every 25 s of a wave, every ground enemy is rooted 2 s and hurt |
+| Moon-priestess Lira | **Moonlit Renewal**: the castle heals 2 after every wave; a wave with no leaks adds a Rune |
+| Grovekeeper Oma | **Overgrowth**: a poisoned enemy's poison spreads to the 2 nearest when it dies |
+| The Wild Hunt | **Call of the Wild**: Dire Bear, Elder Treant, Wasp Hive and Ancient Mammoth attack 30% faster |
+| Thane Durgan Ironbeard | **Forgefire Barrage**: every 30 s of a wave, every ground enemy is blasted |
+| Tidequeen Nerissa | **Tidal Surge**: every 35 s of a wave, every enemy is washed 2 tiles back and slowed |
+| Mortis, the Bone Lord | **Reaping**: every 40 s of a wave, every enemy loses 10% of its max health (bosses 3%) |
+
+The towers by color:
 
 | Color | Towers | Creatures |
 |---|---|---|
@@ -79,19 +98,20 @@ Each color has its own towers plus a shared pool (Archer, Ballista, Trebuchet, R
 
 ### Castle talents (C)
 
-Spend gold during a run on four talent paths, reacting to what's in front of you:
+Spend gold during a run on four talent paths, reacting to what's in front of you. Three are your color's own
+(`FACTION_TALENTS`); **Slayers** is shared:
 
-- **Treasury** (resource generation): +gold per wave, interest on unspent gold, extra Runes and Builders, a
-  Royal Mint. Capstone: **Trade Caravans** (buy a Builder and 2 Runes, repeatable).
-- **Artificers** (stronger, cheaper towers): cheaper towers, faster attacks, more range, extra blueprint copies.
-  Capstone: **Refinement** (+6% damage for all towers, repeatable).
-- **Slayers** (answer the threats): +damage vs flyers, armored, camouflaged or bosses; faster shield breaking.
-  Take any, up to twice each.
-- **Bulwark** (castle defense): walls, a keep ballista that shoots nearby enemies, a slowing moat, a Citadel.
-  Capstone: **Ramparts** (more castle health and keep damage, repeatable).
+| Color | Economy | Arsenal | Keep |
+|---|---|---|---|
+| White | Royal Treasury: tithes, a bank, heralds, a mint | Order of the Spire: charters, drill, Consecration (+25% auras), Paladin Corps | Bastion: walls, keep ballista, Sanctuary repairs, Citadel |
+| Green | Grove Bounty: foragers, sacred groves, seed vaults, druid circles | Wildwood: thornbark, deep roots (+20% slows), venom glands (+35% poison), ancient growth (+15% range) | Living Wall: hedge, strangling vines (moat), heartwood repairs, a thornspitter keep |
+| Red | Mountain Hold: ore, a dwarven hoard (8% interest), tunnel crews, gold seams | Runesmiths: master smiths (-20% upgrades), black powder (+25% blast area), hot iron, runic engines | Iron Keep: iron walls, keep cannon, slag moat, forge citadel |
+| Blue | Tidal Trade: pearl divers, tide charts, sunken treasure, coral markets | Deep Lore: undertow, wave lore, riptide (water bonus, more ponds), abyssal pressure | Seawall: seawall, a 45% tidal moat, harpoon battery, lighthouse (sees camo) |
+| Black | Grave Tithes: grave robbers, soul tax, **blood price** (castle health for gold), death toll | Necromancy: rot, withering (execute below 8%), plague burst, lich pact | Ossuary: bone walls, grasping dead, bone ballista, soul siphon |
 
-Treasury, Artificers and Bulwark unlock in order. Early gold is tight, so every talent is a choice between towers
-now and a stronger realm later.
+Each faction path unlocks in order and ends in a repeatable capstone. **Slayers** (+damage vs flyers, armored,
+camouflaged or bosses; faster shield breaking) can be taken in any order, twice each. Early gold is tight, so
+every talent is a choice between towers now and a stronger realm later.
 
 ### Threats (per run, not per wave)
 
@@ -150,7 +170,7 @@ Deepwood) changes how often tiles are raised and how many ponds they carry.
 | Tile placement | Point at a glowing spot (hologram), click to place. R / Shift+R turn it. F rerolls it for 1 Rune |
 | 1-9, R / Shift+R, click | Pick a tower, turn it (either way), build it (hold Shift to keep building) |
 | Click tower | Select it (U upgrade, X sell, T targeting mode) |
-| F | Faction ability (between waves: reroll the tile or the rewards) |
+| F | Between waves: reroll the tile or the rewards |
 | B (or G) / N then click | Builder raises ground (high ground = more range) / Digger lowers it |
 | C | Castle talents |
 | K | Damage chart (top right): shown, see-through, hidden |
@@ -209,8 +229,11 @@ with `TRACK_TRIM` in `scripts/audio.gd`. A color without a track falls back to t
 Everything is data in `scripts/game_data.gd`:
 
 - **Color (faction)**: add an entry to `FACTIONS` with its unique tower ids (the shared ones are `SHARED_TOWERS`),
-  pie/race/strengths/weakness texts, a `passive` fx dict, starting blueprints (`start_copies`) and an ability.
-- **Castle talent**: add a node to a path in `TALENTS` and its effect in `Game._apply_talent`.
+  pie/race/strengths/weakness texts, a `passive` fx dict, starting blueprints (`start_copies`), and its castle
+  talent paths in `FACTION_TALENTS`.
+- **Castle talent**: add a node (with its `fx`) to a path in `FACTION_TALENTS` or `SLAYERS`; `Game._apply_fx`
+  applies the keys, so a new kind of effect means a new key there.
+- **Commander**: an entry in `HEROES` with its powers (`fx`) and a `sig` (trigger + effect kind, see the comment).
 - **Reward item**: weights are `REWARD_KINDS`; rolling and granting are `Game._roll_item` / `Game._grant`.
 - **Tower**: add an entry to `TOWERS` (with its `tier` and blueprint `copies`), a footprint to `FOOTPRINTS`
   (shape from `SHAPES` + firing arc) and two specializations to `SPECS`. The attack kinds are `arrow`, `bolt`,

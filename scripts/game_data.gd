@@ -66,8 +66,6 @@ const FACTIONS := {
 		"towers": ["arcane", "chapel", "banner", "gryphon", "seraph", "archangel"],
 		"start": ["archer", "ballista", "arcane"],
 		"start_copies": {"archer": 3, "ballista": 1, "arcane": 1},
-		"ability": {"name": "Rally Cry", "desc": "All towers attack 60% faster for 8 seconds.",
-			"cooldown": 45.0, "kind": "haste", "power": 0.6, "duration": 8.0},
 	},
 	"verdant": {
 		"name": "The Verdant Circle", "pie": "Green", "race": "Elves",
@@ -80,8 +78,6 @@ const FACTIONS := {
 		"towers": ["thorn", "spore", "briar", "treant", "storm", "hive", "moonwell", "rootbinder", "dire_bear", "mammoth"],
 		"start": ["thorn", "spore", "briar"],
 		"start_copies": {"thorn": 3, "spore": 1, "briar": 2},
-		"ability": {"name": "Entangling Roots", "desc": "Roots every ground enemy for 3 seconds and deals 40 damage.",
-			"cooldown": 50.0, "kind": "root", "duration": 3.0, "damage": 40.0},
 	},
 	"forge": {
 		"name": "The Deep Forge", "pie": "Red", "race": "Dwarves",
@@ -94,8 +90,6 @@ const FACTIONS := {
 		"towers": ["dwarf_flame", "dwarf_hammer", "dwarf_mortar", "dwarf_gyro", "magma_golem", "fat_dragon"],
 		"start": ["archer", "dwarf_flame", "dwarf_hammer"],
 		"start_copies": {"archer": 3, "dwarf_flame": 2, "dwarf_hammer": 1},
-		"ability": {"name": "Forgefire Barrage", "desc": "Deals 60 damage (+15 per wave) to every ground enemy.",
-			"cooldown": 45.0, "kind": "blast", "damage": 60.0, "duration": 0.0},
 	},
 	"tide": {
 		"name": "The Tidal Court", "pie": "Blue", "race": "Merfolk",
@@ -108,8 +102,6 @@ const FACTIONS := {
 		"towers": ["mer_tide", "mer_harpoon", "mer_whirl", "mer_siren", "snapjaw_crab", "kraken"],
 		"start": ["archer", "mer_tide", "mer_harpoon"],
 		"start_copies": {"archer": 2, "mer_tide": 2, "mer_harpoon": 1},
-		"ability": {"name": "Tidal Surge", "desc": "Washes every enemy 3 tiles back along the road and slows them 40% for 3 seconds.",
-			"cooldown": 50.0, "kind": "surge", "push": 3.0, "duration": 3.0},
 	},
 	"grave": {
 		"name": "The Bone Legion", "pie": "Black", "race": "Skeletons",
@@ -122,8 +114,6 @@ const FACTIONS := {
 		"towers": ["bone_crypt", "plague_cauldron", "soul_obelisk", "hex_tomb", "mass_grave", "necromancer"],
 		"start": ["bone_crypt", "plague_cauldron", "archer"],
 		"start_copies": {"bone_crypt": 4, "plague_cauldron": 1, "archer": 2},
-		"ability": {"name": "Reaping", "desc": "Every enemy loses 15% of its max health (bosses 5%).",
-			"cooldown": 50.0, "kind": "reap", "pct": 0.15, "duration": 0.0},
 	},
 }
 
@@ -343,7 +333,7 @@ const BOONS := [
 	{"id": "ley", "name": "Ley Surge", "rarity": 1, "weight": 4, "desc": "Towers on ley crystals get a further +25% damage."},
 	{"id": "crit", "name": "Keen Edges", "rarity": 2, "weight": 3, "desc": "Every attack has a 12% chance to deal triple damage."},
 	{"id": "execute", "name": "Executioner", "rarity": 2, "weight": 3, "desc": "Enemies below 12% health die instantly when hit."},
-	{"id": "ability", "name": "Commander's Focus", "rarity": 1, "weight": 4, "desc": "Your faction ability recharges 25% faster."},
+	{"id": "ability", "name": "Commander's Focus", "rarity": 1, "weight": 4, "desc": "Your commander's signature comes round 25% sooner."},
 ]
 
 
@@ -412,40 +402,64 @@ const BASE_ENEMIES := {"goblin": 1, "wolf": 2, "orc": 5}
 
 ## ---- Heroes (commanders) ---------------------------------------------------------------------
 ## fx: phys / magic / rate / range (added to mods), hp, start_copies {tid: n}, bonus_copies {tid: n},
-## tower_dmg {tids, mult}, recon, detect_all, slow_mult, poison_mult, kill_gold, ability_cd
+## tower_dmg {tids, mult}, recon, detect_all, slow_mult, poison_mult, kill_gold
+## sig: the commander's signature passive (Game._sig_*): trigger every / castle_hit / wave_start / mark / spread / renew /
+## static, and for the triggered ones an effect kind haste / frenzy / arcane / root / blast / surge / reap
 const HEROES := {
 	"aldric": {"faction": "crown", "name": "Lord Marshal Aldric", "cost": 0, "portrait": "hero_aldric",
 		"powers": ["All towers deal +10% damage.", "+5 castle health."],
+		"sig": {"name": "Rally Cry", "trigger": "castle_hit", "kind": "haste", "power": 0.6, "duration": 6.0, "cooldown": 20.0,
+			"desc": "When the castle is hit, all towers attack 60% faster for 6 seconds (at most every 20 seconds)."},
 		"fx": {"phys": 0.1, "magic": 0.1, "hp": 5}},
 	"seraphine": {"faction": "crown", "name": "Archmage Seraphine", "cost": 0, "portrait": "hero_seraphine",
 		"powers": ["+20% magic damage.", "Arcane Spire blueprints give +1 copy."],
+		"sig": {"name": "Arcane Tempest", "trigger": "every", "period": 30.0, "kind": "arcane", "damage": 25.0,
+			"desc": "Every 30 seconds of a wave, arcane bolts strike every enemy, flyers too, for 25 magic damage (+20% per wave)."},
 		"fx": {"magic": 0.2, "bonus_copies": {"arcane": 1}}},
 	"brann": {"faction": "crown", "name": "Siegemaster Brann", "cost": 40, "portrait": "hero_brann",
 		"powers": ["Ballista, Trebuchet and Bombard deal +30% damage.", "Start with a Trebuchet blueprint."],
+		"sig": {"name": "Opening Barrage", "trigger": "wave_start", "kind": "frenzy", "power": 0.4, "duration": 12.0,
+			"desc": "For the first 12 seconds of every wave, all towers deal +40% damage."},
 		"fx": {"tower_dmg": {"tids": ["ballista", "trebuchet", "bombard"], "mult": 0.3}, "start_copies": {"trebuchet": 1}}},
 	"elsa": {"faction": "crown", "name": "Scout-Captain Elsa", "cost": 60, "portrait": "hero_elsa",
 		"powers": ["Every tower can detect camouflaged enemies.", "+1 Rune after every wave."],
+		"sig": {"name": "Hunter's Mark", "trigger": "mark", "count": 6, "power": 0.5,
+			"desc": "The first 6 enemies of every wave, and every boss, are marked: they take +50% damage."},
 		"fx": {"detect_all": true, "recon": 1}},
 	"thornwood": {"faction": "verdant", "name": "Elder Thornwood", "cost": 0, "portrait": "hero_thornwood",
 		"powers": ["Slows are 30% stronger.", "Briar Thicket blueprints give +1 copy."],
+		"sig": {"name": "Entangling Roots", "trigger": "every", "period": 25.0, "kind": "root", "duration": 2.0, "damage": 30.0,
+			"desc": "Every 25 seconds of a wave, roots every ground enemy for 2 seconds and deals 30 damage (+15% per wave)."},
 		"fx": {"slow_mult": 1.3, "bonus_copies": {"briar": 1}}},
 	"lira": {"faction": "verdant", "name": "Moon-priestess Lira", "cost": 0, "portrait": "hero_lira",
 		"powers": ["All towers attack 15% faster.", "Moonwell blueprints give +1 copy."],
+		"sig": {"name": "Moonlit Renewal", "trigger": "renew", "heal": 2, "recon": 1,
+			"desc": "After every wave the castle heals 2 health, and a wave with no leaks adds +1 Rune."},
 		"fx": {"rate": 0.15, "bonus_copies": {"moonwell": 1}}},
 	"oma": {"faction": "verdant", "name": "Grovekeeper Oma", "cost": 40, "portrait": "hero_oma",
 		"powers": ["Poison deals +60% damage.", "Start with an extra Spore Mound."],
+		"sig": {"name": "Overgrowth", "trigger": "spread", "count": 2,
+			"desc": "When a poisoned enemy dies, its poison spreads to the 2 nearest enemies."},
 		"fx": {"poison_mult": 1.6, "start_copies": {"spore": 1}}},
 	"hunt": {"faction": "verdant", "name": "The Wild Hunt", "cost": 60, "portrait": "hero_hunt",
-		"powers": ["+25% gold from kills.", "Your faction ability recharges 30% faster."],
-		"fx": {"kill_gold": 0.25, "ability_cd": 0.7}},
+		"powers": ["+25% gold from kills.", "Start with an extra Wasp Hive blueprint."],
+		"sig": {"name": "Call of the Wild", "trigger": "static", "tids": ["dire_bear", "treant", "hive", "mammoth"], "rate": 0.3,
+			"desc": "Creature towers (Dire Bear, Elder Treant, Wasp Hive, Ancient Mammoth) attack 30% faster."},
+		"fx": {"kill_gold": 0.25, "start_copies": {"hive": 1}}},
 	"durgan": {"faction": "forge", "name": "Thane Durgan Ironbeard", "cost": 0, "portrait": "hero_durgan",
 		"powers": ["Runic Hammer and Siege Mortar deal +25% damage.", "Start with a Siege Mortar blueprint."],
+		"sig": {"name": "Forgefire Barrage", "trigger": "every", "period": 30.0, "kind": "blast", "damage": 50.0,
+			"desc": "Every 30 seconds of a wave, every ground enemy takes 50 damage (+25% per wave)."},
 		"fx": {"tower_dmg": {"tids": ["dwarf_hammer", "dwarf_mortar"], "mult": 0.25}, "start_copies": {"dwarf_mortar": 1}}},
 	"nerissa": {"faction": "tide", "name": "Tidequeen Nerissa", "cost": 0, "portrait": "hero_nerissa",
 		"powers": ["Slows are 25% stronger.", "+1 Rune after every wave."],
+		"sig": {"name": "Tidal Surge", "trigger": "every", "period": 35.0, "kind": "surge", "push": 2.0, "duration": 3.0,
+			"desc": "Every 35 seconds of a wave, every enemy is washed 2 tiles back down the road and slowed 40% for 3 seconds."},
 		"fx": {"slow_mult": 1.25, "recon": 1}},
 	"mortis": {"faction": "grave", "name": "Mortis, the Bone Lord", "cost": 0, "portrait": "hero_mortis",
 		"powers": ["Poison deals +40% damage.", "+20% gold from kills."],
+		"sig": {"name": "Reaping", "trigger": "every", "period": 40.0, "kind": "reap", "pct": 0.1,
+			"desc": "Every 40 seconds of a wave, every enemy loses 10% of its max health (bosses 3%)."},
 		"fx": {"poison_mult": 1.4, "kill_gold": 0.2}},
 }
 
@@ -663,33 +677,128 @@ static func muzzle_cells(tid: String, anchor: Vector2i, facing: int) -> Array:
 ## Four paths, bought with gold during a run. Treasury / Artificers / Bulwark are sequential (each node needs
 ## the one before it) and get much stronger deeper in; Slayers are separate picks you take (up to two ranks)
 ## to answer the threats in front of you.
+## Castle talents: four paths bought with gold during a run (C). Economy, Arsenal and Keep are each faction's own (its
+## color: White order and walls, Green growth and venom, Red fire and hoards, Blue tides and lore, Black blood-price and
+## death); Slayers (pick any, twice) is shared. Each path unlocks in order; the last node is repeatable. A node's fx are
+## applied by Game._apply_fx: mods keys add (cost_mult multiplies; interest / moat / turret / turret_rate take the
+## higher), max_hp, gold_now, builders_now, diggers_now, recon_now; hero keys slow_mult / poison_mult / aura_mult
+## multiply, water_dmg / death_burst / upgrade_discount / ponds add.
 const TALENT_COSTS := [60, 110, 170, 250]
-const TALENTS := {
-	"treasury": {"name": "Treasury", "color": Color(1.0, 0.82, 0.35), "desc": "Resource generation", "nodes": [
-		{"id": "tax", "name": "Tax Collectors", "desc": "+20 gold after every wave."},
-		{"id": "interest", "name": "Moneylenders", "desc": "Earn 6% interest on unspent gold after every wave (up to 45)."},
-		{"id": "scouts", "name": "Runecarvers", "desc": "+1 Rune after every wave, and a free Builder every 3 waves."},
-		{"id": "mint", "name": "Royal Mint", "desc": "+30% gold from kills and +40 gold after every wave."},
-		{"id": "caravan", "name": "Trade Caravans", "desc": "Buy a Builder and 2 Runes right now. Repeatable.", "repeat": true}]},
-	"artificers": {"name": "Artificers", "color": Color(0.55, 0.8, 1.0), "desc": "Stronger, cheaper towers", "nodes": [
-		{"id": "guild", "name": "Guild Discount", "desc": "Towers and upgrades cost 10% less."},
-		{"id": "drill", "name": "Drillmasters", "desc": "All towers attack 12% faster."},
-		{"id": "optics", "name": "Optics", "desc": "All towers get +12% range."},
-		{"id": "masters", "name": "Master Crafters", "desc": "Blueprints give +1 copy and all towers deal +15% damage."},
-		{"id": "refine", "name": "Refinement", "desc": "All towers deal +6% damage. Repeatable.", "repeat": true}]},
-	"slayers": {"name": "Slayers", "color": Color(1.0, 0.45, 0.35), "desc": "Extra damage against what's coming", "pick": true, "nodes": [
-		{"id": "sky", "name": "Sky Hunters", "desc": "+30% damage to flying enemies (per rank).", "cost": 80},
-		{"id": "pierce", "name": "Armor Piercers", "desc": "+30% damage to armored enemies (per rank).", "cost": 80},
-		{"id": "breaker", "name": "Shield Breakers", "desc": "Shields break 60% faster (per rank).", "cost": 80},
-		{"id": "seers", "name": "Seers", "desc": "The castle sees camouflage 4 tiles further, +20% damage to camouflaged enemies (per rank).", "cost": 80},
-		{"id": "giant", "name": "Giant Slayers", "desc": "+30% damage to bosses (per rank).", "cost": 100}]},
-	"bulwark": {"name": "Bulwark", "color": Color(0.75, 0.75, 0.8), "desc": "Castle defenses", "nodes": [
-		{"id": "walls", "name": "Stone Walls", "desc": "+8 castle health."},
-		{"id": "turret", "name": "Keep Ballista", "desc": "The castle shoots enemies within 4 tiles."},
-		{"id": "moat", "name": "Moat", "desc": "Enemies within 5 tiles of the castle are slowed by 35%."},
-		{"id": "citadel", "name": "Citadel", "desc": "The keep ballista fires twice as fast, and the castle repairs 3 health after every wave."},
-		{"id": "ramparts", "name": "Ramparts", "desc": "+4 castle health and the keep ballista deals +25% damage. Repeatable.", "repeat": true}]},
+const SLAYERS := {"name": "Slayers", "color": Color(1.0, 0.45, 0.35), "desc": "Extra damage against what's coming", "pick": true, "nodes": [
+	{"id": "sky", "name": "Sky Hunters", "desc": "+30% damage to flying enemies (per rank).", "cost": 80, "fx": {"vs_air": 0.3}},
+	{"id": "pierce", "name": "Armor Piercers", "desc": "+30% damage to armored enemies (per rank).", "cost": 80, "fx": {"vs_armor": 0.3}},
+	{"id": "breaker", "name": "Shield Breakers", "desc": "Shields break 60% faster (per rank).", "cost": 80, "fx": {"shield_break": 0.6}},
+	{"id": "seers", "name": "Seers", "desc": "The castle sees camouflage 4 tiles further, +20% damage to camouflaged enemies (per rank).", "cost": 80,
+		"fx": {"castle_detect": 4.0, "vs_camo": 0.2}},
+	{"id": "giant", "name": "Giant Slayers", "desc": "+30% damage to bosses (per rank).", "cost": 100, "fx": {"vs_boss": 0.3}}]}
+const FACTION_TALENTS := {
+	"crown": {
+		"economy": {"name": "Royal Treasury", "color": Color(1.0, 0.82, 0.35), "desc": "Taxes and trade", "nodes": [
+			{"id": "tax", "name": "Tithes", "desc": "+20 gold after every wave.", "fx": {"treasury": 20}},
+			{"id": "interest", "name": "Royal Bank", "desc": "Earn 6% interest on unspent gold after every wave (up to 45).", "fx": {"interest": 0.06}},
+			{"id": "scouts", "name": "Heralds", "desc": "+1 Rune after every wave, and a free Builder every 3 waves.", "fx": {"recon_wave": 1, "builder_every": 3}},
+			{"id": "mint", "name": "Crown Mint", "desc": "+30% gold from kills and +40 gold after every wave.", "fx": {"kill_gold": 0.3, "treasury": 40}},
+			{"id": "caravan", "name": "Royal Caravans", "desc": "Buy a Builder and 2 Runes right now. Repeatable.", "repeat": true, "fx": {"builders_now": 1, "recon_now": 2}}]},
+		"arsenal": {"name": "Order of the Spire", "color": Color(0.55, 0.8, 1.0), "desc": "Drilled, blessed towers", "nodes": [
+			{"id": "guild", "name": "Guild Charters", "desc": "Towers and upgrades cost 10% less.", "fx": {"cost_mult": 0.9}},
+			{"id": "drill", "name": "Drillmasters", "desc": "All towers attack 12% faster.", "fx": {"rate": 0.12}},
+			{"id": "c_consecrate", "name": "Consecration", "desc": "Support auras (banners, chapels, moonwells...) are 25% stronger.", "fx": {"aura_mult": 1.25}},
+			{"id": "masters", "name": "Paladin Corps", "desc": "Blueprints give +1 copy and all towers deal +15% damage.", "fx": {"extra_copies": 1, "dmg_all": 0.15}},
+			{"id": "refine", "name": "Holy Steel", "desc": "All towers deal +6% damage. Repeatable.", "repeat": true, "fx": {"dmg_all": 0.06}}]},
+		"keep": {"name": "Bastion", "color": Color(0.85, 0.85, 0.9), "desc": "Walls and the keep", "nodes": [
+			{"id": "walls", "name": "Stone Walls", "desc": "+8 castle health.", "fx": {"max_hp": 8}},
+			{"id": "turret", "name": "Keep Ballista", "desc": "The castle shoots enemies within 4 tiles.", "fx": {"turret": 1}},
+			{"id": "c_sanctuary", "name": "Sanctuary", "desc": "The castle repairs 3 health after every wave.", "fx": {"repair": 3}},
+			{"id": "citadel", "name": "Citadel", "desc": "The keep ballista fires twice as fast, and +6 castle health.", "fx": {"turret_rate": 2.0, "max_hp": 6}},
+			{"id": "ramparts", "name": "Ramparts", "desc": "+4 castle health and the keep deals +25% damage. Repeatable.", "repeat": true, "fx": {"max_hp": 4, "turret_dmg": 0.25}}]},
+	},
+	"verdant": {
+		"economy": {"name": "Grove Bounty", "color": Color(0.6, 0.9, 0.4), "desc": "Foraging and harvest", "nodes": [
+			{"id": "v_forage", "name": "Forager Bands", "desc": "+15 gold after every wave and +15% gold from kills.", "fx": {"treasury": 15, "kill_gold": 0.15}},
+			{"id": "v_groves", "name": "Sacred Groves", "desc": "+1 Rune after every wave.", "fx": {"recon_wave": 1}},
+			{"id": "v_seed", "name": "Seed Vaults", "desc": "Earn 6% interest on unspent gold after every wave (up to 45).", "fx": {"interest": 0.06}},
+			{"id": "v_circles", "name": "Druid Circles", "desc": "Blueprints give +1 copy, and a free Builder every 3 waves.", "fx": {"extra_copies": 1, "builder_every": 3}},
+			{"id": "v_harvest", "name": "Bountiful Harvest", "desc": "+60 gold now and +10 gold after every wave. Repeatable.", "repeat": true, "fx": {"gold_now": 60, "treasury": 10}}]},
+		"arsenal": {"name": "Wildwood", "color": Color(0.45, 0.8, 0.35), "desc": "Thorn, root and venom", "nodes": [
+			{"id": "v_thornbark", "name": "Thornbark", "desc": "All towers deal +10% damage.", "fx": {"dmg_all": 0.1}},
+			{"id": "v_roots", "name": "Deep Roots", "desc": "Slows are 20% stronger.", "fx": {"slow_mult": 1.2}},
+			{"id": "v_venom", "name": "Venom Glands", "desc": "Poison deals 35% more damage.", "fx": {"poison_mult": 1.35}},
+			{"id": "v_ancient", "name": "Ancient Growth", "desc": "All towers get +15% range.", "fx": {"range": 0.15}},
+			{"id": "v_sap", "name": "Wildsap", "desc": "All towers deal +6% damage. Repeatable.", "repeat": true, "fx": {"dmg_all": 0.06}}]},
+		"keep": {"name": "Living Wall", "color": Color(0.7, 0.6, 0.4), "desc": "Brambles round the keep", "nodes": [
+			{"id": "v_hedge", "name": "Bramble Hedge", "desc": "+8 castle health.", "fx": {"max_hp": 8}},
+			{"id": "v_vines", "name": "Strangling Vines", "desc": "Enemies within 5 tiles of the castle are slowed by 35%.", "fx": {"moat": 0.35}},
+			{"id": "v_heartwood", "name": "Heartwood", "desc": "The castle repairs 3 health after every wave.", "fx": {"repair": 3}},
+			{"id": "v_thornspit", "name": "Thornspitter Keep", "desc": "The castle spits thorns at enemies within 4 tiles, twice as fast as a ballista.", "fx": {"turret": 1, "turret_rate": 2.0}},
+			{"id": "v_barkskin", "name": "Barkskin", "desc": "+4 castle health and the keep deals +25% damage. Repeatable.", "repeat": true, "fx": {"max_hp": 4, "turret_dmg": 0.25}}]},
+	},
+	"forge": {
+		"economy": {"name": "Mountain Hold", "color": Color(1.0, 0.7, 0.3), "desc": "Ore, hoards and tunnels", "nodes": [
+			{"id": "f_ore", "name": "Ore Veins", "desc": "+25 gold after every wave.", "fx": {"treasury": 25}},
+			{"id": "f_hoard", "name": "Dwarven Hoard", "desc": "Earn 8% interest on unspent gold after every wave (up to 45).", "fx": {"interest": 0.08}},
+			{"id": "f_tunnels", "name": "Tunnel Crews", "desc": "A Builder and a Digger now, and a free Builder every 3 waves.", "fx": {"builders_now": 1, "diggers_now": 1, "builder_every": 3}},
+			{"id": "f_seams", "name": "Gold Seams", "desc": "+30% gold from kills and +1 Rune after every wave.", "fx": {"kill_gold": 0.3, "recon_wave": 1}},
+			{"id": "f_delves", "name": "Deep Delves", "desc": "A Builder, a Digger and 50 gold right now. Repeatable.", "repeat": true, "fx": {"builders_now": 1, "diggers_now": 1, "gold_now": 50}}]},
+		"arsenal": {"name": "Runesmiths", "color": Color(1.0, 0.5, 0.3), "desc": "Fire, powder and steel", "nodes": [
+			{"id": "f_smiths", "name": "Master Smiths", "desc": "Upgrades cost 20% less.", "fx": {"upgrade_discount": 0.2}},
+			{"id": "f_powder", "name": "Black Powder", "desc": "Blasts and slams hit a 25% wider area.", "fx": {"splash_mult": 0.25}},
+			{"id": "f_iron", "name": "Hot Iron", "desc": "+15% physical damage.", "fx": {"phys": 0.15}},
+			{"id": "f_engines", "name": "Runic Engines", "desc": "All towers attack 15% faster and deal +10% damage.", "fx": {"rate": 0.15, "dmg_all": 0.1}},
+			{"id": "f_temper", "name": "Tempering", "desc": "All towers deal +6% damage. Repeatable.", "repeat": true, "fx": {"dmg_all": 0.06}}]},
+		"keep": {"name": "Iron Keep", "color": Color(0.7, 0.6, 0.55), "desc": "Iron walls and a cannon", "nodes": [
+			{"id": "f_walls", "name": "Iron Walls", "desc": "+10 castle health.", "fx": {"max_hp": 10}},
+			{"id": "f_cannon", "name": "Keep Cannon", "desc": "The castle shoots enemies within 4 tiles, +25% keep damage.", "fx": {"turret": 1, "turret_dmg": 0.25}},
+			{"id": "f_moat", "name": "Slag Moat", "desc": "Enemies within 5 tiles of the castle are slowed by 25%, and the keep deals +25% damage.", "fx": {"moat": 0.25, "turret_dmg": 0.25}},
+			{"id": "f_citadel", "name": "Forge Citadel", "desc": "The keep fires twice as fast, and the castle repairs 2 health after every wave.", "fx": {"turret_rate": 2.0, "repair": 2}},
+			{"id": "f_ramparts", "name": "Bulwarks", "desc": "+4 castle health and the keep deals +25% damage. Repeatable.", "repeat": true, "fx": {"max_hp": 4, "turret_dmg": 0.25}}]},
+	},
+	"tide": {
+		"economy": {"name": "Tidal Trade", "color": Color(0.45, 0.8, 0.95), "desc": "Pearls and charts", "nodes": [
+			{"id": "t_divers", "name": "Pearl Divers", "desc": "+20 gold after every wave.", "fx": {"treasury": 20}},
+			{"id": "t_charts", "name": "Tide Charts", "desc": "+1 Rune after every wave.", "fx": {"recon_wave": 1}},
+			{"id": "t_sunken", "name": "Sunken Treasure", "desc": "Earn 6% interest on unspent gold after every wave (up to 45).", "fx": {"interest": 0.06}},
+			{"id": "t_markets", "name": "Coral Markets", "desc": "Blueprints give +1 copy and towers cost 5% less.", "fx": {"extra_copies": 1, "cost_mult": 0.95}},
+			{"id": "t_fleet", "name": "Merchant Fleet", "desc": "2 Runes and 40 gold right now. Repeatable.", "repeat": true, "fx": {"recon_now": 2, "gold_now": 40}}]},
+		"arsenal": {"name": "Deep Lore", "color": Color(0.35, 0.6, 1.0), "desc": "Undertow and riptide", "nodes": [
+			{"id": "t_undertow", "name": "Undertow", "desc": "Slows are 20% stronger.", "fx": {"slow_mult": 1.2}},
+			{"id": "t_lore", "name": "Wave Lore", "desc": "All towers get +12% range.", "fx": {"range": 0.12}},
+			{"id": "t_riptide", "name": "Riptide", "desc": "Towers next to water deal a further +20% damage, and your tiles bring more ponds.", "fx": {"water_dmg": 0.2, "ponds": 0.15}},
+			{"id": "t_abyss", "name": "Abyssal Pressure", "desc": "+20% magic damage and all towers attack 8% faster.", "fx": {"magic": 0.2, "rate": 0.08}},
+			{"id": "t_currents", "name": "Strong Currents", "desc": "All towers deal +6% damage. Repeatable.", "repeat": true, "fx": {"dmg_all": 0.06}}]},
+		"keep": {"name": "Seawall", "color": Color(0.6, 0.75, 0.85), "desc": "Breakers and a lighthouse", "nodes": [
+			{"id": "t_seawall", "name": "Seawall", "desc": "+8 castle health.", "fx": {"max_hp": 8}},
+			{"id": "t_moat", "name": "Tidal Moat", "desc": "Enemies within 5 tiles of the castle are slowed by 45%.", "fx": {"moat": 0.45}},
+			{"id": "t_battery", "name": "Harpoon Battery", "desc": "The castle shoots enemies within 4 tiles.", "fx": {"turret": 1}},
+			{"id": "t_lighthouse", "name": "Lighthouse", "desc": "The castle sees camouflage 6 tiles further, and the keep fires twice as fast.", "fx": {"castle_detect": 6.0, "turret_rate": 2.0}},
+			{"id": "t_breakers", "name": "Breakwaters", "desc": "+4 castle health and the keep deals +25% damage. Repeatable.", "repeat": true, "fx": {"max_hp": 4, "turret_dmg": 0.25}}]},
+	},
+	"grave": {
+		"economy": {"name": "Grave Tithes", "color": Color(0.75, 0.6, 0.95), "desc": "Plunder and blood-price", "nodes": [
+			{"id": "g_robbers", "name": "Grave Robbers", "desc": "+30% gold from kills.", "fx": {"kill_gold": 0.3}},
+			{"id": "g_soultax", "name": "Soul Tax", "desc": "+20 gold after every wave.", "fx": {"treasury": 20}},
+			{"id": "g_blood", "name": "Blood Price", "desc": "Lose 4 max castle health; gain 160 gold right now.", "fx": {"max_hp": -4, "gold_now": 160}},
+			{"id": "g_toll", "name": "Death Toll", "desc": "+1 Rune after every wave, and a free Builder every 3 waves.", "fx": {"recon_wave": 1, "builder_every": 3}},
+			{"id": "g_bargain", "name": "Dark Bargain", "desc": "Lose 2 max castle health; gain 120 gold and a Rune. Repeatable.", "repeat": true, "fx": {"max_hp": -2, "gold_now": 120, "recon_now": 1}}]},
+		"arsenal": {"name": "Necromancy", "color": Color(0.6, 0.85, 0.4), "desc": "Rot, curses and the reaper", "nodes": [
+			{"id": "g_rot", "name": "Rot", "desc": "Poison deals 35% more damage.", "fx": {"poison_mult": 1.35}},
+			{"id": "g_wither", "name": "Withering", "desc": "Enemies below 8% health die when hit.", "fx": {"execute": 0.08}},
+			{"id": "g_burst", "name": "Plague Burst", "desc": "Poisoned enemies burst harder when they die (+10% of their max health).", "fx": {"death_burst": 0.1}},
+			{"id": "g_lich", "name": "Lich Pact", "desc": "+20% magic damage, and blueprints give +1 copy.", "fx": {"magic": 0.2, "extra_copies": 1}},
+			{"id": "g_dark", "name": "Dark Rites", "desc": "All towers deal +6% damage. Repeatable.", "repeat": true, "fx": {"dmg_all": 0.06}}]},
+		"keep": {"name": "Ossuary", "color": Color(0.8, 0.78, 0.7), "desc": "Bone walls and grasping dead", "nodes": [
+			{"id": "g_bones", "name": "Bone Walls", "desc": "+8 castle health.", "fx": {"max_hp": 8}},
+			{"id": "g_grasp", "name": "Grasping Dead", "desc": "Enemies within 5 tiles of the castle are slowed by 35%.", "fx": {"moat": 0.35}},
+			{"id": "g_ballista", "name": "Bone Ballista", "desc": "The castle shoots enemies within 4 tiles.", "fx": {"turret": 1}},
+			{"id": "g_siphon", "name": "Soul Siphon", "desc": "The keep fires twice as fast, and the castle repairs 3 health after every wave.", "fx": {"turret_rate": 2.0, "repair": 3}},
+			{"id": "g_ramparts", "name": "Charnel Ramparts", "desc": "+4 castle health and the keep deals +25% damage. Repeatable.", "repeat": true, "fx": {"max_hp": 4, "turret_dmg": 0.25}}]},
+	},
 }
+
+
+## A faction's castle talent paths, in the order they're shown: its economy and arsenal, the shared slayers, its keep.
+static func talents_for(fid: String) -> Dictionary:
+	var ft: Dictionary = FACTION_TALENTS.get(fid, FACTION_TALENTS["crown"])
+	return {"economy": ft["economy"], "arsenal": ft["arsenal"], "slayers": SLAYERS, "keep": ft["keep"]}
 const TALENT_MAX_RANK := 2
 const TALENT_REPEAT_COST := [200, 120]   # repeatable capstones: base, + this per rank owned
 

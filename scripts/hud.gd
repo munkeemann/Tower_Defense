@@ -301,7 +301,8 @@ func _build_bottom() -> void:
 	start_btn.custom_minimum_size = Vector2(260, 48)
 	v.add_child(start_btn)
 
-	ability_btn = _button("Ability", func(): game.use_ability(), 16)
+	# the commander's signature passive: its name and what it's doing now (click for the details)
+	ability_btn = _button("", func(): toast(String(game.sig.get("desc", "")), GOLD_C), 15)
 	ability_btn.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	ability_btn.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	ability_btn.offset_left = 10
@@ -500,16 +501,13 @@ func set_start(visible_: bool, text := "", preview := "") -> void:
 	preview_lbl.text = preview
 
 
-func update_ability(name_: String, cd_left: float, active_left: float) -> void:
-	if active_left > 0.0:
-		ability_btn.text = "%s  [F]\nActive %.0fs" % [name_, ceil(active_left)]
-		ability_btn.disabled = true
-	elif cd_left > 0.0:
-		ability_btn.text = "%s  [F]\nReady in %.0fs" % [name_, ceil(cd_left)]
-		ability_btn.disabled = true
-	else:
-		ability_btn.text = "%s  [F]\nREADY" % name_
-		ability_btn.disabled = false
+## The commander's signature passive, bottom left.
+func update_signature(sig: Dictionary, status: String) -> void:
+	ability_btn.visible = not sig.is_empty() and build_bar.visible
+	if sig.is_empty():
+		return
+	ability_btn.text = "%s\n%s" % [sig["name"], status]
+	ability_btn.tooltip_text = String(sig["desc"])
 
 
 # ------------------------------------------------------------------ top values
@@ -1277,8 +1275,8 @@ func _build_castle() -> void:
 	var cols := HBoxContainer.new()
 	cols.add_theme_constant_override("separation", 14)
 	v.add_child(cols)
-	for path in GameData.TALENTS:
-		var tp: Dictionary = GameData.TALENTS[path]
+	for path in game.talent_tree():
+		var tp: Dictionary = game.talent_tree()[path]
 		var col: Color = tp["color"]
 		var cv := VBoxContainer.new()
 		cv.add_theme_constant_override("separation", 8)
@@ -1310,7 +1308,7 @@ func _style_castle() -> void:
 		var b: Button = cb[0]
 		var path: String = cb[1]
 		var i: int = cb[2]
-		var tp: Dictionary = GameData.TALENTS[path]
+		var tp: Dictionary = game.talent_tree()[path]
 		var node: Dictionary = tp["nodes"][i]
 		var col: Color = tp["color"]
 		var st := game.talent_state(path, i)
@@ -1524,8 +1522,6 @@ func _faction_card(fid: String, stats: Dictionary) -> Button:
 	vb.add_child(_wrap_label("Strong: " + String(f["strengths"]), 272, 13, Color(0.6, 0.95, 0.6)))
 	vb.add_child(_wrap_label("Weak: " + String(f["weakness"]), 272, 13, Color(1.0, 0.6, 0.5)))
 	vb.add_child(_wrap_label("%s: %s" % [f["passive_name"], f["passive_desc"]], 272, 13, RECON_C))
-	var ab: Dictionary = f["ability"]
-	vb.add_child(_wrap_label("%s: %s" % [ab["name"], ab["desc"]], 272, 13, GOLD_C))
 	var names: PackedStringArray = []
 	for tid in f["towers"]:
 		names.append(GameData.TOWERS[tid]["name"])
@@ -1650,6 +1646,8 @@ func show_hero_select(fid: String) -> void:
 		vb.add_child(_wrap_label(hd["name"], 222, 19, col if unlocked else DIM_C))
 		for pw in hd["powers"]:
 			vb.add_child(_wrap_label("- " + String(pw), 222, 14, TEXT_C if unlocked else DIM_C))
+		if hd.has("sig"):
+			vb.add_child(_wrap_label("%s: %s" % [hd["sig"]["name"], hd["sig"]["desc"]], 222, 13, GOLD_C if unlocked else DIM_C))
 		var spacer := Control.new()
 		spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		vb.add_child(spacer)

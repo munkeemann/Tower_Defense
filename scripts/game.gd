@@ -96,8 +96,12 @@ var _hover_outline: MeshInstance3D    # white outline around the tower under the
 var _ghost_outline: MeshInstance3D    # green / red outline around a footprint being placed
 var _outline_cache := {}
 
-var ability_cd := 0.0
-var ability_active := 0.0
+var sig: Dictionary = {}       # the commander's signature passive (GameData.HEROES[hero]["sig"])
+var sig_timer := 0.0          # "every": wave seconds until it fires
+var sig_cd := 0.0             # "castle_hit": seconds until it can fire again
+var sig_buff := 0.0           # haste / frenzy: seconds left
+var sig_marks := 0            # "mark": enemies marked this wave
+var _wave_leaked := false
 var choice_options: Array = []
 var run_stats := {}
 var stats := {}
@@ -695,7 +699,7 @@ func _input_test() -> bool:
 		ok = false
 	await _it_key(KEY_C)
 	g0 = gold
-	buy_talent("artificers", 0)
+	buy_talent("arsenal", 0)
 	print("INPUTTEST castle open=%s bought guild=%d gold %d -> %d cost mult=%.2f" % [hud.castle_open(), talent_rank("guild"), g0, gold, mods["cost"]])
 	if not hud.castle_open() or talent_rank("guild") != 1 or gold >= g0:
 		print("INPUTTEST FAIL C did not open the castle, or the first Artificers talent was not bought")
@@ -1030,7 +1034,7 @@ func footprint_center(cells: Array) -> Vector3:
 
 func _default_mods() -> Dictionary:
 	return {"phys": 1.0, "magic": 1.0, "range": 1.0, "rate": 0.0, "cost": 1.0, "bounty": 0,
-		"treasury": 0, "ley": 0.0, "crit": 0.0, "execute": 0.0, "ability_cd": 1.0,
+		"treasury": 0, "ley": 0.0, "crit": 0.0, "execute": 0.0, "ability_cd": 1.0, "splash_mult": 0.0,
 		# castle talents
 		"dmg_all": 0.0, "shield_break": 0.0, "vs_air": 0.0, "vs_armor": 0.0, "vs_camo": 0.0, "vs_boss": 0.0,
 		"interest": 0.0, "recon_wave": 0, "kill_gold": 0.0, "extra_copies": 0, "castle_detect": 0.0,
@@ -1195,7 +1199,7 @@ func start_run(fid: String, hero_id := "") -> void:
 	for k in ["phys", "magic", "range"]:
 		mods[k] += float(hero_fx.get(k, 0.0))
 	mods["rate"] += float(hero_fx.get("rate", 0.0))
-	mods["ability_cd"] *= float(hero_fx.get("ability_cd", 1.0))
+	sig = (GameData.HEROES[hero].get("sig", {}) as Dictionary) if hero != "" else {}
 	owned = {}
 	var fac: Dictionary = GameData.FACTIONS[fid]
 	for tid in fac["start_copies"]:
@@ -1210,8 +1214,10 @@ func start_run(fid: String, hero_id := "") -> void:
 	diggers = GameData.START_DIGGERS
 	talents = {}
 	_keep_cd = 0.0
-	ability_cd = 0.0
-	ability_active = 0.0
+	sig_timer = 0.0
+	sig_cd = 0.0
+	sig_buff = 0.0
+	sig_marks = 0
 	run_stats = {"kills": 0, "leaked": 0, "built": 0, "gold_earned": 0, "tiles": 0, "discoveries": 0}
 	board.fog_enabled = false   # the map is just your tiles on a plain backdrop: nothing to hide
 	board.team = KayKit.TEAM.get(fid, "blue")
@@ -1433,6 +1439,10 @@ func start_wave() -> void:
 		return
 	wave += 1
 	_wave_leaks.clear()
+	_wave_leaked = false
+	sig_marks = 0
+	if sig.get("trigger", "") == "every":
+		sig_timer = float(sig["period"]) * float(mods["ability_cd"]) * 0.5   # the first one comes halfway in
 	spawn_queue = next_wave_list.duplicate()
 	wave_clock = -0.3
 	_spawned = 0
@@ -1486,6 +1496,11 @@ func _wave_complete() -> void:
 		builders += 1
 	if int(mods["repair"]) > 0:
 		hp = mini(max_hp, hp + int(mods["repair"]))
+	if sig.get("trigger", "") == "renew":
+		hp = mini(max_hp, hp + int(sig["heal"]))
+		if not _wave_leaked:
+			recon += int(sig["recon"])
+			rc += int(sig["recon"])
 	sfx("wave_clear")
 	if wave >= GameData.MAX_WAVES:
 		_game_over(true)
@@ -1870,7 +1885,7 @@ func _roll_item(kind: String, used: Dictionary) -> Dictionary:
 				"name": "%s blueprint x%d%s" % [d["name"], copies, "" if owned.has(tid) else "  (new)"],
 				"desc": String(d["desc"]) + "  " + tower_stat_line(tid) + ".  %d gold each to build." % tower_cost(tid)}
 		"doctrine":
-			var boons: Array = GameData.BOONS.filter(func(b): return b["id"] != "war_chest" and not used.has(b["id"]))
+			var boons: Array = GameData.BOONS.filter(func(b): return b["id"] != "war_chest" and not used.has(b["id"]) and _boon_ok(b))
 			var total := 0.0
 			for b in boons:
 				total += float(b["weight"])
@@ -2027,6 +2042,8 @@ func _roll_boons(n: int) -> Array:
 				"desc": "All your %s towers deal +30%% damage." % d["name"], "color": GameData.RARITY_COLORS[1],
 				"footer": "Rare"}, 2.5])
 	for b in GameData.BOONS:
+		if not _boon_ok(b):
+			continue
 		var o: Dictionary = b.duplicate()
 		var r: int = b["rarity"]
 		o["kind"] = GameData.RARITY_NAMES[r].to_upper()
@@ -2092,12 +2109,17 @@ func apply_boon(o: Dictionary) -> void:
 
 # ------------------------------------------------------------------ castle talents
 
+## This run's castle talent paths: the faction's economy, arsenal and keep, plus the shared Slayers.
+func talent_tree() -> Dictionary:
+	return GameData.talents_for(faction)
+
+
 func talent_rank(id: String) -> int:
 	return int(talents.get(id, 0))
 
 
 func talent_cost(path: String, idx: int) -> int:
-	var tp: Dictionary = GameData.TALENTS[path]
+	var tp: Dictionary = talent_tree()[path]
 	var node: Dictionary = tp["nodes"][idx]
 	if tp.get("pick", false):
 		return int(round(float(node["cost"]) * (1.0 + 0.8 * talent_rank(node["id"]))))
@@ -2108,7 +2130,7 @@ func talent_cost(path: String, idx: int) -> int:
 
 ## "owned", "open" (can buy now), "locked" (needs the node before it) or "maxed".
 func talent_state(path: String, idx: int) -> String:
-	var tp: Dictionary = GameData.TALENTS[path]
+	var tp: Dictionary = talent_tree()[path]
 	var node: Dictionary = tp["nodes"][idx]
 	if tp.get("pick", false):
 		return "maxed" if talent_rank(node["id"]) >= GameData.TALENT_MAX_RANK else "open"
@@ -2127,54 +2149,48 @@ func buy_talent(path: String, idx: int) -> void:
 		hud.toast("Not enough gold (%d)" % cost, Color(1, 0.5, 0.4))
 		return
 	gold -= cost
-	var id: String = GameData.TALENTS[path]["nodes"][idx]["id"]
+	var node: Dictionary = talent_tree()[path]["nodes"][idx]
+	var id: String = node["id"]
 	talents[id] = talent_rank(id) + 1
-	_apply_talent(id)
+	_apply_fx(node.get("fx", {}))
 	sfx("talent")
-	hud.toast(String(GameData.TALENTS[path]["nodes"][idx]["name"]), GameData.TALENTS[path]["color"])
+	hud.toast(String(node["name"]), talent_tree()[path]["color"])
 	recompute_buffs()
 	_refresh_ui()
 
 
-func _apply_talent(id: String) -> void:
-	match id:
-		"tax": mods["treasury"] += 20
-		"interest": mods["interest"] = 0.06
-		"scouts":
-			mods["recon_wave"] += 1
-			mods["builder_every"] = 3
-		"mint":
-			mods["kill_gold"] += 0.3
-			mods["treasury"] += 40
-		"guild": mods["cost"] *= 0.9
-		"drill": mods["rate"] += 0.12
-		"optics": mods["range"] += 0.12
-		"masters":
-			mods["extra_copies"] += 1
-			mods["dmg_all"] += 0.15
-		"sky": mods["vs_air"] += 0.3
-		"pierce": mods["vs_armor"] += 0.3
-		"breaker": mods["shield_break"] += 0.6
-		"seers":
-			mods["castle_detect"] += 4.0
-			mods["vs_camo"] += 0.2
-		"giant": mods["vs_boss"] += 0.3
-		"walls":
-			max_hp += 8
-			hp += 8
-		"turret": mods["turret"] = 1
-		"moat": mods["moat"] = 0.35
-		"citadel":
-			mods["turret_rate"] = 2.0
-			mods["repair"] = 3
-		"caravan":
-			builders += 1
-			recon += 2
-		"refine": mods["dmg_all"] += 0.06
-		"ramparts":
-			max_hp += 4
-			hp += 4
-			mods["turret_dmg"] = float(mods.get("turret_dmg", 0.0)) + 0.25
+## A castle talent's effects (see GameData.TALENT_COSTS for the keys).
+func _apply_fx(fx: Dictionary) -> void:
+	for k in fx:
+		var v = fx[k]
+		match k:
+			"cost_mult":
+				mods["cost"] *= float(v)
+			"max_hp":
+				max_hp = maxi(1, max_hp + int(v))
+				hp = clampi(hp + int(v), 1, max_hp)
+			"gold_now":
+				_add_gold(int(v))
+			"builders_now":
+				builders += int(v)
+			"diggers_now":
+				diggers += int(v)
+			"recon_now":
+				recon += int(v)
+			"interest", "moat", "turret_rate":
+				mods[k] = maxf(float(mods[k]), float(v))
+			"turret":
+				mods[k] = maxi(int(mods[k]), int(v))
+			"builder_every":
+				mods[k] = int(v) if int(mods[k]) == 0 else mini(int(mods[k]), int(v))
+			"slow_mult", "poison_mult", "aura_mult":
+				hero_fx[k] = float(hero_fx.get(k, 1.0)) * float(v)
+			"water_dmg", "death_burst", "upgrade_discount", "ponds":
+				hero_fx[k] = float(hero_fx.get(k, 0.0)) + float(v)
+				if k == "ponds":
+					board.pond_bonus = float(hero_fx["ponds"])
+			_:
+				mods[k] = mods.get(k, 0) + v
 
 
 ## Bulwark: the keep ballista and the moat.
@@ -2293,10 +2309,22 @@ func tower_cost(tid: String) -> int:
 
 
 func haste_bonus() -> float:
-	if ability_active > 0.0:
-		var ab: Dictionary = GameData.FACTIONS[faction]["ability"]
-		if ab["kind"] == "haste":
-			return ab["power"]
+	if sig_buff > 0.0 and sig.get("kind", "") == "haste":
+		return float(sig["power"])
+	return 0.0
+
+
+## Opening Barrage and the like: extra damage for every tower while it lasts.
+func frenzy_bonus() -> float:
+	if sig_buff > 0.0 and sig.get("kind", "") == "frenzy":
+		return float(sig["power"])
+	return 0.0
+
+
+## Call of the Wild: some commanders make certain towers attack faster.
+func sig_rate_bonus(tid: String) -> float:
+	if sig.get("trigger", "") == "static" and tid in sig.get("tids", []):
+		return float(sig["rate"])
 	return 0.0
 
 
@@ -2337,8 +2365,13 @@ func _process(delta: float) -> void:
 		return
 	if autotest:
 		_autotest_step(delta)
-	ability_cd = max(0.0, ability_cd - delta)
-	ability_active = max(0.0, ability_active - delta)
+	sig_cd = max(0.0, sig_cd - delta)
+	sig_buff = max(0.0, sig_buff - delta)
+	if state == S.WAVE and sig.get("trigger", "") == "every":
+		sig_timer -= delta
+		if sig_timer <= 0.0 and not enemies.is_empty():
+			_sig_fire()
+			sig_timer = float(sig["period"]) * float(mods["ability_cd"])
 	if state == S.WAVE:
 		_castle_defense(delta)
 		_detect_timer -= delta
@@ -2391,8 +2424,7 @@ func _refresh_ui() -> void:
 	hud.refresh_tower_bar()
 	if selected and is_instance_valid(selected):
 		hud.show_tower_info(selected)
-	var ab: Dictionary = GameData.FACTIONS[faction]["ability"]
-	hud.update_ability(ab["name"], ability_cd, ability_active)
+	hud.update_signature(sig, _sig_status())
 	hud.refresh_damage(0.1)
 
 
@@ -2410,6 +2442,10 @@ func spawn_enemy(type_id: String, r: PackedVector3Array, progress := 0.0) -> Ene
 	mult *= float(_diff()["hp"])
 	e.setup(self, type_id, r, mult, progress)
 	enemies.append(e)
+	# Hunter's Mark: the first few of a wave, and every boss, take extra damage all the way in
+	if sig.get("trigger", "") == "mark" and state == S.WAVE and progress <= 0.0 and (sig_marks < int(sig["count"]) or e.is_boss):
+		sig_marks += 1
+		e.apply_vuln(float(sig["power"]), 9999.0)
 	if progress <= 0.0:
 		VFX.play(world, "magic", r[0] + Vector3(0, 1.0, 0), Color(0.75, 0.4, 1.0), 1.2)
 		if e.flying:
@@ -2501,6 +2537,13 @@ func enemy_killed(e: Enemy) -> void:
 			if not o.dead and o.position.distance_to(e.position) <= 1.6 * GameData.TILE:
 				o.take_damage(bd, "magic", null, true)
 		FX.burst(world, e.aim_pos(), Color(0.45, 0.9, 0.3), 1.6, 0.3)
+	# Overgrowth: a poisoned enemy's poison passes to the nearest others when it dies
+	if sig.get("trigger", "") == "spread" and e.dot_time > 0.0:
+		var near: Array = enemies.filter(func(o): return not o.dead and o.position.distance_to(e.position) <= 2.5 * GameData.TILE)
+		near.sort_custom(func(a, b): return a.position.distance_to(e.position) < b.position.distance_to(e.position))
+		for i in mini(int(sig["count"]), near.size()):
+			(near[i] as Enemy).apply_dot(e.dot_dps, maxf(e.dot_time, 1.5), e.dot_dtype, e.dot_source)
+			FX.ring(world, (near[i] as Enemy).ground_pos() + Vector3(0, 0.1, 0), Color(0.45, 0.9, 0.3), 0.8, 0.4)
 	if e.data.has("split") and state != S.OVER:
 		var sp: Dictionary = e.data["split"]
 		for i in int(sp["count"]):
@@ -2542,6 +2585,10 @@ func enemy_leaked(e: Enemy) -> void:
 	var leak: int = int(BOSS_LEAK.get(wave, e.data["leak"])) if e.is_boss else int(e.data["leak"])
 	hp -= leak
 	run_stats["leaked"] += 1
+	_wave_leaked = true
+	if sig.get("trigger", "") == "castle_hit" and sig_cd <= 0.0:
+		_sig_fire()
+		sig_cd = float(sig["cooldown"]) * float(mods["ability_cd"])
 	var lk := e.type_id + ("/" + e.mod_trait if e.mod_trait != "" else "")
 	_wave_leaks[lk] = int(_wave_leaks.get(lk, 0)) + 1
 	FX.burst(world, board.cell_to_world(board.center) + Vector3(0, 2, 0), Color(1, 0.2, 0.2), 2.5, 0.4)
@@ -2641,55 +2688,89 @@ func chain_lightning(pkt: Dictionary, first: Enemy, jumps: int, from: Vector3, c
 
 # ------------------------------------------------------------------ ability
 
-func use_ability() -> void:
-	if state == S.MENU or state == S.OVER or ability_cd > 0.0 or ability_active > 0.0 or paused:
+## The commander's signature going off: what it does depends on its kind (the old faction abilities live on here).
+func _sig_fire() -> void:
+	if sig.is_empty() or state in [S.MENU, S.OVER]:
 		return
-	var ab: Dictionary = GameData.FACTIONS[faction]["ability"]
-	ability_cd = float(ab["cooldown"]) * mods["ability_cd"]
-	match ab["kind"]:
-		"haste":
-			ability_active = ab["duration"]
+	var nm: String = sig["name"]
+	if autotest:
+		print("AUTOTEST signature %s fired on wave %d (%d enemies)" % [nm, wave, enemies.size()])
+	match String(sig.get("kind", "")):
+		"haste", "frenzy":
+			sig_buff = float(sig["duration"])
+			var col := Color(1, 0.8, 0.3) if sig["kind"] == "haste" else Color(1.0, 0.55, 0.3)
 			for t in towers:
-				FX.ring(world, t.position + Vector3(0, 0.2, 0), Color(1, 0.8, 0.3), 1.6, 0.5)
-			hud.toast(ab["name"] + "!", Color(1, 0.8, 0.3))
+				FX.ring(world, t.position + Vector3(0, 0.2, 0), col, 1.6, 0.5)
+			hud.toast(nm + "!", col)
 		"root":
-			ability_active = ab["duration"]
-			var dmg: float = float(ab["damage"]) * (1.0 + wave * 0.15)
+			var dmg: float = float(sig["damage"]) * (1.0 + wave * 0.15)
 			for e in enemies.duplicate():
 				if e.dead or e.flying:
 					continue
-				e.apply_stun(ab["duration"])
+				e.apply_stun(sig["duration"])
 				FX.ring(world, e.ground_pos() + Vector3(0, 0.1, 0), Color(0.4, 0.9, 0.3), 1.0, 0.6)
 				e.take_damage(dmg, "magic", null)
-			hud.toast(ab["name"] + "!", Color(0.5, 1.0, 0.4))
+			hud.toast(nm + "!", Color(0.5, 1.0, 0.4))
 		"blast":
-			var dmg2: float = float(ab["damage"]) * (1.0 + wave * 0.25)
+			var dmg2: float = float(sig["damage"]) * (1.0 + wave * 0.25)
 			for e in enemies.duplicate():
 				if e.dead or e.flying:
 					continue
 				FX.burst(world, e.ground_pos() + Vector3(0, 0.4, 0), Color(1.0, 0.5, 0.15), 1.2, 0.35)
 				e.take_damage(dmg2, "phys", null)
 			cam.shake(0.5)
-			hud.toast(ab["name"] + "!", Color(1.0, 0.55, 0.3))
-		"surge":
-			ability_active = ab["duration"]
+			hud.toast(nm + "!", Color(1.0, 0.55, 0.3))
+		"arcane":
+			var dmg3: float = float(sig["damage"]) * (1.0 + wave * 0.2)
 			for e in enemies.duplicate():
 				if e.dead:
 					continue
-				e.push_back(float(ab["push"]) * GameData.TILE)
-				e.apply_slow(0.4, ab["duration"])
+				FX.burst(world, e.aim_pos(), Color(0.65, 0.55, 1.0), 0.9, 0.3)
+				e.take_damage(dmg3, "magic", null)
+			hud.toast(nm + "!", Color(0.7, 0.6, 1.0))
+		"surge":
+			for e in enemies.duplicate():
+				if e.dead:
+					continue
+				e.push_back(float(sig["push"]) * GameData.TILE)
+				e.apply_slow(0.4, sig["duration"])
 				FX.ring(world, e.ground_pos() + Vector3(0, 0.1, 0), Color(0.35, 0.65, 1.0), 1.2, 0.5)
-			hud.toast(ab["name"] + "!", Color(0.45, 0.75, 1.0))
+			hud.toast(nm + "!", Color(0.45, 0.75, 1.0))
 		"reap":
 			for e in enemies.duplicate():
 				if e.dead:
 					continue
-				e.take_damage(e.max_hp * (0.05 if e.is_boss else float(ab["pct"])), "magic", null)
+				e.take_damage(e.max_hp * (0.03 if e.is_boss else float(sig["pct"])), "magic", null)
 				FX.burst(world, e.aim_pos(), Color(0.6, 0.35, 0.9), 0.9, 0.3)
-			hud.toast(ab["name"] + "!", Color(0.7, 0.5, 1.0))
-	sfx("surge" if ab["kind"] == "surge" else "portal")
+			hud.toast(nm + "!", Color(0.7, 0.5, 1.0))
+	sfx("surge" if sig.get("kind", "") == "surge" else "portal")
 	cam.shake(0.2)
 	_refresh_ui()
+
+
+## What the signature panel says right now.
+func _sig_status() -> String:
+	if sig.is_empty():
+		return ""
+	match String(sig["trigger"]):
+		"every":
+			if state != S.WAVE:
+				return "every %ds of a wave" % int(round(float(sig["period"]) * float(mods["ability_cd"])))
+			return "in %ds" % int(ceil(sig_timer))
+		"castle_hit":
+			if sig_buff > 0.0:
+				return "active %ds" % int(ceil(sig_buff))
+			return "recharging %ds" % int(ceil(sig_cd)) if sig_cd > 0.0 else "ready: when the castle is hit"
+		"wave_start":
+			return "active %ds" % int(ceil(sig_buff)) if sig_buff > 0.0 else "at the start of each wave"
+		"mark":
+			return "%d / %d marked this wave" % [mini(sig_marks, int(sig["count"])), int(sig["count"])] if state == S.WAVE else "marks the first %d of each wave" % int(sig["count"])
+	return "always on"
+
+
+## Commander's Focus is only worth offering when the signature has a timer to shorten.
+func _boon_ok(b: Dictionary) -> bool:
+	return b["id"] != "ability" or String(sig.get("trigger", "")) in ["every", "castle_hit"]
 
 
 # ------------------------------------------------------------------ building
@@ -3135,8 +3216,6 @@ func _handle_key(code: Key, shift := false) -> void:
 			sell_selected()
 		KEY_T:
 			cycle_target()
-		KEY_F:
-			use_ability()
 		KEY_V:
 			cycle_speed()
 		KEY_P:
@@ -3278,8 +3357,6 @@ func _autotest_step(delta: float) -> void:
 					await get_tree().create_timer(1.0).timeout
 					await _shot(key)
 					deselect()
-			if ability_cd <= 0.0 and enemies.size() > 8:
-				use_ability()
 
 
 func _auto_build() -> void:
@@ -3375,8 +3452,8 @@ func _auto_weakest_route() -> PackedVector3Array:
 func _auto_talents() -> void:
 	if state != S.BUILD or gold < 180 or wave < 3:
 		return
-	var order: Array = [["treasury", 0], ["artificers", 0], ["treasury", 1], ["artificers", 1], ["bulwark", 0],
-		["artificers", 2], ["treasury", 2], ["bulwark", 1], ["artificers", 3], ["treasury", 3]]
+	var order: Array = [["economy", 0], ["arsenal", 0], ["economy", 1], ["arsenal", 1], ["keep", 0],
+		["arsenal", 2], ["economy", 2], ["keep", 1], ["arsenal", 3], ["economy", 3]]
 	for t in threats:
 		if threat_known(t):
 			var th: Dictionary = GameData.THREATS[t["id"]]
@@ -3390,7 +3467,7 @@ func _auto_talents() -> void:
 		if talent_state(o[0], o[1]) == "open" and gold - talent_cost(o[0], o[1]) >= 120:
 			buy_talent(o[0], o[1])
 	for k in 6:
-		var o: Array = [["artificers", 4], ["bulwark", 4], ["treasury", 4]][k % 3]
+		var o: Array = [["arsenal", 4], ["keep", 4], ["economy", 4]][k % 3]
 		if talent_state(o[0], o[1]) == "open" and gold - talent_cost(o[0], o[1]) >= 250:
 			buy_talent(o[0], o[1])
 

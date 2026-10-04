@@ -135,7 +135,7 @@ func damage() -> float:
 	if on_ley:
 		d *= 1.0 + GameData.LEY_BONUS + game.mods["ley"]
 	d *= 1.0 + float(game.masterwork.get(id, 0.0)) + game.hero_tower_bonus(id)
-	d *= (1.0 + water_bonus) * (1.0 + float(game.mods.get("dmg_all", 0.0)))
+	d *= (1.0 + water_bonus) * (1.0 + float(game.mods.get("dmg_all", 0.0)) + game.frenzy_bonus())
 	return d
 
 
@@ -145,7 +145,8 @@ func range_world() -> float:
 
 
 func fire_rate() -> float:
-	return float(data["rate"]) * GameData.LEVEL_RATE[level - 1] * (1.0 + game.mods["rate"] + buff_rate + game.haste_bonus() + fxf("rate"))
+	return float(data["rate"]) * GameData.LEVEL_RATE[level - 1] * (1.0 + game.mods["rate"] + buff_rate + game.haste_bonus() + fxf("rate")
+		+ game.sig_rate_bonus(id))
 
 
 func buff() -> Dictionary:
@@ -249,7 +250,7 @@ func make_packet() -> Dictionary:
 		"dmg": dmg,
 		"tower_id": id,
 		"dtype": data.get("dtype", "phys"),
-		"splash": (float(data.get("splash", 0.0)) + fxf("splash")) * GameData.TILE,
+		"splash": (float(data.get("splash", 0.0)) + fxf("splash")) * GameData.TILE * (1.0 + float(game.mods.get("splash_mult", 0.0))),
 		"slow": slow,
 		"dot": dot,
 		"stun": fx.get("stun", data.get("stun", [])),
