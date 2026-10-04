@@ -53,8 +53,8 @@ const DIFFICULTIES := [
 ]
 ## Hard and Brutal ease in: their health and size multipliers grow from 1.0 on wave 1 to full strength by this wave
 ## (playtests: with two or three roads to cover from the first wave, the full multipliers ended most runs by wave 5;
-## reaching full strength on wave 10, with the first boss, left a wall at waves 8-12).
-const DIFF_RAMP := 18
+## reaching full strength on wave 10, with the first boss, left a wall at waves 8-12; by wave 18, Hard played like Normal).
+const DIFF_RAMP := 14
 const EXTRA_ROAD_GOLD := 150   # (playtests: Brutal's three roads left too few towers by the wave-10 boss at +100)
 
 ## The color pie. Every run is one color (set by your commander). You draft that color's own towers plus
@@ -153,7 +153,7 @@ const TOWERS := {
 	"banner": {"name": "War Banner", "tier": 2, "copies": 2, "cost": 160, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.6,
 		"buff": {"dmg": 0.35}, "color": Color(0.85, 0.2, 0.2),
 		"desc": "Nearby towers deal +35% damage (scales with level)."},
-	"gryphon": {"name": "Gryphon Roost", "tier": 3, "copies": 1, "cost": 260, "attack": "arrow", "dmg": 40.0, "rate": 1.3, "range": 6.1,
+	"gryphon": {"name": "Gryphon Roost", "tier": 3, "copies": 1, "cost": 260, "attack": "arrow", "dmg": 50.0, "rate": 1.3, "range": 6.1,
 		"dtype": "phys", "air": true, "ground": true, "air_bonus": 2.5, "detect": true, "color": Color(0.9, 0.75, 0.45),
 		"desc": "Anti-air specialist: 2.5x damage to flying enemies, and it still strikes the ground."},
 	"bombard": {"name": "Royal Bombard", "tier": 3, "copies": 1, "cost": 320, "attack": "lob", "dmg": 140.0, "rate": 0.4, "range": 4.8,
@@ -181,20 +181,20 @@ const TOWERS := {
 	"moonwell": {"name": "Moonwell", "tier": 2, "copies": 2, "cost": 150, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.6,
 		"buff": {"rate": 0.35}, "detect": true, "color": Color(0.5, 0.9, 1.0),
 		"desc": "Nearby towers attack 35% faster (scales with level)."},
-	"rootbinder": {"name": "Rootbinder Shrine", "tier": 3, "copies": 1, "cost": 280, "attack": "orb", "dmg": 85.0, "rate": 0.5, "range": 5.7,
+	"rootbinder": {"name": "Rootbinder Shrine", "tier": 3, "copies": 1, "cost": 280, "attack": "orb", "dmg": 120.0, "rate": 0.6, "range": 5.7,
 		"dtype": "magic", "air": false, "ground": true, "stun": [1.0, 1.1], "color": Color(0.3, 0.9, 0.5),
 		"desc": "Every hit roots a ground enemy in place."},
 	# ---------------- Red: the Deep Forge (dwarves) ----------------
 	"dwarf_flame": {"name": "Flame Belcher", "tier": 1, "copies": 2, "cost": 85, "attack": "aura_dmg", "dmg": 10.0, "rate": 2.2, "range": 2.8,
 		"dtype": "magic", "air": true, "ground": true, "dot": [8.0, 2.0], "color": Color(1.0, 0.45, 0.15), "sfx": "fire",
 		"desc": "Breathes fire in a cone in front of it, burning everything it touches."},
-	"dwarf_hammer": {"name": "Runic Hammer", "tier": 2, "copies": 1, "cost": 175, "attack": "slam", "dmg": 110.0, "rate": 0.5, "range": 2.6,
+	"dwarf_hammer": {"name": "Runic Hammer", "tier": 2, "copies": 1, "cost": 175, "attack": "slam", "dmg": 95.0, "rate": 0.5, "range": 2.6,
 		"dtype": "phys", "air": false, "ground": true, "splash": 1.2, "stun": [0.35, 1.0], "shred": true, "color": Color(0.8, 0.45, 0.3),
 		"desc": "A rune-powered steam hammer. Crushes groups, stuns, and shatters shields."},
-	"dwarf_mortar": {"name": "Siege Mortar", "tier": 3, "copies": 1, "cost": 320, "attack": "lob", "dmg": 270.0, "rate": 0.25, "range": 10.5,
+	"dwarf_mortar": {"name": "Siege Mortar", "tier": 3, "copies": 1, "cost": 320, "attack": "lob", "dmg": 225.0, "rate": 0.25, "range": 10.5,
 		"dtype": "phys", "air": false, "ground": true, "splash": 1.9, "color": Color(0.45, 0.4, 0.36),
 		"desc": "Colossal range and blast radius. Can't hit flyers."},
-	"dwarf_gyro": {"name": "Flak Battery", "tier": 2, "copies": 1, "cost": 180, "attack": "arrow", "dmg": 30.0, "rate": 2.4, "range": 5.8,
+	"dwarf_gyro": {"name": "Flak Battery", "tier": 2, "copies": 1, "cost": 180, "attack": "arrow", "dmg": 36.0, "rate": 2.4, "range": 5.8,
 		"dtype": "phys", "air": true, "ground": false, "air_bonus": 1.5, "color": Color(0.85, 0.62, 0.3),
 		"desc": "Twin rotary flak guns that shred flyers. Can't hit the ground."},
 	# ---------------- Blue: the Tidal Court (merfolk) ----------------
@@ -217,7 +217,7 @@ const TOWERS := {
 	"plague_cauldron": {"name": "Plague Cauldron", "tier": 2, "copies": 2, "cost": 145, "attack": "lob", "dmg": 16.0, "rate": 0.55, "range": 4.2,
 		"dtype": "magic", "air": false, "ground": true, "splash": 1.4, "dot": [26.0, 4.0], "color": Color(0.5, 0.85, 0.3),
 		"desc": "Hurls bubbling plague that poisons whole groups."},
-	"soul_obelisk": {"name": "Soul Obelisk", "tier": 3, "copies": 1, "cost": 280, "attack": "orb", "dmg": 60.0, "rate": 0.45, "range": 5.5,
+	"soul_obelisk": {"name": "Soul Obelisk", "tier": 3, "copies": 1, "cost": 280, "attack": "orb", "dmg": 80.0, "rate": 0.55, "range": 5.5,
 		"dtype": "magic", "air": true, "ground": true, "pct": 0.15, "color": Color(0.65, 0.35, 0.95),
 		"desc": "Rips out 15% of a target's current health with every hit. Bosses resist."},
 	"hex_tomb": {"name": "Hex Tomb", "tier": 2, "copies": 1, "cost": 185, "attack": "aura_curse", "dmg": 0.0, "rate": 0.0, "range": 2.8,
@@ -228,7 +228,7 @@ const TOWERS := {
 	# ahead: "line" is its width in tiles, "static" towers never turn), grasp (seizes up to "grasp" enemies at once).
 	# Other new keys: vuln [extra damage taken, seconds], boss_bonus (extra damage to bosses), target (default mode),
 	# raise (Necromancer: enemies dying in reach rise as zombies, see Thrall).
-	"seraph": {"name": "Seraph", "tier": 2, "copies": 2, "cost": 170, "attack": "arrow", "dmg": 30.0, "rate": 1.4, "range": 5.0,
+	"seraph": {"name": "Seraph", "tier": 2, "copies": 2, "cost": 170, "attack": "arrow", "dmg": 34.0, "rate": 1.4, "range": 5.0,
 		"dtype": "magic", "air": true, "ground": true, "air_bonus": 1.75, "detect": true, "color": Color(1.0, 0.93, 0.66), "sfx": "spear",
 		"desc": "An armored angel that hurls spears of light. Hits air and ground, +75% against flyers, sees camouflage."},
 	"archangel": {"name": "Archangel", "tier": 3, "copies": 1, "cost": 300, "attack": "smite", "dmg": 180.0, "rate": 0.4, "range": 6.0,
@@ -250,7 +250,7 @@ const TOWERS := {
 	"snapjaw_crab": {"name": "Snapjaw Crab", "tier": 2, "copies": 2, "cost": 160, "attack": "slam", "dmg": 25.0, "rate": 0.7, "range": 2.4,
 		"dtype": "phys", "air": false, "ground": true, "splash": 0.5, "vuln": [0.25, 3.0], "color": Color(0.95, 0.5, 0.3), "sfx": "claw",
 		"desc": "Two giant claws, each crushing ground enemies. Cracked shells take +25% damage from everything for 3 seconds."},
-	"kraken": {"name": "Kraken", "tier": 3, "copies": 1, "cost": 330, "attack": "grasp", "dmg": 70.0, "rate": 0.45, "range": 3.6,
+	"kraken": {"name": "Kraken", "tier": 3, "copies": 1, "cost": 330, "attack": "grasp", "dmg": 95.0, "rate": 0.45, "range": 3.6,
 		"dtype": "phys", "air": true, "ground": true, "grasp": 3, "stun": [1.0, 1.2], "color": Color(0.62, 0.36, 0.78), "sfx": "grasp",
 		"desc": "Tentacles seize and crush up to 3 enemies at once, holding walkers in place."},
 	"mass_grave": {"name": "Mass Grave", "tier": 2, "copies": 2, "cost": 150, "attack": "aura_dmg", "dmg": 16.0, "rate": 1.0, "range": 1.8,
@@ -263,7 +263,7 @@ const TOWERS := {
 	"knight_hall": {"name": "Hall of Knights", "tier": 4, "copies": 1, "cost": 440, "attack": "muster", "dmg": 240.0, "rate": 0.45, "range": 4.6,
 		"dtype": "phys", "air": false, "ground": true, "muster": {"max": 5, "life": 12.0, "stun": 1.6, "hits": 3}, "color": Color(0.95, 0.88, 0.6), "sfx": "shield",
 		"desc": "Musters knights who march out onto the road ahead of the foe and pin it: stunned and cut down. Up to 5 knights at once, each fighting three times."},
-	"sunlance": {"name": "Sunlance Lighthouse", "tier": 4, "copies": 1, "cost": 420, "attack": "beam", "dmg": 120.0, "rate": 0.6, "range": 7.5,
+	"sunlance": {"name": "Sunlance Lighthouse", "tier": 4, "copies": 1, "cost": 420, "attack": "beam", "dmg": 160.0, "rate": 0.6, "range": 7.5,
 		"beam_w": 1.1, "dtype": "magic", "air": true, "ground": true, "detect": true, "color": Color(1.0, 0.92, 0.55), "sfx": "smite",
 		"desc": "A lance of sunlight that burns through everything in a straight line toward its target, flyers too. Sees camouflaged enemies."},
 	"doom_cannon": {"name": "Doomsday Cannon", "tier": 4, "copies": 1, "cost": 480, "attack": "lob", "dmg": 520.0, "rate": 0.18, "range": 11.5,
@@ -272,7 +272,7 @@ const TOWERS := {
 	"war_forge": {"name": "Forge of Ages", "tier": 4, "copies": 1, "cost": 420, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.8,
 		"buff": {"dmg": 0.3}, "burn": [22.0, 3.0], "color": Color(1.0, 0.5, 0.2),
 		"desc": "An ancient forge that tempers the towers around it: they deal +30% damage and set what they hit burning."},
-	"leviathan": {"name": "Leviathan", "tier": 4, "copies": 1, "cost": 480, "attack": "bolt", "dmg": 200.0, "rate": 0.5, "range": 7.0,
+	"leviathan": {"name": "Leviathan", "tier": 4, "copies": 1, "cost": 480, "attack": "bolt", "dmg": 260.0, "rate": 0.55, "range": 7.0,
 		"dtype": "magic", "air": true, "ground": true, "pierce": true, "slow": [0.4, 1.5], "push": [0.35, 1.2], "color": Color(0.3, 0.75, 0.95), "sfx": "surge",
 		"desc": "A sea serpent from the deep. Its water jet pierces a whole line, slows everything it hits and can wash walkers back down the road."},
 	"tidecaller": {"name": "Tidecaller Spire", "tier": 4, "copies": 1, "cost": 430, "attack": "aura_dmg", "dmg": 55.0, "rate": 0.33, "range": 3.2,

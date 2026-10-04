@@ -14,7 +14,7 @@ const RAISE := "__raise"   # placing mode: a Builder raising ground
 const DIG := "__dig"       # placing mode: a Digger lowering ground
 const SPEEDS := [1.0, 2.0, 3.0]
 ## Boss health by wave, whichever boss this run rolled for that slot.
-const BOSS_HP := {10: 2600.0, 20: 16000.0, 30: 36000.0}   # (playtests: the old 6500 / 16000 bosses barely scratched a late defense)
+const BOSS_HP := {10: 2600.0, 20: 20000.0, 30: 36000.0}   # (playtests: the old 6500 / 16000 bosses barely scratched a late defense)
 const BOSS_GOLD := {10: 120, 20: 250, 30: 500}
 const BOSS_LEAK := {10: 10, 20: 15, 30: 20}
 ## A new road out of the castle (another battlefront) opens before these waves. Empty on the hex map:
