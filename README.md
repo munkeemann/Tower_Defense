@@ -113,6 +113,12 @@ Each run rolls 4 threats that join the invasion on waves 4, 9, 15 and 21. Each o
   doctrine), mines (+20 gold per wave), ruins (2 blueprint copies) and rune caches (+3 Runes). A golden beam
   marks them. Claim one by reaching it with a tower's range.
 
+### Difficulty
+
+Normal, Hard and Brutal toughen and enlarge the waves, and open more roads out of the castle at the start: one,
+two or three, on neighbouring sides, each with its first tile laid and +100 gold for every road past the first.
+Holding out until you can join them into one chokepoint is half the game.
+
 ### War Council (between runs)
 
 Every run earns **Renown**: 1 per wave reached (x1.5 on Hard, x2 on Brutal), +40 for a victory. Spend it in

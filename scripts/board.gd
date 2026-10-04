@@ -202,7 +202,9 @@ func slot_world(t: Vector2i) -> Vector3:
 
 # ------------------------------------------------------------------ generation
 
-func generate(seed_v: int, want_biome := "") -> void:
+## exits: how many roads leave the castle at the start (the difficulty sets it): neighbouring sides, so a couple of
+## well-placed tiles can merge them into one chokepoint.
+func generate(seed_v: int, want_biome := "", exits := 1) -> void:
 	Hex.setup()
 	_prep_info()
 	for ch in get_children():
@@ -236,7 +238,13 @@ func generate(seed_v: int, want_biome := "") -> void:
 					_slots.append(t)
 	_gen_wild()
 	_init_fog()
-	_stamp_hq([4])
+	var sides := [4]
+	var r := RandomNumberGenerator.new()
+	r.seed = seed_v
+	var step := 1 if r.randf() < 0.5 else -1
+	for i in range(1, clampi(exits, 1, 6)):
+		sides.append(posmod(4 + step * int((i + 1) / 2.0) * (1 if i % 2 == 1 else -1), 6))
+	_stamp_hq(sides)
 	_build_props()
 	for t in _draw_slots:
 		_rebuild_mesh(t)

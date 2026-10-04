@@ -46,9 +46,9 @@ const BIOMES := {
 }
 
 const DIFFICULTIES := [
-	{"name": "Normal", "hp": 1.0, "count": 1.0, "desc": "The intended experience."},
-	{"name": "Hard", "hp": 1.7, "count": 1.25, "desc": "Tougher, larger waves."},
-	{"name": "Brutal", "hp": 2.3, "count": 1.4, "desc": "For Tower Dominion veterans."},
+	{"name": "Normal", "hp": 1.0, "count": 1.0, "exits": 1, "desc": "The intended experience. One road leaves the castle."},
+	{"name": "Hard", "hp": 1.7, "count": 1.25, "exits": 2, "desc": "Tougher, larger waves. Two roads leave the castle (+100 gold): join them into one chokepoint."},
+	{"name": "Brutal", "hp": 2.3, "count": 1.4, "exits": 3, "desc": "For Tower Dominion veterans. Three roads leave the castle (+200 gold)."},
 ]
 
 ## The color pie. Every run is one color (set by your commander). You draft that color's own towers plus

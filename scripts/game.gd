@@ -1185,7 +1185,8 @@ func start_run(fid: String, hero_id := "") -> void:
 	# the color's passive and the commander's powers, folded together
 	hero_fx = _merge_fx(GameData.FACTIONS[fid].get("passive", {}), GameData.HEROES[hero]["fx"] if hero != "" else {})
 	stats["hero_" + fid] = hero
-	gold = GameData.START_GOLD + 40 * meta_level("gold")
+	# each extra road out of the castle (harder difficulties) comes with gold to hold it
+	gold = GameData.START_GOLD + 40 * meta_level("gold") + 100 * (int(_diff().get("exits", 1)) - 1)
 	max_hp = GameData.START_HP + int(hero_fx.get("hp", 0)) + 3 * meta_level("keep")
 	hp = max_hp
 	wave = 0
@@ -1215,7 +1216,7 @@ func start_run(fid: String, hero_id := "") -> void:
 	board.fog_enabled = false   # the map is just your tiles on a plain backdrop: nothing to hide
 	board.team = KayKit.TEAM.get(fid, "blue")
 	Models.team = board.team
-	board.generate(rng.randi(), force_biome)
+	board.generate(rng.randi(), force_biome, int(_diff().get("exits", 1)))
 	_match_sky()
 	_roll_threats()
 	thumbs.queue_faction(fid)
@@ -1232,8 +1233,10 @@ func start_run(fid: String, hero_id := "") -> void:
 	audio.start_music(fid)
 	if "--bridgetest" in OS.get_cmdline_user_args():
 		board.seed_test_lake(Hex.E[4])
-	# the first stretch of road out of the castle is laid for you; then you choose where it goes
-	_auto_tile(board.open_ports.keys()[0])
+	# the first stretch of each road out of the castle is laid for you; then you choose where they go
+	var firsts: Array = board.open_ports.keys().map(func(pc): return board.open_ports[pc]["tile"] + Hex.E[board.open_ports[pc]["side"]])
+	for pc in board.open_ports.keys():
+		_auto_tile(pc, firsts)
 	hud.refresh_intel()
 	var hname: String = GameData.HEROES[hero]["name"] if hero != "" else "No hero"
 	hud.toast("%s  -  %s" % [board.biome["name"], hname], Color(0.8, 0.95, 0.75))
@@ -1737,18 +1740,23 @@ func _on_slot_click() -> void:
 
 
 ## Lays one tile at a road end with no player input (the first stretch of road, new battlefronts).
-func _auto_tile(port: Vector2i) -> void:
+## A plain two-way tile on a road end: it carries the road one tile further. avoid: slots it mustn't open a road into
+## (the other castle roads' first tiles at the start).
+func _auto_tile(port: Vector2i, avoid: Array = []) -> void:
 	if not board.open_ports.has(port):
 		return
 	var slot: Vector2i = board.open_ports[port]["tile"] + Hex.E[board.open_ports[port]["side"]]
-	for attempt in 40:
+	for attempt in 60:
 		var card := board.make_tile(rng, 2)
 		for k in 6:
 			var p := board.plan_tile(slot, card, k)
-			if not p.is_empty() and p["merges"].size() == 1 and int(p["new_ports"]) == 1:
-				board.commit_tile(p, wave + 1)
-				recompute_buffs()
-				return
+			if p.is_empty() or p["merges"].size() != 1 or int(p["new_ports"]) != 1:
+				continue
+			if (p["entrances"] as Array).any(func(sd): return (slot + Hex.E[sd]) in avoid):
+				continue
+			board.commit_tile(p, wave + 1)
+			recompute_buffs()
+			return
 
 
 ## Picks and places a tile like a player would (autotest, menu backdrop, map screenshots).
