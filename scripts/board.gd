@@ -1312,7 +1312,7 @@ func _gen_features(roads: Dictionary, r: RandomNumberGenerator) -> Array:
 		put.call("tree" if r.randf() < 0.85 else "rock")
 	if r.randf() < 0.35:
 		put.call("ley", "", true)
-	if r.randf() < 0.35:
+	if r.randf() < 0.45:
 		var kinds: Array = GameData.NEUTRALS.keys()
 		put.call("neutral", kinds[r.randi() % kinds.size()], true)
 	return feats
@@ -1555,7 +1555,7 @@ func commit_tile(plan: Dictionary, wave := 0) -> Array:
 	_rebuild_water()
 	reveal_tile(t)
 	if Models.has_assets() and rng.randf() < DISCOVERY_CHANCE:
-		_spawn_discovery(fresh, plan["roads"])
+		pass   # (map pickups are gone: neutral buildings on tiles took their place)
 	return opened
 
 
@@ -1595,6 +1595,15 @@ func _spawn_neutral(c: Vector2i, kind: String) -> void:
 	if Models.fit(holder, model, 1.8, 2.2) == null:
 		holder.add_child(Models.box(Vector3(1.2, 1.0, 1.2), Color(0.6, 0.45, 0.3), Vector3(0, 0.5, 0)))
 	neutrals[c] = {"kind": kind, "node": holder}
+
+
+## How many neutral buildings of this kind you hold.
+func neutral_count(kind: String) -> int:
+	var n := 0
+	for c in neutrals:
+		if neutrals[c]["kind"] == kind:
+			n += 1
+	return n
 
 
 ## Kinds of neutral buildings touching any of these cells.

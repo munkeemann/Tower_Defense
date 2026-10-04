@@ -125,13 +125,18 @@ Each run rolls 4 threats that join the invasion on waves 4, 9, 15 and 21. Each o
 - **Swift** enemies move 40% faster.
 - Flyers (harpies, wasps, gargoyles), splitting slimes, healing shamans and armored ironclads.
 
-### Neutral buildings and discoveries
+### Neutral buildings
 
-- **Ammo Depot**: towers next to it attack 25% faster. **Relay Station**: +20% range.
-  **Scout Hideout**: detects camo within 4 tiles. **Supply Point**: +15 gold per wave.
-- Discoveries sometimes turn up on a tile you just placed (about 1 in 3): chests (gold, a Rune), shrines (a free
-  doctrine), mines (+20 gold per wave), ruins (2 blueprint copies) and rune caches (+3 Runes). A golden beam
-  marks them. Claim one by reaching it with a tower's range.
+About half the tiles carry a neutral building (`NEUTRALS`), as in Tower Dominion; once the tile is yours it works
+for you. The tile bar names it before you place it, a toast says what it does, and hovering it explains it.
+
+| Kind | Buildings |
+|---|---|
+| Empowers the towers next to it | **Ammo Depot** (+25% attack speed), **Relay Station** (+20% range), **Smithy** (+25% damage), **Scout Hideout** (detects camo within 4 tiles) |
+| Resources after every wave | **Supply Point** (+15 gold), **Gold Mine** (+25 gold), **Rune Circle** (+1 Rune every other wave), **Lumber Mill** (a free Builder every 4 waves) |
+| Empowers your whole realm | **Old Chapel** (all towers +5% damage), **Barracks** (the castle repairs 2 a wave), **Tavern** (+10% kill gold) |
+
+They stack: two Gold Mines pay twice. (The old map pickups claimed by tower range are gone.)
 
 ### Difficulty
 
@@ -246,7 +251,7 @@ Everything is data in `scripts/game_data.gd`:
 - **Threat**: add to `THREATS` (enemy id, optional trait `shield` / `camo` / `swift`).
 - **Terrain tiles** are rolled in code (`Board.make_tile`): entrance count from `ENTRANCE_ODDS`, winding roads,
   and random features. Hex math lives in `scripts/hex.gd`.
-- **Neutral building / discovery / doctrine / War Council upgrade**: `NEUTRALS`, `DISCOVERIES`, `BOONS`,
+- **Neutral building / doctrine / War Council upgrade**: `NEUTRALS` (with its `group` and a model in `Models.KK_FIT`), `BOONS`,
   `META_UPGRADES`.
 
 ## Art

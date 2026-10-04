@@ -135,7 +135,7 @@ func damage() -> float:
 	if on_ley:
 		d *= 1.0 + GameData.LEY_BONUS + game.mods["ley"]
 	d *= 1.0 + float(game.masterwork.get(id, 0.0)) + game.hero_tower_bonus(id)
-	d *= (1.0 + water_bonus) * (1.0 + float(game.mods.get("dmg_all", 0.0)) + game.frenzy_bonus())
+	d *= (1.0 + water_bonus) * (1.0 + float(game.mods.get("dmg_all", 0.0)) + game.frenzy_bonus() + 0.05 * game.board.neutral_count("chapel"))
 	return d
 
 

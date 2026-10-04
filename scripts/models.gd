@@ -263,7 +263,9 @@ static func fit(parent: Node3D, file: String, w: float, h: float, y := 0.0, rot_
 ## A model, or [model, size factor] for ones that shouldn't fill the whole space.
 const KK_FIT := {
 	"bld_ammo_depot": ["dungeon/crates_stacked", 0.8], "bld_relay": "hex/building_watchtower_{t}",
-	"bld_scout": "hex/building_tent_{t}", "bld_supply": "hex/building_market_{t}",
+	"bld_scout": "hex/building_tent_{t}", "bld_supply": "hex/building_market_{t}", "bld_forge": "hex/building_blacksmith_{t}",
+	"bld_mine": "hex/building_mine_{t}", "bld_runes": "hex/building_shrine_{t}", "bld_lumber": "hex/building_lumbermill_{t}",
+	"bld_chapel": "hex/building_church_{t}", "bld_barracks": "hex/building_barracks_{t}", "bld_tavern": "hex/building_tavern_{t}",
 	"poi_chest": ["dungeon/chest_gold", 0.55], "poi_shrine": "hex/building_shrine_{t}", "poi_mine": "hex/building_mine_{t}",
 	"prop_ruin": "hex/building_destroyed", "poi_cache": ["hex/resource_stone", 0.75],
 }

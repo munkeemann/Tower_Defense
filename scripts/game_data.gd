@@ -364,11 +364,20 @@ const TILE_FAMILIES := {
 }
 
 ## ---- Neutral buildings (appear on tiles; boost adjacent towers) -------------------------------
+## Neutral buildings come on new tiles (as in Tower Dominion): once the tile is yours, they work for you. group: tower
+## (empowers the towers next to it), economy (resources after every wave) or realm (a bonus to all your forces).
 const NEUTRALS := {
-	"ammo": {"name": "Ammo Depot", "model": "bld_ammo_depot", "desc": "Towers next to it attack 25% faster."},
-	"relay": {"name": "Relay Station", "model": "bld_relay", "desc": "Towers next to it get +20% range."},
-	"scout": {"name": "Scout Hideout", "model": "bld_scout", "desc": "Reveals camouflaged enemies within 4 tiles."},
-	"supply": {"name": "Supply Point", "model": "bld_supply", "desc": "+15 gold after every wave."},
+	"ammo": {"name": "Ammo Depot", "group": "tower", "model": "bld_ammo_depot", "desc": "Towers next to it attack 25% faster."},
+	"relay": {"name": "Relay Station", "group": "tower", "model": "bld_relay", "desc": "Towers next to it get +20% range."},
+	"forge": {"name": "Smithy", "group": "tower", "model": "bld_forge", "desc": "Towers next to it deal +25% damage."},
+	"scout": {"name": "Scout Hideout", "group": "tower", "model": "bld_scout", "desc": "Reveals camouflaged enemies within 4 tiles."},
+	"supply": {"name": "Supply Point", "group": "economy", "model": "bld_supply", "desc": "+15 gold after every wave."},
+	"mine": {"name": "Gold Mine", "group": "economy", "model": "bld_mine", "desc": "+25 gold after every wave."},
+	"runes": {"name": "Rune Circle", "group": "economy", "model": "bld_runes", "desc": "+1 Rune every other wave."},
+	"lumber": {"name": "Lumber Mill", "group": "economy", "model": "bld_lumber", "desc": "A free Builder every 4 waves."},
+	"chapel": {"name": "Old Chapel", "group": "realm", "model": "bld_chapel", "desc": "All your towers deal +5% damage."},
+	"barracks": {"name": "Barracks", "group": "realm", "model": "bld_barracks", "desc": "The castle repairs 2 health after every wave."},
+	"tavern": {"name": "Tavern", "group": "realm", "model": "bld_tavern", "desc": "+10% gold from kills."},
 }
 
 ## ---- Discoveries hidden in the fog (claimed when a tile covers them or a tower's range reaches them)

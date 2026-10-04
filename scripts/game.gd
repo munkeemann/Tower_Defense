@@ -102,6 +102,7 @@ var sig_cd := 0.0             # "castle_hit": seconds until it can fire again
 var sig_buff := 0.0           # haste / frenzy: seconds left
 var sig_marks := 0            # "mark": enemies marked this wave
 var _wave_leaked := false
+var _neutral_hint := false    # the hint line is showing a hovered neutral building
 var choice_options: Array = []
 var run_stats := {}
 var stats := {}
@@ -1482,15 +1483,18 @@ func start_wave() -> void:
 func _wave_complete() -> void:
 	for th in get_tree().get_nodes_in_group("thralls"):
 		(th as Thrall).crumble()
-	var supply := 0
-	for c in board.neutrals:
-		if board.neutrals[c]["kind"] == "supply":
-			supply += 1
+	# neutral buildings: gold from supply points and mines, runes, builders, repairs
+	var supply := 15 * board.neutral_count("supply") + 25 * board.neutral_count("mine")
 	var interest := mini(45, int(gold * float(mods["interest"])))
-	var bonus: int = 25 + 4 * wave + int(mods["treasury"]) + mine_income + 15 * supply + interest
+	var bonus: int = 25 + 4 * wave + int(mods["treasury"]) + mine_income + supply + interest
 	_add_gold(bonus)
 	var fronts := board.battlefronts()
 	var rc := 1 + int(hero_fx.get("recon", 0)) + clampi(fronts - 1, 0, 3) + int(mods["recon_wave"])
+	if wave % 2 == 0:
+		rc += board.neutral_count("runes")
+	if wave % 4 == 0:
+		builders += board.neutral_count("lumber")
+	hp = mini(max_hp, hp + 2 * board.neutral_count("barracks"))
 	recon += rc
 	if int(mods["builder_every"]) > 0 and wave % int(mods["builder_every"]) == 0:
 		builders += 1
@@ -1664,7 +1668,12 @@ func _on_tile_card(i: int) -> void:
 			_slots.append(p[0])
 	board.clear_preview()
 	board.show_slots(_slots)
-	hud.show_tile_panel(tile_title(tile_cards[i]), _reroll_label())
+	var title := tile_title(tile_cards[i])
+	for f in tile_cards[i]["features"]:
+		if f["type"] == "neutral":
+			var nd: Dictionary = GameData.NEUTRALS[f["kind"]]
+			title += "  +  %s (%s)" % [nd["name"], String(nd["desc"]).trim_suffix(".")]
+	hud.show_tile_panel(title, _reroll_label())
 	var mid := Vector3.ZERO
 	for sl in _slots:
 		mid += Hex.tile_world(sl)
@@ -1731,6 +1740,10 @@ func _place_tile(plan: Dictionary) -> void:
 		hud.toast("Roads merged: %d fewer battlefront%s" % [merges - 1, "" if merges == 2 else "s"], Color(0.6, 1.0, 0.6))
 	elif opened.size() > 1:
 		hud.toast("The road splits: %d new battlefronts!" % (opened.size() - 1), Color(0.85, 0.5, 1.0))
+	for f in plan["features"]:
+		if f["type"] == "neutral" and board.neutrals.has(f["cell"]):
+			var nd: Dictionary = GameData.NEUTRALS[f["kind"]]
+			hud.toast("%s: %s" % [nd["name"], nd["desc"]], Color(1.0, 0.8, 0.45))
 	recompute_buffs()
 	_claim_with_towers()
 	_next_step()
@@ -2515,7 +2528,8 @@ func _show_flight_lines(on: bool) -> void:
 func enemy_killed(e: Enemy) -> void:
 	enemies.erase(e)
 	var base_gold: float = float(BOSS_GOLD.get(wave, e.data["gold"])) / (1.0 + wave * 0.015) if e.is_boss else float(e.data["gold"])
-	var g: int = int(round(base_gold * (1.0 + wave * 0.015) * (1.0 + float(hero_fx.get("kill_gold", 0.0)) + float(mods["kill_gold"])))) + int(mods["bounty"])
+	var g: int = int(round(base_gold * (1.0 + wave * 0.015) * (1.0 + float(hero_fx.get("kill_gold", 0.0)) + float(mods["kill_gold"])
+		+ 0.1 * board.neutral_count("tavern")))) + int(mods["bounty"])
 	_add_gold(g)
 	run_stats["kills"] += 1
 	VFX.death(world, e.aim_pos(), e.data["color"], e.is_boss)
@@ -2819,6 +2833,13 @@ func cancel_placing() -> void:
 
 func _update_ghost() -> void:
 	var over_board := board.in_bounds(hover_cell)
+	if state in [S.BUILD, S.WAVE] and placing == "" and board.neutrals.has(hover_cell):
+		var nd: Dictionary = GameData.NEUTRALS[board.neutrals[hover_cell]["kind"]]
+		hud.show_place_hint("%s: %s" % [nd["name"], nd["desc"]])
+		_neutral_hint = true
+	elif _neutral_hint:
+		hud.hint_panel.visible = false
+		_neutral_hint = false
 	var ground_mode := placing == RAISE or placing == DIG
 	_hover_marker.visible = over_board and (placing == "" or ground_mode) and state in [S.BUILD, S.WAVE] and board.is_placed(hover_cell)
 	if over_board:
@@ -3086,6 +3107,8 @@ func recompute_buffs() -> void:
 			t.buff_rate += 0.25
 		if "relay" in near:
 			t.nb_range += 0.2
+		if "forge" in near:
+			t.buff_dmg += 0.25
 	for s in towers:
 		if not s.is_support():
 			continue
