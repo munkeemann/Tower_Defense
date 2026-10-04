@@ -448,7 +448,7 @@ func _tower_test(tid: String) -> bool:
 		print("TOWERTEST FAIL Blender tower without its rig or muzzle")
 		ok = false
 	if t.is_support():
-		# support towers never attack: check that a neighbor in reach gets the buff, then sell
+		# support towers never attack: check that a neighbor in reach gets the buff (damage or speed), then sell
 		owned["archer"] = 2
 		var near := Board.NONE
 		for c in Hex.disc(t.cell, 2):
@@ -462,8 +462,9 @@ func _tower_test(tid: String) -> bool:
 			try_place(near)
 			placing = ""
 			var a2: Tower = towers.back()
-			buffed = a2 != t and a2.buff_dmg > 0.0
-			print("TOWERTEST support: archer at %s gets +%d%% damage" % [near, int(a2.buff_dmg * 100)])
+			buffed = a2 != t and (a2.buff_dmg > 0.0 or a2.buff_rate > 0.0)
+			print("TOWERTEST support: archer at %s gets +%d%% damage, +%d%% attack speed" % [near, int(a2.buff_dmg * 100),
+				int(a2.buff_rate * 100)])
 		if not buffed:
 			print("TOWERTEST FAIL the aura didn't reach a neighbor")
 			ok = false
