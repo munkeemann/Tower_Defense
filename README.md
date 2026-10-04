@@ -145,6 +145,7 @@ Deepwood) changes how often tiles are raised and how many ponds they carry.
 | F | Faction ability (between waves: reroll the tile or the rewards) |
 | B (or G) / N then click | Builder raises ground (high ground = more range) / Digger lowers it |
 | C | Castle talents |
+| K | Damage chart (top right): shown, see-through, hidden |
 | Space / V / P / M | Start wave / game speed / pause / sound on-off |
 | Menu button | Set the run aside; Resume it from the main menu |
 | F11 or Alt+Enter | Fullscreen on / off (remembered; also a button on the main menu) |

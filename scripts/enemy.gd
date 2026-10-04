@@ -32,6 +32,7 @@ var stun_time := 0.0
 var dot_dps := 0.0
 var dot_time := 0.0
 var dot_dtype := "magic"
+var dot_source: Tower = null   # who set the burn / poison (credited with its damage)
 var _special_timer := 0.0
 var _anim_t := 0.0
 
@@ -188,7 +189,7 @@ func _process(delta: float) -> void:
 	# status effects
 	if dot_time > 0.0:
 		dot_time -= delta
-		take_damage(dot_dps * delta, dot_dtype, null, true)
+		take_damage(dot_dps * delta, dot_dtype, dot_source if is_instance_valid(dot_source) else null, true)
 		if dead:
 			return
 	if slow_time > 0.0:
@@ -410,8 +411,9 @@ func apply_stun(dur: float) -> void:
 	stun_time = max(stun_time, dur)
 
 
-func apply_dot(dps: float, dur: float, dtype: String) -> void:
+func apply_dot(dps: float, dur: float, dtype: String, source: Tower = null) -> void:
 	if dps >= dot_dps or dot_time <= 0.0:
 		dot_dps = dps
 		dot_dtype = dtype
+		dot_source = source
 	dot_time = max(dot_time, dur)

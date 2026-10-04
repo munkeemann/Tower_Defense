@@ -4,7 +4,7 @@ extends SceneTree
 ## the TextServer's own glyph cache, with outlines), textures and color rects. Custom-drawn controls (tile diagrams,
 ## item icons) and 3D portraits don't exist headless, so they show as faint boxes.
 ## Godot --headless --path . --script res://tools/ui_snap.gd -- out_dir [screens] [--no-kenney] --scratch
-##   screens: comma list of menu, heroes, council, run, tile, rewards, info, castle, end (default: all)
+##   screens: comma list of menu, heroes, council, run, tile, rewards, info, castle, damage, end (default: all)
 ##   --hover: draws the first big card of each screen in its hover style; --deck: a 1280x800 screen
 
 const ALL := ["menu", "heroes", "council", "run", "tile", "rewards", "info", "castle", "end"]
@@ -61,6 +61,21 @@ func _open(s: String) -> void:
 			hud.hide_choices()
 			hud.hide_place_hint()
 			game._enter_reward()
+		"damage":
+			# a few towers with made-up totals, for the damage chart
+			if game.state == Game.S.MENU:
+				game.start_run("crown")
+			hud.hide_choices()
+			hud.hide_place_hint()
+			game._enter_build()
+			for i in 4:
+				_place_a_tower()
+			var fake := [5230.0, 2875.0, 1190.0, 412.0]
+			for i in game.towers.size():
+				game.towers[i].damage_done = fake[i % fake.size()]
+				game.towers[i].level = 1 + i % 3
+			game.deselect()
+			hud.refresh_damage(1.0)
 		"info", "castle":
 			if game.state == Game.S.MENU:
 				game.start_run("crown")

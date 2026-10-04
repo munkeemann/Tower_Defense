@@ -2364,6 +2364,7 @@ func _refresh_ui() -> void:
 		hud.show_tower_info(selected)
 	var ab: Dictionary = GameData.FACTIONS[faction]["ability"]
 	hud.update_ability(ab["name"], ability_cd, ability_active)
+	hud.refresh_damage(0.1)
 
 
 # ------------------------------------------------------------------ enemies & combat
@@ -2558,7 +2559,7 @@ func apply_hit(pkt: Dictionary, e: Enemy) -> void:
 		e.apply_slow(slow[0], slow[1])
 	var dot: Array = pkt["dot"]
 	if dot.size() == 2:
-		e.apply_dot(dot[0], dot[1], pkt["dtype"])
+		e.apply_dot(dot[0], dot[1], pkt["dtype"], tw)
 	var stun: Array = pkt["stun"]
 	if stun.size() == 2 and not e.flying and rng.randf() < float(stun[0]):
 		e.apply_stun(stun[1])
@@ -3091,6 +3092,7 @@ func _handle_key(code: Key, shift := false) -> void:
 			KEY_M: toggle_mute()
 			KEY_P: toggle_pause()
 			KEY_H: hud.help_panel.visible = not hud.help_panel.visible
+			KEY_K: hud.cycle_damage()
 		return
 	if state == S.REWARD and code == KEY_F:
 		reroll()   # the reward offers reroll like the tile
@@ -3114,6 +3116,8 @@ func _handle_key(code: Key, shift := false) -> void:
 			toggle_mute()
 		KEY_H:
 			hud.help_panel.visible = not hud.help_panel.visible
+		KEY_K:
+			hud.cycle_damage()
 		KEY_R:
 			if placing != "" and placing != RAISE and placing != DIG:
 				place_facing = posmod(place_facing + (-1 if shift else 1), 6)

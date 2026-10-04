@@ -15,6 +15,13 @@ var speed_btn: Button
 var pause_btn: Button
 var mute_btn: Button
 var intel_panel: PanelContainer
+var dmg_panel: PanelContainer         # the damage chart (top right)
+var dmg_rows: Array = []              # [row, name label, bar fill, value label] per shown tower
+var dmg_toggle: Button
+var dmg_mode := 0                     # 0 shown, 1 see-through, 2 hidden (K or its button cycles)
+var _dmg_t := 0.0
+const DMG_ROWS := 10
+const DMG_BAR_W := 96.0
 var intel_box: VBoxContainer
 var hint_panel: PanelContainer
 var hint_lbl: Label
@@ -90,6 +97,7 @@ func setup(g: Game) -> void:
 	_build_choices()
 	_build_misc()
 	_build_intel()
+	_build_damage()
 	_build_hint()
 	set_game_ui_visible(false)
 
@@ -1041,6 +1049,105 @@ func unpark_panels(open: Dictionary) -> void:
 			n.visible = open[n]
 
 
+# ------------------------------------------------------------------ damage chart (top right)
+
+func _build_damage() -> void:
+	dmg_panel = PanelContainer.new()
+	dmg_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	dmg_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	dmg_panel.offset_right = -10
+	dmg_panel.offset_top = 62
+	root.add_child(dmg_panel)
+	var v := VBoxContainer.new()
+	v.custom_minimum_size = Vector2(250, 0)
+	v.add_theme_constant_override("separation", 3)
+	dmg_panel.add_child(v)
+	var head := HBoxContainer.new()
+	v.add_child(head)
+	var t := _label("DAMAGE", 14, Color(1, 0.6, 0.4))
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(t)
+	dmg_toggle = _button("Fade [K]", func(): cycle_damage(), 12)
+	head.add_child(dmg_toggle)
+	for i in DMG_ROWS:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		var nm := _label("", 13, TEXT_C)
+		nm.custom_minimum_size = Vector2(96, 0)
+		nm.clip_text = true
+		nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		row.add_child(nm)
+		var back := ColorRect.new()
+		back.color = Color(0, 0, 0, 0.35)
+		back.custom_minimum_size = Vector2(DMG_BAR_W, 12)
+		back.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(back)
+		var fill := ColorRect.new()
+		fill.size = Vector2(0, 12)
+		back.add_child(fill)
+		var val := _label("", 13, DIM_C)
+		val.custom_minimum_size = Vector2(44, 0)
+		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(val)
+		row.visible = false
+		v.add_child(row)
+		dmg_rows.append([row, nm, fill, val])
+	var empty := _label("No damage yet", 13, DIM_C)
+	empty.name = "Empty"
+	v.add_child(empty)
+	dmg_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
+## Shown -> see-through -> hidden -> shown.
+func cycle_damage() -> void:
+	dmg_mode = (dmg_mode + 1) % 3
+	_dmg_t = 0.0
+	refresh_damage(0.0)
+
+
+## Every tower you own, the most damage first: its name and level, a bar in its colour and the total it has dealt.
+func refresh_damage(dt: float) -> void:
+	_dmg_t -= dt
+	if _dmg_t > 0.0 or dmg_panel == null:
+		return
+	_dmg_t = 0.5
+	dmg_panel.modulate.a = 0.45 if dmg_mode == 1 else 1.0
+	dmg_toggle.text = ["Fade [K]", "Hide [K]", "Show [K]"][dmg_mode]
+	var list: Array = game.towers.filter(func(t): return is_instance_valid(t))
+	list.sort_custom(func(a, b): return a.damage_done > b.damage_done)
+	var top := 0.0
+	if not list.is_empty():
+		top = maxf(1.0, list[0].damage_done)
+	var shown := 0
+	for i in DMG_ROWS:
+		var r: Array = dmg_rows[i]
+		var on: bool = dmg_mode != 2 and i < list.size()
+		(r[0] as Control).visible = on
+		if not on:
+			continue
+		var t: Tower = list[i]
+		var td: Dictionary = GameData.TOWERS[t.id]
+		(r[1] as Label).text = "%s %s" % [td["name"], ["", "I", "II", "III", "IV", "V"][clampi(t.level, 0, 5)]]
+		var fill := r[2] as ColorRect
+		fill.color = td["color"]
+		fill.size = Vector2(DMG_BAR_W * t.damage_done / top, 12)
+		(r[3] as Label).text = _compact(t.damage_done)
+		shown += 1
+	var empty := dmg_panel.find_child("Empty", true, false) as Control
+	if empty:
+		empty.visible = dmg_mode != 2 and shown == 0
+
+
+func _compact(v: float) -> String:
+	if v >= 1000000.0:
+		return "%.1fM" % (v / 1000000.0)
+	if v >= 10000.0:
+		return "%dk" % int(v / 1000.0)
+	if v >= 1000.0:
+		return "%.1fk" % (v / 1000.0)
+	return str(int(v))
+
+
 # ------------------------------------------------------------------ threat intel + placement hint
 
 func _build_intel() -> void:
@@ -1290,7 +1397,7 @@ func set_paused(p: bool) -> void:
 
 
 func set_game_ui_visible(v: bool) -> void:
-	for n in [top_wave.get_parent().get_parent(), build_bar, start_panel, ability_btn, intel_panel]:
+	for n in [top_wave.get_parent().get_parent(), build_bar, start_panel, ability_btn, intel_panel, dmg_panel]:
 		n.visible = v
 	if not v:
 		help_panel.visible = false
