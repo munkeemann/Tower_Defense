@@ -38,6 +38,13 @@ var _model: Node3D
 var _level_marks: Array = []
 var _anim := 0.0
 var _recoil := 0.0
+var _turrets: Array = []      # KayKit towers with several guns: each turret aims from where it stands
+var _muzzle_y := 0.2          # shots leave this far above the head
+var _crew: AnimationPlayer    # KayKit crew member's animations (null for other models)
+var _crew_idle := ""
+var _crew_attack := ""
+var _crew_cut := 1.0
+var _crew_back := 0.0         # seconds until the crew eases back into its idle
 
 
 const SIZE_SCALE := [1.0, 1.15, 1.3, 1.45, 1.55, 1.7, 1.85]
@@ -63,6 +70,13 @@ func setup(g: Game, tid: String, anchor: Vector2i, facing_ := 4) -> void:
 	# everything you own carries your color's accent as a rim light
 	Models.overlay(_model, Models.rim_mat(GameData.FACTIONS[game.faction]["color"]))
 	_fitted = _model.has_meta("fitted")
+	_turrets = _model.get_meta("turrets", [])
+	_muzzle_y = float(_model.get_meta("muzzle_y", 0.2))
+	if _model.has_meta("crew_ap"):
+		_crew = _model.get_meta("crew_ap")
+		_crew_idle = _model.get_meta("crew_idle")
+		_crew_attack = _model.get_meta("crew_attack")
+		_crew_cut = float(_model.get_meta("crew_cut", 1.0))
 	_base_scale = 1.0 if _fitted else SIZE_SCALE[clampi(cells.size() - 1, 0, SIZE_SCALE.size() - 1)]
 	_model.scale = Vector3.ONE * _base_scale
 	_model.rotation.y = Hex.dir_yaw(facing)
@@ -236,9 +250,15 @@ func make_packet() -> Dictionary:
 
 func _process(delta: float) -> void:
 	_anim += delta
+	if _crew_back > 0.0:
+		_crew_back -= delta
+		if _crew_back <= 0.0 and _crew_idle != "":
+			_crew.play(_crew_idle, 0.25)
 	var a := attack()
+	var kk := _model.has_meta("kaykit")
 	if a == "aura_buff":
-		head.position.y += sin(_anim * 2.0) * 0.002
+		if not kk:
+			head.position.y += sin(_anim * 2.0) * 0.002
 		if id == "banner":
 			head.rotation.y = sin(_anim * 1.3) * 0.4
 		else:
@@ -253,6 +273,7 @@ func _process(delta: float) -> void:
 		if cooldown <= 0.0 and _any_in_range():
 			cooldown = 1.0 / fire_rate()
 			_pulse()
+			_crew_act()
 		return
 	if a == "aura_curse":
 		# no attack: every half second, everything in reach is cursed to take more damage
@@ -267,18 +288,27 @@ func _process(delta: float) -> void:
 					if sl.size() == 2:
 						e.apply_slow(sl[0], sl[1])
 		return
-	if id in ["arcane", "storm", "rootbinder", "moonwell"]:
+	if id in ["arcane", "storm", "rootbinder", "moonwell"] and not kk:
 		head.position.y += sin(_anim * 2.5) * 0.003
 	var t := find_target()
 	if t == null:
 		return
 	if not data.get("static", false):
-		var to := t.position - global_position
-		var want := atan2(-to.x, -to.z) - _model.rotation.y
-		head.rotation.y = lerp_angle(head.rotation.y, want, min(1.0, delta * 12.0))
+		# each gun turns from where it stands (KayKit crews and turrets can sit off the footprint's middle)
+		head.rotation.y = lerp_angle(head.rotation.y, _aim_yaw(head, t.position), min(1.0, delta * 12.0))
+		for tn in _turrets:
+			if tn != head:
+				(tn as Node3D).rotation.y = lerp_angle((tn as Node3D).rotation.y, _aim_yaw(tn, t.position), min(1.0, delta * 12.0))
 	if cooldown <= 0.0:
 		cooldown = 1.0 / fire_rate()
 		_fire(t)
+		_crew_act()
+
+
+## The yaw (inside the tower model) that turns gun node n's -Z toward point p.
+func _aim_yaw(n: Node3D, p: Vector3) -> float:
+	var to := p - n.global_position
+	return atan2(-to.x, -to.z) - _model.rotation.y
 
 
 ## Auras reach around the centroid; cone-shaped ones (the Flame Belcher) only in front.
@@ -313,12 +343,27 @@ func _pulse() -> void:
 	game.sfx(String(data.get("sfx", "pulse")), global_position)
 
 
+## A KayKit crew member plays its attack clip (sped up to fit between shots), then eases back into its idle.
+func _crew_act() -> void:
+	if _crew == null or _crew_attack == "":
+		return
+	var gap := 1.0 / maxf(fire_rate(), 0.05)
+	var length := _crew.get_animation(_crew_attack).length * _crew_cut
+	var speed := clampf(length / (gap * 0.85), 1.0, 3.0)
+	_crew.play(_crew_attack, 0.08, speed)
+	_crew.seek(0.0, true)
+	_crew_back = length / speed
+
+
 func _muzzle() -> Vector3:
-	return head.global_position + Vector3(0, 0.2, 0)
+	return head.global_position + Vector3(0, _muzzle_y, 0)
 
 
-## Where shot i of a volley leaves: the head above the centroid. Two-gun towers fire from barrels either side of it.
+## Where shot i of a volley leaves: the head above the centroid. Two-gun towers fire from barrels either side of it
+## (or from their own turrets, on KayKit towers).
 func _muzzle_world(i: int) -> Vector3:
+	if _turrets.size() > 1:
+		return (_turrets[i % _turrets.size()] as Node3D).global_position + Vector3(0, _muzzle_y, 0)
 	var p := _muzzle()
 	var n := muzzles.size()
 	if n > 1:

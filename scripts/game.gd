@@ -165,6 +165,8 @@ func _ready() -> void:
 			difficulty = clampi(int(a.split("=")[1]), 0, GameData.DIFFICULTIES.size() - 1)
 		if a.begins_with("--seed="):
 			rng.seed = int(a.split("=")[1])   # same map every time (before/after screenshots)
+		if a == "--no-kaykit":
+			KayKit.enabled = false   # the models from before the KayKit swap (for before/after checks)
 	if args.size() > 0:
 		# test runs: don't let a sleeping monitor throttle vsync to a crawl, and stay quiet
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
@@ -912,6 +914,7 @@ func start_run(fid: String, hero_id := "") -> void:
 	run_stats = {"kills": 0, "leaked": 0, "built": 0, "gold_earned": 0, "tiles": 0, "discoveries": 0}
 	board.fog_enabled = false   # the map is just your tiles on a plain backdrop: nothing to hide
 	board.team = KayKit.TEAM.get(fid, "blue")
+	Models.team = board.team
 	board.generate(rng.randi(), force_biome)
 	_roll_threats()
 	thumbs.queue_faction(fid)

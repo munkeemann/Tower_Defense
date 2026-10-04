@@ -22,13 +22,14 @@ const LOOPING := ["Walking", "Running", "Idle", "Aiming", "Blocking", "Spellcast
 ## KayKit team color for each of your colors (buildings and the castle come in blue, green, red and yellow).
 const TEAM := {"crown": "yellow", "verdant": "green", "forge": "red", "tide": "blue", "grave": "blue"}
 
+static var enabled := true   # false: everything uses its pre-KayKit models (the --no-kaykit test flag)
 static var _libs := {}
 static var _heights := {}
 static var _scenes := {}
 
 
 static func available() -> bool:
-	return ResourceLoader.exists(ANIMS + "Rig_Medium_MovementBasic.glb")
+	return enabled and ResourceLoader.exists(ANIMS + "Rig_Medium_MovementBasic.glb")
 
 
 static func scene(path: String) -> PackedScene:
@@ -136,3 +137,59 @@ static func hex_mesh(name: String) -> Array:
 		n.free()
 	_meshes[name] = out
 	return out
+
+
+## Puts a gear model (assets/kaykit/gear, e.g. "bow_withString", "staff") in a character's hand ("r" or "l").
+static func hold(ch: Dictionary, gear: String, hand := "r") -> Node3D:
+	var model: Node = ch.get("model")
+	if model == null:
+		return null
+	var skel := model.find_child("Skeleton3D", true, false) as Skeleton3D
+	var ps := scene(GEAR + gear + ".gltf")
+	if skel == null or ps == null:
+		return null
+	var at := BoneAttachment3D.new()
+	at.bone_name = "handslot." + hand
+	skel.add_child(at)
+	var g := ps.instantiate() as Node3D
+	at.add_child(g)
+	return g
+
+
+## Any KayKit model by its path under assets/kaykit without the extension ("hex/well", "forest/Tree_1_A_Color1").
+static func model(path: String) -> Node3D:
+	var ps := scene(ROOT + path + ".gltf")
+	return ps.instantiate() as Node3D if ps else null
+
+
+## Height of `node`'s highest surface straight above point (x, z) of its parent's space, or 0 if it doesn't cover it.
+## Lets pieces and crews stand on top of buildings (tower floors, rooftops) without hand-measured heights.
+static func top_at(node: Node3D, x: float, z: float) -> float:
+	var best := 0.0
+	for c in node.find_children("*", "MeshInstance3D", true, false):
+		var mi := c as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var xf := Transform3D()
+		var p: Node = mi
+		while p != null and p != node.get_parent():
+			if p is Node3D:
+				xf = (p as Node3D).transform * xf
+			p = p.get_parent()
+		var box := xf * mi.mesh.get_aabb()
+		if x < box.position.x or x > box.end.x or z < box.position.z or z > box.end.z or box.end.y <= best:
+			continue
+		var f := mi.mesh.get_faces()
+		for i in range(0, f.size() - 2, 3):
+			var a := xf * f[i]
+			var b := xf * f[i + 1]
+			var d := xf * f[i + 2]
+			var den := (b.z - d.z) * (a.x - d.x) + (d.x - b.x) * (a.z - d.z)
+			if absf(den) < 1e-9:
+				continue
+			var w0 := ((b.z - d.z) * (x - d.x) + (d.x - b.x) * (z - d.z)) / den
+			var w1 := ((d.z - a.z) * (x - d.x) + (a.x - d.x) * (z - d.z)) / den
+			var w2 := 1.0 - w0 - w1
+			if w0 >= 0.0 and w1 >= 0.0 and w2 >= 0.0:
+				best = maxf(best, w0 * a.y + w1 * b.y + w2 * d.y)
+	return best

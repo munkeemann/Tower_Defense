@@ -5,7 +5,7 @@ extends Node
 
 const SIZE := 256
 
-var _cache := {}        # tower id -> Texture2D
+var _cache := {}        # tower id + KayKit team color -> Texture2D
 var _queue: Array = []
 var _busy := false
 var _vp: SubViewport
@@ -50,11 +50,16 @@ func _ready() -> void:
 
 ## Cached portrait, or null while it's still being rendered (it gets queued).
 func get_thumb(tid: String) -> Texture2D:
-	if _cache.has(tid):
-		return _cache[tid]
+	if _cache.has(_key(tid)):
+		return _cache[_key(tid)]
 	if _enabled and tid not in _queue:
 		_queue.append(tid)
 	return null
+
+
+## KayKit buildings take your color's team color, so a portrait is kept per color.
+func _key(tid: String) -> String:
+	return tid + "|" + Models.team
 
 
 func queue_faction(fid: String) -> void:
@@ -74,6 +79,11 @@ func _render(tid: String) -> void:
 		c.queue_free()
 	var m := Models.tower(tid, GameData.TOWERS[tid]["color"])
 	var root: Node3D = m["root"]
+	if root.has_meta("kaykit"):
+		# KayKit crews and guns look out of the portrait
+		(m["head"] as Node3D).rotation.y = PI - 0.35
+		for tn in root.get_meta("turrets", []):
+			(tn as Node3D).rotation.y = PI - 0.35
 	_stage.add_child(root)
 	var bb := Models._local_aabb(root)
 	var mid := _stage.transform * bb.get_center()
@@ -87,7 +97,7 @@ func _render(tid: String) -> void:
 	await RenderingServer.frame_post_draw
 	var img := _vp.get_texture().get_image()
 	if img and not img.is_empty():
-		_cache[tid] = ImageTexture.create_from_image(img)
+		_cache[_key(tid)] = ImageTexture.create_from_image(img)
 	else:
-		_cache[tid] = null
+		_cache[_key(tid)] = null
 	_busy = false

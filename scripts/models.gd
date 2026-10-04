@@ -232,10 +232,17 @@ static func _local_aabb(root: Node3D) -> AABB:
 ## Places assets/custom/<file>.glb scaled to fit a w-wide, h-tall box, standing at height y, centered.
 ## Returns the holder node (meta "height" = final height), or null if the file is missing.
 static func fit(parent: Node3D, file: String, w: float, h: float, y := 0.0, rot_y := 0.0) -> Node3D:
-	var path := CUSTOM + file + ".glb"
-	if not ResourceLoader.exists(path):
-		return null
-	var n := asset(path)
+	var n: Node3D = null
+	if KK_FIT.has(file) and KayKit.available():
+		var kf: Array = KK_FIT[file] if KK_FIT[file] is Array else [KK_FIT[file], 1.0]
+		n = KayKit.model(String(kf[0]).replace("{t}", team))
+		w *= float(kf[1])
+		h *= float(kf[1])
+	if n == null:
+		var path := CUSTOM + file + ".glb"
+		if not ResourceLoader.exists(path):
+			return null
+		n = asset(path)
 	if n == null:
 		return null
 	var holder := Node3D.new()
@@ -250,6 +257,16 @@ static func fit(parent: Node3D, file: String, w: float, h: float, y := 0.0, rot_
 	parent.add_child(holder)
 	holder.set_meta("height", bb.size.y * s)
 	return holder
+
+
+## Meshy models drawn with a KayKit model instead ("{t}" is your team color): neutral buildings and discoveries.
+## A model, or [model, size factor] for ones that shouldn't fill the whole space.
+const KK_FIT := {
+	"bld_ammo_depot": ["dungeon/crates_stacked", 0.8], "bld_relay": "hex/building_watchtower_{t}",
+	"bld_scout": "hex/building_tent_{t}", "bld_supply": "hex/building_market_{t}",
+	"poi_chest": ["dungeon/chest_gold", 0.55], "poi_shrine": "hex/building_shrine_{t}", "poi_mine": "hex/building_mine_{t}",
+	"prop_ruin": "hex/building_destroyed", "poi_cache": ["hex/resource_stone", 0.75],
+}
 
 
 static func _has_custom(files: Array) -> bool:
@@ -520,6 +537,194 @@ static func _fp_tower(id: String, root: Node3D, head: Node3D) -> bool:
 	return true
 
 
+## KayKit towers (assets/kaykit): buildings and props on the footprint's hexes, with a crew member who aims and plays
+## an attack clip when the tower fires. Cells are the footprint facing north (front cell [0, 0], see GameData.SHAPES).
+## "{t}" in a model name becomes your color's KayKit team color (Models.team). Pieces stand on whatever was placed
+## before them at their spot (a torch on a block, a cannon on a tower), measured from the meshes.
+##   parts:   [cell, model, scale, yaw degrees (optional), [x, z] nudge within the cell (optional)]
+##   turrets: [cell, model, scale, yaw, nudge, pitch]: weapons that turn to aim; the first is the tower's head
+##   crew:    {cell, char, gear [[file, hand]], idle, attack, cut (how much of the attack clip plays before easing
+##            back to idle), h (height), at [x, z] nudge, ground (stand on the ground), aim (false: always face front)}
+## Towers not listed here keep their Meshy footprint art.
+const KK_TOWER := {
+	"archer": {"parts": [[[0, 0], "hex/building_tower_base_{t}", 1.6]],
+		"crew": {"cell": [0, 0], "char": "Ranger.glb", "gear": [["bow_withString", "l"]], "idle": "Ranged_Bow_Aiming_Idle",
+			"attack": "Ranged_Bow_Release", "cut": 0.4}},
+	"ballista": {"parts": [[[0, 0], "hex/building_tower_base_{t}", 1.6], [[0, 1], "hex/building_archeryrange_{t}", 1.2, 180.0],
+			[[0, 2], "hex/building_barracks_{t}", 1.15]],
+		"crew": {"cell": [0, 0], "char": "Knight.glb", "gear": [["crossbow_2handed", "r"]], "idle": "Ranged_2H_Aiming", "attack": "Ranged_2H_Shoot"}},
+	"trebuchet": {"parts": [[[0, 0], "hex/building_tower_base_{t}", 1.2], [[1, 0], "hex/resource_stone", 3.0],
+			[[-1, 1], "hex/resource_stone", 3.0, 120.0], [[0, 2], "hex/building_tent_{t}", 1.3]],
+		"turrets": [[[0, 1], "hex/catapult_{t}_accent", 2.4, 180.0]],
+		"crew": {"cell": [0, 1], "char": "Engineer.glb", "gear": [["engineer_Wrench", "r"]], "idle": "Idle_A", "attack": "Interact",
+			"at": [0.95, 0.45], "ground": true}},
+	"bombard": {"parts": [[[1, -1], "hex/building_tower_base_{t}", 1.25], [[-1, 0], "hex/building_tower_base_{t}", 1.25],
+			[[0, 0], "hex/building_barracks_{t}", 1.15], [[1, 0], "hex/cannonball_pallet", 2.8], [[-1, 1], "hex/cannonball_pallet", 2.8, 60.0],
+			[[0, 1], "hex/building_tent_{t}", 1.3]],
+		"turrets": [[[1, -1], "hex/cannon_{t}_accent", 1.6, 180.0], [[-1, 0], "hex/cannon_{t}_accent", 1.6, 180.0]]},
+	"arcane": {"parts": [[[0, 0], "hex/building_tower_base_{t}", 1.7], [[0, 1], "hex/building_tower_B_{t}", 1.25]],
+		"crew": {"cell": [0, 0], "char": "Mage.glb", "gear": [["staff", "r"]], "idle": "Idle_A", "attack": "Ranged_Magic_Shoot"}},
+	"chapel": {"parts": [[[0, 0], "hex/building_church_{t}", 1.7], [[-1, 0], "hex/building_shrine_{t}", 1.3, 30.0],
+			[[1, -1], "dungeon/pillar_decorated", 0.4], [[0, -1], "dungeon/floor_foundation_allsides", 0.5],
+			[[0, -1], "dungeon/candle_triple", 0.6, 0.0, [0.4, 0.35]]],
+		"crew": {"cell": [0, -1], "char": "Paladin.glb", "gear": [["sword_1handed", "r"], ["shield_badge_color", "l"]], "idle": "Idle_A",
+			"attack": "Ranged_Magic_Raise", "at": [0.0, -0.15], "aim": false}},
+	"banner": {"parts": [[[0, 0], "hex/weaponrack", 3.5, 0.0, [0.55, 0.35]], [[0, 0], "dungeon/torch_lit", 0.8, 0.0, [-0.6, 0.4]]],
+		"turrets": [[[0, 0], "hex/banner_{t}_full", 5.0, 0.0, [0.0, -0.3]]],
+		"crew": {"cell": [0, 0], "char": "Knight.glb", "gear": [["halberd", "r"]], "idle": "Idle_B", "at": [0.0, 0.45], "ground": true, "aim": false}},
+	"thorn": {"parts": [[[0, 0], "hex/building_watchtower_{t}", 1.6]],
+		"crew": {"cell": [0, 0], "char": "Rogue_Hooded.glb", "gear": [["crossbow_1handed", "r"]], "idle": "Ranged_1H_Aiming", "attack": "Ranged_1H_Shoot"}},
+	"briar": {"parts": [[[0, 0], "forest/Bush_1_E_Color1", 1.15], [[0, 1], "forest/Bush_1_G_Color1", 0.6, 60.0],
+			[[0, 1], "forest/Tree_Bare_1_A_Color1", 0.55, 0.0, [0.3, 0.1]], [[0, 2], "forest/Bush_1_C_Color1", 1.3],
+			[[0, 2], "forest/Tree_Bare_1_A_Color1", 0.45, 150.0, [-0.45, -0.2]], [[0, 3], "forest/Bush_1_E_Color1", 1.1, 200.0],
+			[[0, 0], "forest/Rock_3_A_Color1", 0.6, 0.0, [-0.6, 0.45]]]},
+	"moonwell": {"parts": [[[0, 0], "hex/building_well_{t}", 2.2, 0.0, [0.15, -0.05]]],
+		"crew": {"cell": [0, 0], "char": "Druid.glb", "gear": [["druid_staff", "r"]], "idle": "Idle_B", "at": [-0.65, 0.4], "ground": true, "aim": false}},
+	"rootbinder": {"parts": [[[0, 0], "hex/building_shrine_{t}", 1.6], [[1, 0], "forest/Tree_1_A_Color1", 0.45],
+			[[0, 1], "forest/Tree_3_A_Color1", 0.5, 40.0], [[-1, 1], "forest/Tree_1_A_Color1", 0.4, 100.0],
+			[[-1, 0], "forest/Tree_3_A_Color1", 0.5, 160.0], [[1, -1], "forest/Tree_1_A_Color1", 0.42, 220.0],
+			[[0, -1], "forest/Bush_1_C_Color1", 0.8, 0.0, [0.55, 0.25]]],
+		"crew": {"cell": [0, -1], "char": "Druid.glb", "gear": [["druid_staff", "r"]], "idle": "Idle_A", "attack": "Ranged_Magic_Shoot",
+			"at": [-0.2, 0.0], "ground": true}},
+	"dwarf_flame": {"parts": [[[0, 1], "hex/building_blacksmith_{t}", 1.4], [[0, 0], "dungeon/barrel_large", 0.35, 0.0, [0.65, 0.35]]],
+		"crew": {"cell": [0, 0], "char": "Engineer.glb", "gear": [["shotgun", "r"]], "idle": "Ranged_2H_Aiming", "attack": "Ranged_2H_Shoot",
+			"ground": true, "aim": false, "h": 1.2}},
+	"dwarf_hammer": {"parts": [[[1, 0], "hex/building_blacksmith_{t}", 1.25, 300.0], [[-1, 1], "hex/building_mine_{t}", 1.05, 60.0]],
+		"crew": {"cell": [0, 0], "char": "Engineer.glb", "gear": [["hammer_A", "r"]], "idle": "Melee_2H_Idle", "attack": "Melee_2H_Attack_Chop",
+			"ground": true, "h": 1.35}},
+	"dwarf_mortar": {"parts": [[[-1, 0], "hex/building_workshop_{t}", 1.15], [[1, -1], "hex/cannonball_pallet", 2.8],
+			[[1, -1], "dungeon/crates_stacked", 0.35, 0.0, [0.5, 0.4]], [[0, -1], "dungeon/barrel_small_stack", 0.5]],
+		"turrets": [[[0, 0], "hex/cannon_{t}_accent", 2.2, 180.0, [0.0, 0.0], 35.0]],
+		"crew": {"cell": [0, 0], "char": "Engineer.glb", "gear": [["engineer_Wrench", "r"]], "idle": "Idle_A", "attack": "Use_Item",
+			"at": [0.95, 0.3], "ground": true}},
+	"mer_tide": {"parts": [[[0, 0], "hex/building_watermill_{t}", 1.45]]},
+	"mer_harpoon": {"parts": [[[0, 0], "hex/building_tower_base_{t}", 1.6], [[0, 1], "hex/building_shipyard_{t}", 1.05, 180.0],
+			[[0, 2], "hex/boat", 3.0, 30.0]],
+		"crew": {"cell": [0, 0], "char": "Survivalist.glb", "gear": [["crossbow_2handed", "r"]], "idle": "Ranged_2H_Aiming", "attack": "Ranged_2H_Shoot"}},
+	"bone_crypt": {"parts": [[[0, 0], "dungeon/floor_foundation_allsides", 0.72], [[0, 0], "dungeon/column", 0.5, 0.0, [-0.55, 0.55]],
+			[[0, 0], "dungeon/column", 0.5, 0.0, [0.55, 0.55]], [[0, 0], "dungeon/torch_lit", 0.5, 0.0, [0.55, -0.5]],
+			[[0, 0], "dungeon/candle_triple", 0.5, 0.0, [-0.55, -0.5]]],
+		"crew": {"cell": [0, 0], "char": "Skeleton_Rogue.glb", "gear": [["Skeleton_Crossbow", "r"]], "idle": "Ranged_2H_Aiming", "attack": "Ranged_2H_Shoot",
+			"at": [0.0, -0.2]}},
+}
+## KayKit team color for buildings (Game sets it from your color at the start of a run).
+static var team := "blue"
+static var _kk_heights := {}   # tower id -> the measured standing heights of its pieces, in build order
+
+
+## Where a KayKit tower piece goes: its cell's middle relative to the footprint's middle, plus its nudge.
+static func _kk_spot(cell: Array, nudge, mid: Vector3) -> Vector3:
+	var p := Hex.to_world(Vector2i(cell[0], cell[1])) - mid
+	if nudge is Array and (nudge as Array).size() == 2:
+		p += Vector3(nudge[0], 0, nudge[1])
+	return Vector3(p.x, 0, p.z)
+
+
+## The highest surface among `nodes` at point p (0 on bare ground).
+static func _kk_top(nodes: Array, p: Vector3) -> float:
+	var y := 0.0
+	for n in nodes:
+		y = maxf(y, KayKit.top_at(n, p.x, p.z))
+	return y
+
+
+## Builds a KK_TOWER tower. Root metas: "fitted", "kaykit", "muzzle_y" (shots leave this high above the head),
+## "turrets" (when it has several), and "crew_ap" / "crew_idle" / "crew_attack" / "crew_cut" for Tower to animate.
+static func _kk_tower(id: String, root: Node3D, head: Node3D) -> bool:
+	if not KK_TOWER.has(id) or not KayKit.available():
+		return false
+	var spec: Dictionary = KK_TOWER[id]
+	var mid := Vector3.ZERO
+	var cells: Array = GameData.shape_of(id)["cells"]
+	for cc in cells:
+		mid += Hex.to_world(Vector2i(cc[0], cc[1]))
+	mid /= float(cells.size())
+	var hs: Array = _kk_heights.get(id, [])
+	var fresh := hs.is_empty()
+	var k := 0
+	var placed: Array = []
+	for p in spec.get("parts", []):
+		var n := KayKit.model(String(p[1]).replace("{t}", team))
+		if n == null:
+			continue
+		var at := _kk_spot(p[0], p[4] if p.size() > 4 else null, mid)
+		if fresh:
+			hs.append(_kk_top(placed, at))
+		n.position = at + Vector3(0, hs[k], 0)
+		k += 1
+		n.scale = Vector3.ONE * float(p[2])
+		n.rotation_degrees.y = float(p[3]) if p.size() > 3 else 0.0
+		root.add_child(n)
+		placed.append(n)
+	var turrets: Array = []
+	var muzzle_y := 0.6
+	for i in (spec.get("turrets", []) as Array).size():
+		var tp: Array = spec["turrets"][i]
+		var holder: Node3D = head if i == 0 else Node3D.new()
+		if i > 0:
+			root.add_child(holder)
+		var at := _kk_spot(tp[0], tp[4] if tp.size() > 4 else null, mid)
+		if fresh:
+			hs.append(_kk_top(placed, at))
+		holder.position = at + Vector3(0, hs[k], 0)
+		k += 1
+		var n := KayKit.model(String(tp[1]).replace("{t}", team))
+		if n:
+			var pitch := Node3D.new()
+			pitch.rotation_degrees.x = float(tp[5]) if tp.size() > 5 else 0.0
+			holder.add_child(pitch)
+			n.scale = Vector3.ONE * float(tp[2])
+			n.rotation_degrees.y = float(tp[3]) if tp.size() > 3 else 0.0
+			pitch.add_child(n)
+			muzzle_y = _local_aabb(n).size.y * float(tp[2]) * 0.6
+		turrets.append(holder)
+	var c: Dictionary = spec.get("crew", {})
+	var aims := not turrets.is_empty()
+	if not c.is_empty():
+		var h := float(c.get("h", 1.25))
+		var ch := KayKit.character(c["char"], "", h)
+		if not ch.is_empty():
+			for g in c.get("gear", []):
+				KayKit.hold(ch, g[0], g[1])
+			var at := _kk_spot(c["cell"], c.get("at"), mid)
+			if fresh:
+				hs.append(0.0 if c.get("ground", false) else _kk_top(placed, at))
+			var spot := at + Vector3(0, hs[k], 0)
+			k += 1
+			var body: Node3D = ch["root"]
+			if c.get("aim", true) and not turrets.is_empty():
+				head.add_child(body)   # works the turret, turning with it
+				body.position = spot - head.position
+			elif c.get("aim", true):
+				head.position = spot
+				head.add_child(body)
+				muzzle_y = h * 0.6
+				aims = true
+			else:
+				root.add_child(body)
+				body.position = spot
+			var ap: AnimationPlayer = ch["anim"]
+			var idle := KayKit.clip(ap, [c.get("idle", "Idle_A"), "Idle_A"])
+			if idle != "":
+				ap.play(idle)
+				ap.seek(randf() * ap.current_animation_length, true)
+			root.set_meta("crew_ap", ap)
+			root.set_meta("crew_idle", idle)
+			root.set_meta("crew_attack", KayKit.clip(ap, [c["attack"]]) if c.has("attack") else "")
+			root.set_meta("crew_cut", float(c.get("cut", 1.0)))
+	if fresh:
+		_kk_heights[id] = hs
+	if not aims:
+		head.position = Vector3(0, _local_aabb(root).size.y * 0.6, 0)   # nothing aims: shots and pulses leave from up high
+		muzzle_y = 0.2
+	if turrets.size() > 1:
+		root.set_meta("turrets", turrets)
+	root.set_meta("muzzle_y", muzzle_y)
+	root.set_meta("fitted", true)
+	root.set_meta("kaykit", true)
+	return true
+
+
 ## Returns {"root": Node3D, "head": Node3D}. The head is rotated toward targets (-Z forward).
 ## Multi-hex towers with footprint art come back with root meta "fitted" (already sized to the footprint).
 static func tower(id: String, color: Color) -> Dictionary:
@@ -528,6 +733,8 @@ static func tower(id: String, color: Color) -> Dictionary:
 	var root := Node3D.new()
 	var head := Node3D.new()
 	root.add_child(head)
+	if _kk_tower(id, root, head):
+		return {"root": root, "head": head}
 	if _fp_tower(id, root, head):
 		return {"root": root, "head": head}
 	if _ai_tower(id, color, root, head):
