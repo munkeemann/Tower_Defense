@@ -113,7 +113,7 @@ FIRE_LEN = 16
 def pose(rig, breathe=0.0, squash=0.0, puff=0.0, drift=0.0, rise=0.0):
     pb = rig.pose.bones
     rest_pose(rig)
-    pb["cap"].scale = (1 + breathe + squash * 0.18, 1 + breathe + squash * 0.18, 1 + breathe - squash * 0.3)
+    pb["cap"].scale = (1 + breathe + squash * 0.18, 1 + breathe - squash * 0.3, 1 + breathe + squash * 0.18)   # (Y up)
     pb["puff"].scale = (max(puff, 0.001),) * 3
     pb["puff"].location = arm_space_loc(pb["puff"], (0, 0, rise))
     pb["drift"].rotation_quaternion = arm_space_quat(pb["drift"], (0, 0, 1), drift)

@@ -132,7 +132,7 @@ def pose(rig, sway=0.0, lash=0.0, bloom=1.0, ph=0.0):
         s = math.sin(ph + i * 0.9)
         pb["vine.%d.1" % i].rotation_quaternion = arm_space_quat(pb["vine.%d.1" % i], d, sway * s - lash * 0.6)
         pb["vine.%d.2" % i].rotation_quaternion = arm_space_quat(pb["vine.%d.2" % i], d, sway * 1.5 * s - lash)
-    pb["rose"].scale = (bloom, bloom, 1.0 + (bloom - 1.0) * 0.4)
+    pb["rose"].scale = (bloom, 1.0 + (bloom - 1.0) * 0.4, bloom)          # (an upright bone: its own Y is the height)
 
 
 def build_anims():

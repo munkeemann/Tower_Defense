@@ -125,7 +125,7 @@ def pose(rig, sway=0.0, throb=0.0, orbit=0.0, dart=0.0, buzz=0.0):
     pb = rig.pose.bones
     rest_pose(rig)
     pb["hive"].rotation_quaternion = arm_space_quat(pb["hive"], (1, 0, 0), sway) @ arm_space_quat(pb["hive"], (0, 1, 0), sway * 0.6)
-    pb["hive"].scale = (1 + throb, 1 + throb, 1 - throb * 0.5)
+    pb["hive"].scale = (1 + throb, 1 - throb * 0.5, 1 + throb)           # (a hanging bone: its own Y is the height)
     for i, (r, dz, a) in enumerate(WASPS):
         sp = (1.0 if i % 2 == 0 else -1.3)
         b = pb["wasp.%d" % i]

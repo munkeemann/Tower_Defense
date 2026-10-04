@@ -137,15 +137,21 @@ GROUND_SIDE = (0.64, 0.72)
 GROUND_FOOT = (0.72, 0.86)
 
 
-def paint_ground(obj, side=GROUND_SIDE, top=GROUND_TOP):
+def paint_ground(obj, side=GROUND_SIDE, top=GROUND_TOP, swatch="lime"):
     """Colours obj like a map hex tile: upward faces like a tile's top, the rest like its sides (on mat_ground)."""
     obj.data.materials.clear()
     obj.data.materials.append(mat_ground())
     polys = obj.data.polygons
     tops = {p.index for p in polys if p.normal.z > 0.7}
-    swatch_uv(obj, "lime", faces=tops, lo=top, hi=top)
-    swatch_uv(obj, "lime", faces={p.index for p in polys} - tops, lo=side[0], hi=side[1])
+    swatch_uv(obj, swatch, faces=tops, lo=top, hi=top)
+    swatch_uv(obj, swatch, faces={p.index for p in polys} - tops, lo=side[0], hi=side[1])
     return obj
+
+
+def paint_water(obj):
+    """Colours obj like the map's water tiles (their "blue" swatch, on mat_ground): in game a tower's pools take the
+    biome's palette, like the sea."""
+    return paint_ground(obj, side=(0.64, 0.76), top=0.48, swatch="blue")
 
 
 def merge_duplicate_materials():
