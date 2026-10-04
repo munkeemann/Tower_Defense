@@ -841,6 +841,9 @@ const BLENDER_CREW := {
 		"h": 1.1},
 	"necromancer": {"char": "Skeleton_Mage.glb", "gear": [["Skeleton_Staff", "r"]], "idle": "Skeletons_Idle",
 		"attack": "Ranged_Magic_Shoot", "h": 1.45},
+	"knight_hall": {"char": "Knight.glb", "gear": [["sword_1handed", "r"], ["shield_badge_color", "l"]], "idle": "Idle_B",
+		"attack": "Ranged_Magic_Raise", "h": 1.15},
+	"doom_cannon": {"char": "Engineer.glb", "gear": [["engineer_Wrench", "r"]], "idle": "Idle_A", "attack": "Use_Item", "h": 1.1},
 }
 const TEAM_COLUMN := {"blue": 0, "red": 1, "yellow": 2, "green": 3}   # team swatches along the atlas's bottom row
 static var _atlas_mats := {}
