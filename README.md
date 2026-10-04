@@ -254,17 +254,37 @@ KayKit (Kay Lousberg, CC0, in `assets/kaykit`, wrapped by `scripts/kaykit.gd`) s
   and the Vampire's throne, the Spore Mound giant mushrooms, the Chapel a golden paladin statue. Towers can stand
   on a hex stone plinth spanning their footprint (`plinth`), and pieces can float, spin and bob (`Tower._spinners`).
   The other towers (gryphon, treant, hive, flak battery, whirlpool, siren and the creatures) keep their Meshy art.
-- **Blender-made towers** (`assets/towers/<id>.glb`) win over the KayKit composites. So far: the **Ballista**, a
-  torsion ballista on a stone dais that turns to aim, with a hexagonal bolt store under a team-colored roof and a rack
-  of spare bolts behind it. Its rig plays `idle` (the pennant flutters), `fire` (the arms snap forward, the string
-  releases, the stock kicks) and `reload` (the slider runs forward, grabs the string, the winch drags it back and a
-  new bolt drops in) on every shot, sped up to fit between shots (`Tower._rig_act`). Bolts leave from the `Muzzle`
-  marker and an engineer works the winch from the `Crew` marker (`Models.BLENDER_CREW`). They're built by
-  scripts in `tools/blender/` (`kk_helpers.py` plus one `<id>_build.py` each) through the MCP for Blender
-  connector. The `.blend` sources live in `assets/towers/src/` (git-ignored like all art, since they hold KayKit
-  meshes), so you can tweak them in Blender and re-export with `export_tower()`. Our own geometry is UV-mapped
-  into the hex pack's atlas so it shares KayKit's colors. Faces on the `kk_team` material slide along the atlas's
-  team row to your color (`Models._atlas_mat`). `--no-blender` goes back to the KayKit composites.
+- **Blender-made towers** (`assets/towers/<id>.glb`) win over the KayKit composites and the Meshy art. Every
+  tower in a Crown run now has one:
+  - **Ballista**: a torsion ballista on a turning dais, a bolt store and a bolt rack.
+    - fire: the arms snap and the string releases.
+    - reload: the winch drags the string back and a new bolt drops in.
+  - **Arcane Spire**: a stone spire whose balcony cradles a floating crystal in gold rune rings; a mage reads at a
+    lectern behind it. fire: the crystal flares.
+  - **Chapel of Dawn**: a nave and a bell tower crowned by a sunburst. fire (every pulse): the bell swings and a ring
+    of light bursts outward.
+  - **War Banner**: a big rippling team flag with a drum, a brazier and a knight on guard.
+  - **Gryphon Roost**: a low-poly gryphon on a rocky aerie that turns, opens its wings and fires from both of them.
+  - **Seraph**: a KayKit paladin with Blender wings, a halo and a spear of light. It hovers, throws, and the spear
+    forms again in its hand.
+  - **Archangel**: a bigger angel with a greatsword before a sun arch. fire: it calls judgment (the Summon clip).
+
+  How it works:
+  - Each GLB has a `Head` (it turns to aim), `Muzzle` markers (shots leave there) and an optional `Crew` marker
+    (`Models.BLENDER_CREW` stands a KayKit character there).
+  - Its rig plays `idle`, plus `fire` (and `reload`) on every attack, sped up to fit between shots
+    (`Tower._rig_act`).
+  - The scripts in `tools/blender/` build them: `kk_helpers.py`, `angel_common.py` (KayKit characters turned into
+    angels: extra wing, halo and weapon bones, and the pack's clips baked with wing beats) and one `<id>_build.py`
+    per tower.
+  - `blender -b --factory-startup --python tools/blender/build_tower.py -- <id> [preview dir]` builds one in a
+    background Blender. It saves `assets/towers/src/<id>.blend`, exports the GLB and renders previews.
+    `assets/towers/src/gallery.blend` links them all side by side.
+  - The `.blend` files are git-ignored like all art, since they hold KayKit meshes. Tweak them in Blender and
+    re-export with `export_tower()`.
+  - Our own geometry is UV-mapped into the hex pack's atlas, so it shares KayKit's colors. Faces on the `kk_team`
+    material slide along the atlas's team row to your color (`Models._atlas_mat`).
+  - `--no-blender` goes back to the KayKit composites.
 - `--no-kaykit` runs with the models from before the KayKit swap, for before/after checks.
 - `tools/tower_sheet.gd` draws towers on their hexes into a PNG with no window (a small software rasterizer in
   `tools/snap.gd`), so tower art can be checked in headless runs; `tools/map_sheet.gd` does the same for a grown
