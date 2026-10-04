@@ -17,6 +17,30 @@ static var WEDGE_OFF: Array = []     # wedge centroid offsets from a cell center
 static var CORNER: Array = []        # the 6 corner offsets of a cell, corner i at 60*i degrees
 
 
+## A flat hexagonal plate turned like the map's cells and tiles (corners on +-X), `h` tall and centred on y = 0.
+## (Godot's six-sided CylinderMesh puts a corner on +Z instead: 30 degrees off.)
+static func plate_mesh(radius: float, h: float) -> ArrayMesh:
+	var cm := CylinderMesh.new()
+	cm.top_radius = radius
+	cm.bottom_radius = radius
+	cm.height = h
+	cm.radial_segments = 6
+	cm.rings = 1
+	var arr := cm.get_mesh_arrays()
+	var b := Basis(Vector3.UP, deg_to_rad(30.0))
+	var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+	for i in vs.size():
+		vs[i] = b * vs[i]
+		ns[i] = b * ns[i]
+	arr[Mesh.ARRAY_VERTEX] = vs
+	arr[Mesh.ARRAY_NORMAL] = ns
+	arr[Mesh.ARRAY_TANGENT] = null
+	var am := ArrayMesh.new()
+	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return am
+
+
 static func setup() -> void:
 	if not TEMPLATE.is_empty():
 		return

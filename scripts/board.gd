@@ -2026,14 +2026,8 @@ func road_length_from(port: Vector2i) -> int:
 # ------------------------------------------------------------------ placement previews
 
 func _hex_plate(radius: float, col: Color, pos: Vector3, alpha: float, h := 0.08) -> MeshInstance3D:
-	var cm := CylinderMesh.new()
-	cm.top_radius = radius
-	cm.bottom_radius = radius
-	cm.height = h
-	cm.radial_segments = 6
-	cm.rings = 1
 	var mi := MeshInstance3D.new()
-	mi.mesh = cm
+	mi.mesh = Hex.plate_mesh(radius, h)
 	mi.material_override = Models.mat(col, 0.6, alpha)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.position = pos
