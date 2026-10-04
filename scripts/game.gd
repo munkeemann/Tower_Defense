@@ -447,6 +447,17 @@ func _tower_test(tid: String) -> bool:
 	if blender and (t._rig == null or t._muzzle_nodes.is_empty()):
 		print("TOWERTEST FAIL Blender tower without its rig or muzzle")
 		ok = false
+	# its hexes wear the map's palette (the board's tile material)
+	var ground: Array = t._model.get_meta("ground", [])
+	var gmat := board.ground_material()
+	var off_palette := ground.filter(func(g): return (g[0] as MeshInstance3D).get_surface_override_material(int(g[1])) != gmat)
+	print("TOWERTEST ground: %d surfaces, biome %s, palette %s" % [ground.size(), board.biome_id, Board.KK_PALETTE.get(board.biome_id, "default")])
+	if blender and ground.is_empty():
+		print("TOWERTEST FAIL Blender tower without ground surfaces (rebuild it: its plinth predates kk_ground)")
+		ok = false
+	if gmat and not off_palette.is_empty():
+		print("TOWERTEST FAIL %d ground surfaces don't wear the map's palette" % off_palette.size())
+		ok = false
 	if t.is_support():
 		# support towers never attack: check that a neighbor in reach gets the buff (damage or speed), then sell
 		owned["archer"] = 2

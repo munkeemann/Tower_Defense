@@ -37,12 +37,12 @@ def _toadstool(bms, c, h, r, rnd, tilt=0.0):
 def build_base():
     col = collection("Spore")
     root = empty("Spore", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, turf=True, stone="stone_warm")
+    T = plinth(CELLS, col, root, TOP, turf=True)
     rnd = random.Random(6)
     B = BACK
     bm = bmesh.new()
     bm_ellipsoid(bm, (B.x, B.y, T), (0.82, 0.8, 0.22))
-    paint(mesh_obj("Grove_Mound", bm, col, root), "grass", lo=0.3, hi=0.7)
+    paint_ground(mesh_obj("Grove_Mound", bm, col, root))     # a rise in the ground: the map's colours
     bms = (bmesh.new(), bmesh.new(), bmesh.new())
     for (dx, dy, h, r) in ((0.42, -0.35, 1.35, 0.32), (-0.45, -0.28, 1.0, 0.27), (0.5, 0.35, 0.7, 0.22), (-0.15, -0.6, 0.55, 0.18)):
         _toadstool(bms, (B.x + dx, B.y + dy, T + 0.1), h, r, rnd, rnd.uniform(0, 6.28))

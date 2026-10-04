@@ -22,7 +22,7 @@ EMBER = (1.0, 0.42, 0.08)
 def build_base():
     col = collection("Dwarf_flame")
     root = empty("Dwarf_flame", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, stone="stone_dark", course="iron")
+    T = plinth(CELLS, col, root, TOP)
     rnd = random.Random(2)
     B = BACK
     # firebox, boiler, rivets, chimney

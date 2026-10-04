@@ -734,6 +734,8 @@ static func _kk_tower(id: String, root: Node3D, head: Node3D) -> bool:
 		n.scale = Vector3.ONE * float(p[2])
 		n.rotation_degrees.y = float(p[3]) if p.size() > 3 else 0.0
 		root.add_child(n)
+		if String(p[1]).begins_with("hex/"):
+			_mark_ground(root, n)   # hex-pack buildings stand on their own grass hexes
 		if opts.has("spin") or opts.has("bob"):
 			spinners.append([n, deg_to_rad(float(opts.get("spin", 0.0))), float(opts.get("bob", 0.0)), n.position.y])
 		else:
@@ -854,8 +856,30 @@ static func _atlas_mat(team_name: String) -> Material:
 	return _atlas_mats[team_name]
 
 
+## Hex-pack surfaces under `n` join root's "ground" list, so the tower can take the map's palette on them.
+static func _mark_ground(root: Node3D, n: Node3D) -> void:
+	var ground: Array = root.get_meta("ground", [])
+	for node in n.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(s)
+			if mat and String(mat.resource_name).begins_with("hexagons_medieval"):
+				ground.append([mi, s])
+	root.set_meta("ground", ground)
+
+
+## Puts `mat` (the board's tile material: the biome's palette) on a tower's ground surfaces: a Blender tower's hexes,
+## or the hex-pack buildings of a KayKit one. A tower drawn off the map keeps the pack's default palette.
+static func set_ground(root: Node3D, mat: Material) -> void:
+	if mat == null:
+		return
+	for g in root.get_meta("ground", []):
+		(g[0] as MeshInstance3D).set_surface_override_material(int(g[1]), mat)
+
+
 ## Builds a Blender tower under root and returns its head (null if there is none). Root metas: "fitted", "kaykit",
-## "blender", "muzzles" (marker nodes), "rig_ap" (the AnimationPlayer) and the crew_* metas KayKit crews use.
+## "blender", "muzzles" (marker nodes), "rig_ap" (the AnimationPlayer), "ground" (surfaces that take the map's palette)
+## and the crew_* metas KayKit crews use.
 static func _blender_tower(id: String, root: Node3D) -> Node3D:
 	if not has_blender_tower(id):
 		return null
@@ -868,6 +892,7 @@ static func _blender_tower(id: String, root: Node3D) -> Node3D:
 		scene.free()
 		return null
 	root.add_child(scene)
+	var ground := []
 	for node in scene.find_children("*", "MeshInstance3D", true, false):
 		var mi := node as MeshInstance3D
 		for s in mi.mesh.get_surface_count():
@@ -878,6 +903,11 @@ static func _blender_tower(id: String, root: Node3D) -> Node3D:
 				mi.set_surface_override_material(s, _atlas_mat(team))
 			elif mat.resource_name == "hexagons_medieval":
 				mi.set_surface_override_material(s, _atlas_mat(""))
+			elif mat.resource_name == "kk_ground":
+				mi.set_surface_override_material(s, _atlas_mat(""))
+				ground.append([mi, s])
+	if not ground.is_empty():
+		root.set_meta("ground", ground)
 	var ap := scene.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	if ap:
 		if ap.has_animation("idle"):

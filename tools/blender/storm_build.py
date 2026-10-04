@@ -25,7 +25,7 @@ CROWN_Z = 2.35
 def build_base():
     col = collection("Storm")
     root = empty("Storm", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, turf=True, stone="stone_warm")
+    T = plinth(CELLS, col, root, TOP, turf=True)
     rnd = random.Random(31)
     F = FRONT
     # trunk, flaring roots, two big limbs

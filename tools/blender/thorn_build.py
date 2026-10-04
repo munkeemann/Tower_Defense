@@ -18,7 +18,7 @@ TOP = 0.34
 def build_base():
     col = collection("Thorn")
     root = empty("Thorn", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, turf=True, stone="stone_warm")
+    T = plinth(CELLS, col, root, TOP, turf=True)
     rnd = random.Random(5)
     bm = bmesh.new()
     bm_ellipsoid(bm, (0, 0, T + 0.12), (0.42, 0.42, 0.24))

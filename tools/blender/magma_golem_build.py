@@ -78,7 +78,7 @@ def magma_mat():
 def build_base():
     col = collection("Magma_golem")
     root = empty("Magma_golem", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, stone="stone_dark", course="iron")
+    T = plinth(CELLS, col, root, TOP)
     rnd = random.Random(31)
     # the lava pool on the front cell, ringed with basalt
     bm = bmesh.new()

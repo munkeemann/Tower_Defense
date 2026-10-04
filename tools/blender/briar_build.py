@@ -28,7 +28,7 @@ def _arc(bm, a, b, h, w, n=6):
 def build_base():
     col = collection("Briar")
     root = empty("Briar", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, turf=True, stone="stone_warm")
+    T = plinth(CELLS, col, root, TOP, turf=True)
     rnd = random.Random(27)
     # a dark hedge running the length of the line, brambles arching over it, bushes and bare saplings
     hedge_a, hedge_b = bmesh.new(), bmesh.new()

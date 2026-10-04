@@ -27,7 +27,7 @@ UP_Z = 1.55          # hammer face height at rest (ready)
 def build_base():
     col = collection("Dwarf_hammer")
     root = empty("Dwarf_hammer", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, stone="stone_dark", course="iron")
+    T = plinth(CELLS, col, root, TOP)
     rnd = random.Random(8)
     bm = bmesh.new()
     for sx in (-1, 1):

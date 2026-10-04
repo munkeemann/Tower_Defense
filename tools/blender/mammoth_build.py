@@ -25,7 +25,7 @@ MS = 1.55
 def build_base():
     col = collection("Mammoth")
     root = empty("Mammoth", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, turf=True, stone="stone_warm")
+    T = plinth(CELLS, col, root, TOP, turf=True)
     rnd = random.Random(61)
     props = [("forest/Rock_1_A_Color1", FLc, (-0.3, 0.15), 0.45), ("forest/Bush_1_E_Color1", FLc, (0.35, -0.3), 0.32),
              ("forest/Rock_1_H_Color1", FRc, (0.25, 0.15), 0.6), ("forest/Grass_1_A_Color1", FRc, (-0.3, -0.35), 0.6),

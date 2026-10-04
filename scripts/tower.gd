@@ -72,6 +72,8 @@ func setup(g: Game, tid: String, anchor: Vector2i, facing_ := 4) -> void:
 	_model = m["root"]
 	head = m["head"]
 	add_child(_model)
+	if game.board:
+		Models.set_ground(_model, game.board.ground_material())   # its hexes in the map's palette
 	# everything you own carries your color's accent as a rim light
 	Models.overlay(_model, Models.rim_mat(GameData.FACTIONS[game.faction]["color"]))
 	_fitted = _model.has_meta("fitted")

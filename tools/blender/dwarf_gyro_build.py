@@ -26,7 +26,7 @@ GUN_Z = 0.95
 def build_base():
     col = collection("Dwarf_gyro")
     root = empty("Dwarf_gyro", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, stone="stone_dark", course="iron")
+    T = plinth(CELLS, col, root, TOP)
     rnd = random.Random(15)
     bm = bmesh.new()
     bm_cyl(bm, 0.95, 1.0, 0.14, (0, 0, T + 0.07), seg=16)

@@ -21,7 +21,7 @@ HIVE_Z = 1.25                  # hive centre above the Head (the head sits under
 def build_base():
     col = collection("Hive")
     root = empty("Hive", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, turf=True, stone="stone_warm")
+    T = plinth(CELLS, col, root, TOP, turf=True)
     rnd = random.Random(9)
     F = FRONT
     # the dead tree: a trunk on the left that bends over the middle of the front cell

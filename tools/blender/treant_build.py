@@ -24,7 +24,7 @@ TS = 1.25
 def build_base():
     col = collection("Treant")
     root = empty("Treant", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, turf=True, stone="stone_warm")
+    T = plinth(CELLS, col, root, TOP, turf=True)
     rnd = random.Random(52)
     bm = bmesh.new()
     for p in OTHERS:

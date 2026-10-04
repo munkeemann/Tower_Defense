@@ -286,10 +286,14 @@ KayKit (Kay Lousberg, CC0, in `assets/kaykit`, wrapped by `scripts/kaykit.gd`) s
     re-export with `export_tower()`.
   - Our own geometry is UV-mapped into the hex pack's atlas, so it shares KayKit's colors. Faces on the `kk_team`
     material slide along the atlas's team row to your color (`Models._atlas_mat`).
+  - A tower's hexes (the plinth, on the `kk_ground` material, painted like the pack's hex tiles) take the map's
+    palette in game: `Tower.setup` gives them `Board.ground_material()`, the tiles' own material for the biome. KayKit
+    composites do the same with their hex-pack buildings. `--towertest` checks it.
   - `--no-blender` goes back to the KayKit composites.
 - `--no-kaykit` runs with the models from before the KayKit swap, for before/after checks.
 - `tools/tower_sheet.gd` draws towers on their hexes into a PNG with no window (a small software rasterizer in
-  `tools/snap.gd`), so tower art can be checked in headless runs; `tools/map_sheet.gd` does the same for a grown
+  `tools/snap.gd`), so tower art can be checked in headless runs (`--biome=<id>` draws them in that biome's
+  palette); `tools/map_sheet.gd` does the same for a grown
   map (add `--bridge` to force pond crossings). `scripts/models.gd` maps each
 tower and enemy to its model, and falls back to simple shapes if a file is missing. Multi-hex towers with their
 own footprint-shaped model (the `fp2_*` set: one per multi-hex tower, each drawn to fill its footprint's silhouette)

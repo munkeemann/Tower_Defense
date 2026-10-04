@@ -2281,6 +2281,24 @@ func _kk_material() -> Material:
 	return m
 
 
+var _ground_mat: Material = null
+var _ground_mat_biome := "-"
+
+
+## The ground under a tower: the map tiles' own material (this biome's palette), so its hexes match the map around it.
+## Null when the map isn't drawn with the pack's tiles.
+func ground_material() -> Material:
+	if _ground_mat_biome == biome_id:
+		return _ground_mat
+	_ground_mat_biome = biome_id
+	_ground_mat = null
+	if KayKit.available() and KayKit.hex_mesh("hex_grass")[0] != null:
+		var m := (_kk_material() as BaseMaterial3D).duplicate() as BaseMaterial3D
+		m.vertex_color_use_as_albedo = false   # (the tiles' per-hex shade rides on MultiMesh colors; a tower has none)
+		_ground_mat = m
+	return _ground_mat
+
+
 ## A KayKit piece at any yaw (bridges run edge to edge, which the pack's tiles' own turns can't do).
 func _kk_add_yaw(lists: Dictionary, tile: String, pos: Vector3, yaw_deg: float) -> void:
 	if not lists.has(tile):

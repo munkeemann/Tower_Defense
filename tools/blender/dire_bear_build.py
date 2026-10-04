@@ -23,7 +23,7 @@ BS = 1.15               # bear scale (laid out at 1.0)
 def build_base():
     col = collection("Dire_bear")
     root = empty("Dire_bear", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, turf=True, stone="stone_warm")
+    T = plinth(CELLS, col, root, TOP, turf=True)
     rnd = random.Random(19)
     B = BACK
     # the den: the pack's boulders heaped round a dark cave mouth that faces the front

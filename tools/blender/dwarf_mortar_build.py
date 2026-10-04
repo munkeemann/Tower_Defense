@@ -25,7 +25,7 @@ ELEV = 50.0          # barrel elevation
 def build_base():
     col = collection("Dwarf_mortar")
     root = empty("Dwarf_mortar", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, stone="stone_dark", course="iron")
+    T = plinth(CELLS, col, root, TOP)
     rnd = random.Random(12)
     bm = bmesh.new()
     bm_cyl(bm, 1.0, 1.05, 0.16, (0, 0, T + 0.08), seg=16)

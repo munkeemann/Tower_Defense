@@ -23,7 +23,7 @@ STUMP_TOP = 1.05
 def build_base():
     col = collection("Rootbinder")
     root = empty("Rootbinder", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, turf=True, stone="stone_warm")
+    T = plinth(CELLS, col, root, TOP, turf=True)
     rnd = random.Random(44)
     C = C0
     bm = bmesh.new()

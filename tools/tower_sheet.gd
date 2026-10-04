@@ -4,7 +4,8 @@ extends SceneTree
 ## Godot --headless --path . --script res://tools/tower_sheet.gd -- out.png [team] [all | id,id,...] [--front] [--fire]
 ##   team: blue / green / red / yellow (default blue); --front views from the tower's front instead;
 ##   --fire poses each crew partway through its attack clip (and Blender towers just after they let go); --zoom draws
-##   twice as big; --no-blender draws the KayKit composites instead of the Blender-made towers.
+##   twice as big; --no-blender draws the KayKit composites instead of the Blender-made towers; --biome=<id> draws the
+##   tiles and the towers' ground in that biome's palette, as on its map (greenvale, highlands, deepwood...).
 
 const S := preload("res://tools/snap.gd")
 const TILE := 320
@@ -26,6 +27,13 @@ func _init() -> void:
 	var zoom := 2.0 if "--zoom" in a else 1.0
 	var aim := 0.6   # turn the crews a little toward the camera's left, as if shooting there
 	var grass: Array = KayKit.hex_mesh("hex_grass")
+	var ground: Material = null
+	for arg in a:
+		if arg.begins_with("--biome="):
+			var bd := Board.new()
+			bd.biome_id = arg.substr(8)
+			ground = bd.ground_material()
+			bd.free()
 	var imgs: Array = []
 	for id in ids:
 		var stage := Node3D.new()
@@ -40,12 +48,16 @@ func _init() -> void:
 			mi.mesh = grass[0]
 			var b := Basis(Vector3.UP, deg_to_rad(Board.KK_BASE_YAW)).scaled(Vector3(Board.KK_SCALE, Board.LEVEL_H, Board.KK_SCALE))
 			mi.transform = Transform3D(b, Hex.to_world(Vector2i(c[0], c[1])) - mid) * (grass[1] as Transform3D)
+			if ground:
+				mi.material_override = ground
 			stage.add_child(mi)
 		var m := Models.tower(id, GameData.TOWERS[id]["color"])
 		var tr: Node3D = m["root"]
 		stage.add_child(tr)
-		if tr.has_meta("kaykit") and not (tr.has_meta("blender") and String(GameData.TOWERS[id]["attack"]).begins_with("aura")):
-			(m["head"] as Node3D).rotation.y = aim   # (Blender aura towers never turn their head)
+		Models.set_ground(tr, ground)
+		var still: bool = GameData.TOWERS[id].get("static", false) or String(GameData.TOWERS[id]["attack"]).begins_with("aura")
+		if tr.has_meta("kaykit") and not (tr.has_meta("blender") and still):
+			(m["head"] as Node3D).rotation.y = aim   # (Blender aura and static towers never turn their head)
 			for tn in tr.get_meta("turrets", []):
 				(tn as Node3D).rotation.y = aim
 		if "--fire" in a and tr.has_meta("rig_ap"):

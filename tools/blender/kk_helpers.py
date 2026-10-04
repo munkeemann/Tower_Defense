@@ -124,6 +124,30 @@ def mat_team():
     return _atlas_mat("kk_team")
 
 
+def mat_ground():
+    """Atlas material for the hexes under a tower. The game gives these faces the map tiles' own material (the biome's
+    palette), so a tower's ground always matches the map around it."""
+    return _atlas_mat("kk_ground")
+
+
+# Where the pack's hex tiles sample their ground swatch ("lime", the one the biome palettes recolour): the light band
+# on top, a darker band down the sides, darker still at the foot.
+GROUND_TOP = 0.32
+GROUND_SIDE = (0.64, 0.72)
+GROUND_FOOT = (0.72, 0.86)
+
+
+def paint_ground(obj, side=GROUND_SIDE, top=GROUND_TOP):
+    """Colours obj like a map hex tile: upward faces like a tile's top, the rest like its sides (on mat_ground)."""
+    obj.data.materials.clear()
+    obj.data.materials.append(mat_ground())
+    polys = obj.data.polygons
+    tops = {p.index for p in polys if p.normal.z > 0.7}
+    swatch_uv(obj, "lime", faces=tops, lo=top, hi=top)
+    swatch_uv(obj, "lime", faces={p.index for p in polys} - tops, lo=side[0], hi=side[1])
+    return obj
+
+
 def merge_duplicate_materials():
     """Imports make hexagons_medieval.001 etc.; point everything back at one material per name."""
     for o in bpy.data.objects:
@@ -485,17 +509,18 @@ def start_tower(tid, cells, keep=("Guides", "Palette", "Palette2")):
     return col
 
 
-def plinth(cells, col, root, top=0.34, name="Base", turf=False, stone="stone", course="stone_dark"):
-    """The shared Blender-tower foundation: a dark stone course and a lighter bevelled wall following the footprint's
-    hex outline (the look the Ballista set). turf: a mossy grass layer on top (the elves' towers); returns its top."""
+def plinth(cells, col, root, top=0.34, name="Base", turf=False):
+    """The shared Blender-tower foundation following the footprint's hex outline: a foot course and a bevelled step,
+    coloured like the map's hex tiles (paint_ground), so in game they take the biome's palette. turf: a raised layer
+    of ground on top (the elves' towers); returns its top."""
     bm = bmesh.new(); prism(bm, outline(cells, 0.05), -0.06, 0.16)
-    paint(mesh_obj(name + "_Plinth", bm, col, root), course)
+    paint_ground(mesh_obj(name + "_Plinth", bm, col, root), side=GROUND_FOOT)
     bm = bmesh.new(); prism(bm, outline(cells, 0.13), 0.16, top)
-    o = paint(mesh_obj(name + "_Wall", bm, col, root), stone, lo=0.05, hi=0.6)
+    o = paint_ground(mesh_obj(name + "_Wall", bm, col, root))
     b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.035; b.segments = 1; b.limit_method = "ANGLE"
     if turf:
         bm = bmesh.new(); prism(bm, outline(cells, 0.17), top - 0.01, top + 0.05)
-        o = paint(mesh_obj(name + "_Turf", bm, col, root), "grass", lo=0.15, hi=0.45)
+        o = paint_ground(mesh_obj(name + "_Turf", bm, col, root))
         b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.025; b.segments = 1; b.limit_method = "ANGLE"
         return top + 0.05
     return top

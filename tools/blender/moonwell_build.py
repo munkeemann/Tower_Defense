@@ -20,7 +20,7 @@ W = Vector((0.08, 0.1, 0))       # the well's middle
 def build_base():
     col = collection("Moonwell")
     root = empty("Moonwell", col, None, (0, 0, 0), 0.6, "ARROWS")
-    T = plinth(CELLS, col, root, TOP, turf=True, stone="stone_warm")
+    T = plinth(CELLS, col, root, TOP, turf=True)
     rnd = random.Random(3)
     bm = bmesh.new()
     ring(bm, (W.x, W.y, 0), 0.62, 0.46, T, T + 0.36, seg=16)

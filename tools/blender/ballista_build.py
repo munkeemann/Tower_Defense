@@ -63,11 +63,7 @@ STOCK_Y0, STOCK_Y1 = WINCH_Y - 0.12, FRAME_Y1
 def build_base():
     col = collection("Ballista")
     root = empty("Ballista", col, None, (0, 0, 0), 0.6, "ARROWS")
-    bm = bmesh.new(); prism(bm, outline(CELLS, 0.05), -0.06, 0.16)
-    paint(mesh_obj("Base_Plinth", bm, col, root), "stone_dark")
-    bm = bmesh.new(); prism(bm, outline(CELLS, 0.13), 0.16, 0.34)
-    o = paint(mesh_obj("Base_Wall", bm, col, root), "stone", lo=0.05, hi=0.6)
-    b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.035; b.segments = 1; b.limit_method = "ANGLE"
+    plinth(CELLS, col, root, 0.34)
 
     import random
     random.seed(3)
