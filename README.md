@@ -40,9 +40,9 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
    line. Towers aim and measure range from the middle of their footprint. The placement preview marks each hex
    green or red on its own; a selected tower gets a gold outline and a hovered one a white outline. While placing
    or selecting a tower, the **hexes it reaches light up** (road hexes brighter).
-   - **Tiers**: towers are Tier I, II or III. Later tiers cost a lot more and hit much harder. Tier II blueprints
-     can be offered from wave 4, Tier III from wave 10 (`GameData.TIER_WAVE`); your starting towers are always
-     available.
+   - **Tiers**: towers are Tier I, II, III or IV. Later tiers cost a lot more and hit much harder. Tier II
+     blueprints can be offered from wave 4, Tier III from wave 10 and Tier IV, each color's two legendary late-game
+     towers, from wave 16 (`GameData.TIER_WAVE`); your starting towers are always available.
    - **Waves** arrive spread over a spawn window, 2 s for the smallest waves up to 10 s for the biggest, with the
      enemy types mixed (`WaveBuilder.SPAWN_WINDOW`). Enemies split evenly across road ends.
    - **Fliers ignore the road**: they fly straight from their road end to the castle, high over everything. The
@@ -68,7 +68,8 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
 | **Black**: The Bone Legion | Skeletons | Attrition, poison, % health damage vs big enemies | Poisoned enemies burst on death (15% of their max health) |
 
 Each color has its own towers plus a shared pool (Archer, Ballista, Trebuchet, Royal Bombard), its own castle
-talents and its own commanders. Every color also has two **creatures** (one Tier II, one Tier III).
+talents and its own commanders. Every color also has two **creatures** (one Tier II, one Tier III) and two
+**Tier IV legendaries** for the late game.
 
 Commander signatures (`HEROES[...]["sig"]`, run by `Game._sig_*`) are passives, no button to press:
 
@@ -88,13 +89,13 @@ Commander signatures (`HEROES[...]["sig"]`, run by `Game._sig_*`) are passives, 
 
 The towers by color:
 
-| Color | Towers | Creatures |
-|---|---|---|
-| White | Arcane Spire, Chapel of Dawn, War Banner, Gryphon Roost | **Seraph** (spears of light, +75% vs flyers, sees camo), **Archangel** (smites the strongest enemy: stun + splash, +50% vs bosses) |
-| Green | Thornspitter, Spore Mound, Briar Thicket, Elder Treant, Stormcaller Oak, Wasp Hive, Moonwell, Rootbinder Shrine | **Dire Bear** (mauls and bleeds), **Ancient Mammoth** (stomps: damages and stuns everything around it) |
-| Red | Flame Belcher, Runic Hammer, Siege Mortar, Flak Battery | **Magma Golem** (burning boulders), **Fat Dragon** (too heavy to move: breathes fire in a straight line where it faces) |
-| Blue | Tide Spire, Coral Harpooner, Whirlpool Shrine, Siren Rock | **Snapjaw Crab** (two claws; cracked shells take +25% damage), **Kraken** (seizes and holds up to 3 enemies) |
-| Black | Bone Crypt, Plague Cauldron, Soul Obelisk, Hex Tomb | **Mass Grave** (a trench of grasping hands that slows), **Necromancer** (walkers dying in its reach rise as zombies that shamble back down the road and grab the next enemy) |
+| Color | Towers | Creatures | Tier IV (wave 16+) |
+|---|---|---|---|
+| White | Arcane Spire, Chapel of Dawn, War Banner, Gryphon Roost | **Seraph** (spears of light, +75% vs flyers, sees camo), **Archangel** (smites the strongest enemy: stun + splash, +50% vs bosses) | **Hall of Knights** (musters up to 4 knights onto the road ahead of the foe; each pins and cuts down two enemies), **Sunlance Lighthouse** (a beam that burns everything on a straight line, flyers too; sees camo) |
+| Green | Thornspitter, Spore Mound, Briar Thicket, Elder Treant, Stormcaller Oak, Wasp Hive, Moonwell, Rootbinder Shrine | **Dire Bear** (mauls and bleeds), **Ancient Mammoth** (stomps: damages and stuns everything around it) | **Heart of the Forest** (aura: +10% damage, +3% more for every wave it has stood, up to +55%) |
+| Red | Flame Belcher, Runic Hammer, Siege Mortar, Flak Battery | **Magma Golem** (burning boulders), **Fat Dragon** (too heavy to move: breathes fire in a straight line where it faces) | **Doomsday Cannon** (colossal range, huge stunning blasts), **Forge of Ages** (aura: +30% damage, and hits set enemies burning) |
+| Blue | Tide Spire, Coral Harpooner, Whirlpool Shrine, Siren Rock | **Snapjaw Crab** (two claws; cracked shells take +25% damage), **Kraken** (seizes and holds up to 3 enemies) | **Leviathan** (a piercing water jet that slows and washes walkers back), **Tidecaller Spire** (every toll freezes everything around it, then slows it) |
+| Black | Bone Crypt, Plague Cauldron, Soul Obelisk, Hex Tomb | **Mass Grave** (a trench of grasping hands that slows), **Necromancer** (walkers dying in its reach rise as zombies that shamble back down the road and grab the next enemy) | **Bone Colossus** (fists that smash and stun whole groups), **Blood Altar** (aura: +35% damage and +15% attack speed, but it drinks 1 castle health after every wave) |
 
 ### Castle talents (C)
 
@@ -247,9 +248,13 @@ Everything is data in `scripts/game_data.gd`:
   (shape from `SHAPES` + firing arc) and two specializations to `SPECS`. The attack kinds are `arrow`, `bolt`,
   `orb`, `lob`, `chain`, `slam`, `smite` (a strike on the target with splash), `breath` (a fixed straight line
   ahead; `line` is its width in tiles, `static` towers never turn), `grasp` (seizes `grasp` enemies at once),
-  `aura_dmg`, `aura_buff` and `aura_curse`. Flags and extras: `detect`, `shred`, `push` ([chance, tiles]), `pct`
+  `beam` (a straight line from the tower through its target to the end of its reach, `beam_w` tiles wide),
+  `muster` (knights march onto the target's road: `muster` gives their cap, life, stun and hits), `aura_dmg`,
+  `aura_buff` and `aura_curse`. Flags and extras: `detect`, `shred`, `push` ([chance, tiles]), `pct`
   (share of current health), `curse`, `vuln` ([extra damage taken, seconds]), `boss_bonus`, `target` (default
-  targeting mode) and `raise` (Necromancer zombies, `scripts/thrall.gd`).
+  targeting mode) and `raise` (Necromancer zombies, `scripts/thrall.gd`). Support extras: `burn` ([dps, seconds]
+  for the towers it buffs), `toll` (castle health it drinks after every wave) and `grow` / `grow_max` (extra
+  damage buff for every wave since it was built).
 - **Hero**: add to `HEROES` (faction, cost, portrait, two power texts, and `fx`).
 - **Threat**: add to `THREATS` (enemy id, optional trait `shield` / `camo` / `swift`).
 - **Terrain tiles** are rolled in code (`Board.make_tile`): entrance count from `ENTRANCE_ODDS`, winding roads,
@@ -297,7 +302,11 @@ KayKit (Kay Lousberg, CC0, in `assets/kaykit`, wrapped by `scripts/kaykit.gd`) s
   on a hex stone plinth spanning their footprint (`plinth`), and pieces can float, spin and bob (`Tower._spinners`).
   The other towers (gryphon, treant, hive, flak battery, whirlpool, siren and the creatures) keep their Meshy art.
 - **Blender-made towers** (`assets/towers/<id>.glb`) win over the KayKit composites and the Meshy art. Every
-  tower in a Crown run now has one:
+  color's own towers have one (the shared Archer, Trebuchet and Royal Bombard don't yet), Tier IV included: the
+  Hall of Knights (a gatehouse whose doors swing open at every muster, a knight-commander on its battlements), the
+  Sunlance Lighthouse (a lens turning round a sun crystal), the Doomsday Cannon, the Forge of Ages (a trip hammer
+  beating an anvil), the Leviathan (a sea serpent in a canal), the Tidecaller Spire (a swinging bell and a frost
+  ring), the Bone Colossus, the Blood Altar and the Heart of the Forest. The Crown's:
   - **Ballista**: a torsion ballista on a turning dais, a bolt store and a bolt rack.
     - fire: the arms snap and the string releases.
     - reload: the winch drags the string back and a new bolt drops in.
