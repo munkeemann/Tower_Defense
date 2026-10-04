@@ -4,7 +4,9 @@ All third-party models are CC0 (public domain). No attribution is required, but 
 
 - **Kenney** (kenney.nl): Tower Defense Kit (`td/`), Castle Kit (`castle/`), Nature Kit (`nature/`)
 - **Quaternius** (quaternius.com): Ultimate Monsters (`monsters/`)
-- **Kay Lousberg / KayKit** (kaylousberg.com): Character Pack: Skeletons (`skeletons/`)
+- **Kay Lousberg / KayKit** (kaylousberg.com): Character Pack: Skeletons (`skeletons/`), and in `kaykit/`: Medieval
+  Hexagon Pack (Extra), Adventurers (Extra), Mystery Monthly Series 4 and 5, Character Animations, Skeletons, Fantasy
+  Weapons Bits, Dungeon Pack and Forest Nature Pack (`chars/`, `anims/`, `hex/`, `gear/`)
 
 ## AI-generated (`custom/`)
 

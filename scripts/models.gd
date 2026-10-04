@@ -758,9 +758,44 @@ static func _ai_enemy(id: String, d: Dictionary) -> Dictionary:
 	return {"root": root, "body": body, "anim": ap, "walk": walk, "death": death}
 
 
+## Enemies played by KayKit characters (assets/kaykit): [file, rig, walk clip, death clip]. Sized to the enemy's "h".
+## Non-humanoids (slimes, wasps, harpies, gargoyles, the dragon) keep their Quaternius models.
+const KK_ENEMY := {
+	"goblin": ["OrcRaider.glb", "Medium", "Walking_B", "Death_A"],
+	"wolf": ["Werewolf_Wolf.glb", "Medium", "Running_A", "Death_B"],
+	"orc": ["Barbarian_Large.glb", "Large", "Walking_A", "Death_A"],
+	"shaman": ["Witch.glb", "Medium", "Walking_C", "Death_A"],
+	"hexguard": ["Tiefling.glb", "Medium", "Walking_A", "Death_B"],
+	"ironclad": ["BlackKnight.glb", "Medium", "Walking_A", "Death_A"],
+	"frostimp": ["Vampire.glb", "Medium", "Running_B", "Death_B"],
+	"spikeback": ["Werewolf_Man.glb", "Medium", "Walking_B", "Death_A"],
+	"skeleton": ["Skeleton_Minion.glb", "Medium", "Skeletons_Walking", "Skeletons_Death"],
+	"troll": ["FrostGolem.glb", "Large", "Walking_A", "Death_A"],
+	"lich": ["Skeleton_Mage.glb", "Medium", "Walking_C", "Skeletons_Death"],
+}
+
+
+static func _kk_enemy(id: String, d: Dictionary) -> Dictionary:
+	if not KK_ENEMY.has(id) or not KayKit.available():
+		return {}
+	var k: Array = KK_ENEMY[id]
+	var c := KayKit.character(k[0], k[1], float(d.get("h", 1.5)))
+	if c.is_empty():
+		return {}
+	var ap: AnimationPlayer = c["anim"]
+	var walk := KayKit.clip(ap, [k[2], "Walking_A"])
+	if walk != "":
+		ap.play(walk)
+		ap.seek(randf() * 0.8, true)
+	return {"root": c["root"], "body": c["body"], "anim": ap, "walk": walk, "death": KayKit.clip(ap, [k[3], "Death_A"])}
+
+
 ## Returns {"root", "body", "anim": AnimationPlayer or null, "walk", "death"}.
 static func enemy(id: String, d: Dictionary) -> Dictionary:
 	if has_assets():
+		var kk := _kk_enemy(id, d)
+		if not kk.is_empty():
+			return kk
 		var ai := _ai_enemy(id, d)
 		if not ai.is_empty():
 			return ai
