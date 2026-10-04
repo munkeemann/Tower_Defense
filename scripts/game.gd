@@ -183,8 +183,8 @@ func _ready() -> void:
 		await _footprint_shots()
 		get_tree().quit()
 	elif "--inputtest" in args:
-		await _input_test()
-		get_tree().quit()
+		var ok: bool = await _input_test()
+		get_tree().quit(0 if ok else 1)
 	elif Array(args).any(func(x): return String(x).begins_with("--towertest")):
 		var tid := "ballista"
 		for x in args:
@@ -523,106 +523,165 @@ func _tt_origin(p: Projectile) -> void:
 	_tt_shots.append(p.position - p.dir * travelled)
 
 
-## Drives the real input path: tile placement by mouse, hotkey -> click to build, select, upgrade, raise.
-func _input_test() -> void:
+## Drives the real input path: tile placement by mouse, hotkey -> click to build, select, upgrade, raise, dig, castle.
+## Prints an INPUTTEST line per step and an INPUTTEST FAIL line for each check that fails; true if all passed.
+func _input_test() -> bool:
 	start_run("crown")
 	await get_tree().process_frame
-	# pick the first tile card, then click its first glowing slot
+	var ok := true
+	# pick the first tile card, then hover and click its first glowing slot
 	_on_tile_card(0)
 	await get_tree().process_frame
+	if _slots.is_empty():
+		print("INPUTTEST FAIL the tile card has no glowing slot")
+		return false
 	var slot: Vector2i = _slots[0]
-	cam.focus(Hex.tile_world(slot))
-	await get_tree().process_frame
-	var sc: Vector2i = Hex.tile_center(slot)
-	var sp := cam.camera.unproject_position(Hex.tile_world(slot) + Vector3(0, board.surface_y(sc), 0))
-	var mm0 := InputEventMouseMotion.new()
-	mm0.position = sp
-	Input.parse_input_event(mm0)
-	await get_tree().process_frame
+	var sp := _it_aim(Hex.tile_world(slot) + Vector3(0, board.surface_y(Hex.tile_center(slot)), 0))
+	await _it_mouse(sp)
 	print("INPUTTEST tile hover slot=%s plan=%s" % [_hover_slot, not _plan.is_empty()])
-	for pressed in [true, false]:
-		var mb0 := InputEventMouseButton.new()
-		mb0.button_index = MOUSE_BUTTON_LEFT
-		mb0.position = sp
-		mb0.pressed = pressed
-		Input.parse_input_event(mb0)
-		await get_tree().process_frame
+	if _hover_slot != slot or _plan.is_empty():
+		print("INPUTTEST FAIL hovering slot %s gave slot %s (cell %s)" % [slot, _hover_slot, hover_cell])
+		ok = false
+	var tiles0 := board.placed.size()
+	await _it_mouse(sp, true)
 	print("INPUTTEST tiles placed=%d state=%s" % [board.placed.size(), S.keys()[state]])
+	if board.placed.size() != tiles0 + 1 or state != S.BUILD:
+		print("INPUTTEST FAIL clicking the slot did not place the tile (%d -> %d) and start building" % [tiles0, board.placed.size()])
+		return false
+	var bar := bar_towers()
+	var tid: String = bar[0] if not bar.is_empty() else ""
+	await _it_key(KEY_1)
+	print("INPUTTEST placing after hotkey: '%s'" % placing)
+	if tid == "" or placing != tid:
+		print("INPUTTEST FAIL hotkey 1 did not start placing '%s'" % tid)
+		return false
+	# a clear hex beside the road that can be raised, and that the mouse ray really lands on (raised ground in front
+	# of a hex can hide it)
 	var target := Board.NONE
+	var screen := Vector2.ZERO
 	for pc in board.path_cells:
 		for d in Hex.E:
 			var c: Vector2i = pc + d
-			if board.can_build(c) and target == Board.NONE:
+			var cells := GameData.footprint(tid, c, place_facing)
+			if target != Board.NONE or not board.can_build_all(cells) or not cells.all(func(x): return board.can_raise(x)):
+				continue
+			var p := _it_aim(board.cell_to_world(c) + Vector3(0, board.surface_y(c), 0))
+			if board.pick_cell(cam.camera.project_ray_origin(p), cam.camera.project_ray_normal(p)) == c:
 				target = c
-	cam.focus(board.cell_to_world(target))
-	await get_tree().process_frame
-	var screen := cam.camera.unproject_position(board.cell_to_world(target) + Vector3(0, board.surface_y(target), 0))
-	var key := InputEventKey.new()
-	key.keycode = KEY_1
-	key.pressed = true
-	Input.parse_input_event(key)
-	await get_tree().process_frame
-	print("INPUTTEST placing after hotkey: '%s'" % placing)
+				screen = p
+	if target == Board.NONE:
+		print("INPUTTEST FAIL no clear, pickable hex beside the road for %s" % tid)
+		return false
+	await _it_mouse(screen)
+	print("INPUTTEST hover=%s target=%s" % [hover_cell, target])
+	if hover_cell != target:
+		print("INPUTTEST FAIL the mouse over %s hovers %s" % [target, hover_cell])
+		ok = false
+	var copies := int(owned.get(tid, 0))
+	var g0 := gold
+	var e0 := int(run_stats["gold_earned"])
+	await _it_mouse(screen, true)
+	var t0: Tower = board.towers.get(target)
+	# a new tower claims discoveries in its reach at once (a Treasure Chest pays gold), so count what came in meanwhile
+	var earned := int(run_stats["gold_earned"]) - e0
+	print("INPUTTEST towers=%d gold %d -> %d (earned %d) placing='%s' %s copies left=%d" % [towers.size(), g0, gold, earned, placing,
+		tid, int(owned.get(tid, 0))])
+	if t0 == null or t0.id != tid:
+		print("INPUTTEST FAIL clicking %s did not build a %s" % [target, tid])
+		return false
+	if gold != g0 - t0.spent + earned or t0.spent != tower_cost(tid) or int(owned.get(tid, 0)) != copies - 1 or placing != "":
+		print("INPUTTEST FAIL building did not charge %d gold, use a copy (%d -> %d) and stop placing" % [tower_cost(tid), copies,
+			int(owned.get(tid, 0))])
+		ok = false
+	await _it_mouse(screen, true)
+	print("INPUTTEST selected=%s info_visible=%s" % [selected != null, hud.info_panel.visible])
+	if selected != t0 or not hud.info_panel.visible:
+		print("INPUTTEST FAIL clicking the tower did not select it and show its panel")
+		return false
+	gold = 999
+	await _it_key(KEY_U)
+	await _it_key(KEY_U)
+	var spec_tower := GameData.SPECS.has(tid)
+	print("INPUTTEST level after U,U: %d (III needs a specialization)" % t0.level)
+	if t0.level != (2 if spec_tower else 3):
+		print("INPUTTEST FAIL U,U should reach level %d" % (2 if spec_tower else 3))
+		ok = false
+	if spec_tower:
+		upgrade_selected(1)
+		print("INPUTTEST after spec: level=%d spec=%d fx=%s" % [t0.level, t0.spec, t0.fx])
+		if t0.level != 3 or t0.spec != 1:
+			print("INPUTTEST FAIL choosing specialization 1 should reach level 3")
+			ok = false
+	# Builder (B) then Digger (N), each clicked on the tower
+	var h0 := board.height_at(target)
+	var r0 := t0.range_world()
+	var b0 := builders
+	var d0 := diggers
+	await _it_key(KEY_B)
+	await _it_mouse(screen, true)
+	print("INPUTTEST after Builder: height=%d elevation=%d range %.1f -> %.1f builders %d -> %d scaffold=%s" % [
+		board.height_at(target), t0.elevation, r0, t0.range_world(), b0, builders, board._scaffold.has(target)])
+	if board.height_at(target) != h0 + 1 or t0.elevation != h0 + 1 or t0.range_world() <= r0 or builders != b0 - 1:
+		print("INPUTTEST FAIL the Builder did not raise the tower one level")
+		ok = false
+	screen = _it_aim(board.cell_to_world(target) + Vector3(0, board.surface_y(target), 0))   # the tower stands higher now
+	await _it_key(KEY_N)
+	await _it_mouse(screen, true)
+	print("INPUTTEST after Digger: height=%d elevation=%d diggers %d -> %d scaffold=%s" % [
+		board.height_at(target), t0.elevation, d0, diggers, board._scaffold.has(target)])
+	if board.height_at(target) != h0 or t0.elevation != h0 or diggers != d0 - 1:
+		print("INPUTTEST FAIL the Digger did not lower the tower back")
+		ok = false
+	await _it_key(KEY_C)
+	g0 = gold
+	buy_talent("artificers", 0)
+	print("INPUTTEST castle open=%s bought guild=%d gold %d -> %d cost mult=%.2f" % [hud.castle_open(), talent_rank("guild"), g0, gold, mods["cost"]])
+	if not hud.castle_open() or talent_rank("guild") != 1 or gold >= g0:
+		print("INPUTTEST FAIL C did not open the castle, or the first Artificers talent was not bought")
+		ok = false
+	print("INPUTTEST %s" % ("PASS" if ok else "FAIL"))
+	return ok
+
+
+## Points the camera at a world point (no glide, zoom settled) and returns where that point lands on the view.
+func _it_aim(p: Vector3) -> Vector2:
+	cam.focus(p)
+	cam.distance = cam._target_dist
+	cam.yaw = cam._target_yaw
+	cam._apply()
+	return cam.camera.unproject_position(p)
+
+
+## Moves the mouse to a point on the view and optionally left-clicks there. Input.parse_input_event takes window
+## coordinates, like a real mouse, and the view is stretched to fit the window (a headless window is 64 px wide, 1/25
+## of the 1600 px view), so the point goes through the screen transform first.
+func _it_mouse(at: Vector2, click := false) -> void:
+	var wp := get_viewport().get_screen_transform() * at
 	var mm := InputEventMouseMotion.new()
-	mm.position = screen
+	mm.position = wp
+	mm.global_position = wp
 	Input.parse_input_event(mm)
 	await get_tree().process_frame
-	print("INPUTTEST hover=%s target=%s" % [hover_cell, target])
+	if not click:
+		return
 	for pressed in [true, false]:
 		var mb := InputEventMouseButton.new()
 		mb.button_index = MOUSE_BUTTON_LEFT
-		mb.position = screen
+		mb.position = wp
+		mb.global_position = wp
 		mb.pressed = pressed
 		Input.parse_input_event(mb)
 		await get_tree().process_frame
-	print("INPUTTEST towers=%d gold=%d placing='%s' archer copies left=%d" % [towers.size(), gold, placing, int(owned.get("archer", 0))])
-	var click := InputEventMouseButton.new()
-	click.button_index = MOUSE_BUTTON_LEFT
-	click.position = screen
-	click.pressed = true
-	Input.parse_input_event(click)
-	await get_tree().process_frame
-	print("INPUTTEST selected=%s info_visible=%s" % [selected != null, hud.info_panel.visible])
-	gold = 999
-	for i in 2:
-		var u := InputEventKey.new()
-		u.keycode = KEY_U
-		u.pressed = true
-		Input.parse_input_event(u)
+
+
+## Presses and releases a key.
+func _it_key(code: Key) -> void:
+	for pressed in [true, false]:
+		var k := InputEventKey.new()
+		k.keycode = code
+		k.pressed = pressed
+		Input.parse_input_event(k)
 		await get_tree().process_frame
-	print("INPUTTEST level after U,U: %d (III needs a specialization)" % (selected.level if selected else -1))
-	upgrade_selected(1)
-	print("INPUTTEST after spec: level=%d spec=%d fx=%s" % [selected.level, selected.spec, selected.fx])
-	var t0: Tower = board.towers.get(target)
-	var r_before := t0.range_world() if t0 else 0.0
-	var b_before := builders
-	for kc in [KEY_B, KEY_N]:
-		var rk := InputEventKey.new()
-		rk.keycode = kc
-		rk.pressed = true
-		Input.parse_input_event(rk)
-		await get_tree().process_frame
-		var mb2 := InputEventMouseButton.new()
-		mb2.button_index = MOUSE_BUTTON_LEFT
-		mb2.position = screen
-		mb2.pressed = true
-		Input.parse_input_event(mb2)
-		await get_tree().process_frame
-		if kc == KEY_B:
-			print("INPUTTEST after Builder: height=%d elevation=%d range %.1f -> %.1f builders %d -> %d scaffold=%s" % [
-				board.height_at(target), t0.elevation if t0 else -1, r_before, t0.range_world() if t0 else 0.0,
-				b_before, builders, board._scaffold.has(target)])
-		else:
-			print("INPUTTEST after Digger: height=%d elevation=%d diggers=%d scaffold=%s" % [
-				board.height_at(target), t0.elevation if t0 else -1, diggers, board._scaffold.has(target)])
-	var ck := InputEventKey.new()
-	ck.keycode = KEY_C
-	ck.pressed = true
-	Input.parse_input_event(ck)
-	await get_tree().process_frame
-	var g0 := gold
-	buy_talent("artificers", 0)
-	print("INPUTTEST castle open=%s bought guild=%d gold %d -> %d cost mult=%.2f" % [hud.castle_open(), talent_rank("guild"), g0, gold, mods["cost"]])
 
 
 ## Saves a screenshot once per name (autotest / debugging only).

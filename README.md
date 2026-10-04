@@ -285,8 +285,9 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path . -- --autotest=crown --
 Extra flags: `--difficulty=0|1|2` (without it the bot plays your saved difficulty), `--seed=<n>`, `--no-kaykit`, `--hero=<id>`, `--shotdir=<folder>` (saves screenshots at key moments;
 don't combine it with `--headless`), `--menushot` (menu, hero select, War Council), `--mapshot` (a grown
 late-game map, plus close-ups of a bridge, the castle and a lakeshore; add `--bridgetest` to force a lake crossing
-and `--biome=<id>` to pick the biome), `--inputtest` (simulates tile placement, hotkeys, click-to-build, upgrade and
-raise) and `--towertest=<id>` (builds that tower where it covers the most road, walks goblins into its arc, checks
+and `--biome=<id>` to pick the biome), `--inputtest` (drives the mouse and keys through tile placement, hotkeys,
+click-to-build, select, upgrade, Builder, Digger and the castle; prints `INPUTTEST FAIL` lines and exits 1 on
+failure) and `--towertest=<id>` (builds that tower where it covers the most road, walks goblins into its arc, checks
 that its head turns, that every shot plays its `fire` animation and leaves from its muzzle, then sells it and checks
 the refund; exits 1 on failure).
 Test runs never write your save file.
