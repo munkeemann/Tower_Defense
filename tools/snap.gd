@@ -46,8 +46,12 @@ static func triangles(root: Node) -> Array:
 			var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV] if arr[Mesh.ARRAY_TEX_UV] != null else PackedVector2Array()
 			var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
 			var mat := m.get_active_material(s) as BaseMaterial3D
+			var shm := m.get_active_material(s) as ShaderMaterial
 			var base := mat.albedo_color if mat else Color(0.8, 0.8, 0.8)
 			var img := _tex_image(mat.albedo_texture) if mat else null
+			if shm and shm.get_shader_parameter("atlas") is Texture2D:
+				img = _tex_image(shm.get_shader_parameter("atlas"))   # (patterned ground: drawn without its pattern)
+				base = Color.WHITE
 			var vcols = arr[Mesh.ARRAY_COLOR] if (mat and mat.vertex_color_use_as_albedo) else null
 			var uv_scale := Vector2(mat.uv1_scale.x, mat.uv1_scale.y) if mat else Vector2.ONE
 			var uv_off := Vector2(mat.uv1_offset.x, mat.uv1_offset.y) if mat else Vector2.ZERO

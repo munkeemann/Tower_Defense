@@ -3,7 +3,7 @@ extends SceneTree
 ## castle, neutral buildings) as the game camera sees it, into a PNG with tools/snap.gd. Flat shading only: it shows
 ## layout and colors, not the game's lighting.
 ## Godot --headless --path . --script res://tools/map_sheet.gd -- out.png [faction] [waves] [seed] [--bridge] [--biome=<id>]
-##   --bridge: every new tile tries to put a pond across its road (to check bridges)
+##   --bridge: every new tile tries to put a pond across its road (to check bridges; close-ups of the first three)
 ##   --holo: also draws the next tile on offer as its placement hologram, on the first spot it fits
 
 const S := preload("res://tools/snap.gd")
@@ -112,5 +112,15 @@ func _init() -> void:
 	var close := S.draw(stage, 1000, Vector3(0.25, 0.84, 0.545).rotated(Vector3.UP, yaw), 52.0,
 		b._castle.global_position + Vector3(0, 0, -4).rotated(Vector3.UP, yaw), sea)
 	close.save_png(out.get_basename() + "_close.png")
+	# with --bridge: a close-up of every bridge (up to three), side-on enough to see the deck meet the banks
+	var nb := 0
+	for c in b.bridges:
+		if nb >= 3:
+			break
+		var at: Vector3 = b.cell_to_world(c) + Vector3(0, b.level_at(c) * Board.LEVEL_H, 0)
+		var shot := S.draw(stage, 700, Vector3(0.35, 0.6, 0.72).rotated(Vector3.UP, yaw), 70.0, at, sea)
+		shot.save_png(out.get_basename() + "_bridge%d.png" % nb)
+		print("MAP bridge at %s level %d" % [c, b.level_at(c)])
+		nb += 1
 	print("MAP tiles=%d cells=%d saved %s" % [b.placed.size(), seen.size(), out])
 	quit()

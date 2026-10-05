@@ -2451,7 +2451,7 @@ func _kk_rebuild() -> void:
 			mm.use_colors = true
 			mm.mesh = KayKit.hex_mesh(tile)[0]
 			mmi.multimesh = mm
-			mmi.material_override = _kk_material()
+			mmi.material_override = _kk_ground_mat()
 			add_child(mmi)
 			_kk_mm[tile] = mmi
 		var mm2: MultiMesh = (_kk_mm[tile] as MultiMeshInstance3D).multimesh
@@ -2477,7 +2477,11 @@ func _kk_cell(g: Vector2i, lists: Dictionary) -> void:
 		return
 	var p := Hex.to_world(g)
 	var water := lvl == -1 or bridges.has(g)
-	var top := 0.0 if water else lvl * LEVEL_H
+	var top := lvl * LEVEL_H
+	if water:
+		# a pond lies on its own tile's ground: on a raised tile it stays up there (it used to sink to sea level,
+		# a one-hex chasm with the bridge hanging in it)
+		top = int(placed.get(tile_of(g), {}).get("level", 0)) * LEVEL_H
 	var tile := "hex_grass"
 	var k := 0
 	if water:
@@ -2492,25 +2496,28 @@ func _kk_cell(g: Vector2i, lists: Dictionary) -> void:
 			k = r[1]
 	_kk_add(lists, tile, p + Vector3(0, top, 0), k)
 	if water and not bridges.has(g):
-		_kk_water_decor(g, lists, 0.6)
+		_kk_water_decor(g, lists, 0.6, top)
 	if bridges.has(g):
-		# a stone bridge (its deck meets the road at both ends) along the road; where the road turns over the water,
-		# a half bridge runs from the middle out to each exit
+		# a stone bridge along the road, its deck at the road's level so it meets the road on both banks, its piers in
+		# the pond. Where the road turns over the water, a half bridge runs from the middle out to each exit.
 		var m := _road_mask(g)
 		var straight := -1
 		for i in 3:
 			if m == (1 << i) | (1 << (i + 3)):
 				straight = i
+		var lift := Vector3(0, top, 0)
+		var sy := LEVEL_H
+		if not lists.has("building_bridge_A"):
+			lists["building_bridge_A"] = []
 		if straight >= 0:
-			_kk_add_yaw(lists, "building_bridge_A", p, 90.0 - (60.0 * straight + 30.0))
+			var yaw0 := deg_to_rad(90.0 - (60.0 * straight + 30.0))
+			lists["building_bridge_A"].append(Transform3D(Basis(Vector3.UP, yaw0).scaled(Vector3(KK_SCALE, sy, KK_SCALE)), p + lift))
 		else:
 			for i in 6:
 				if m & (1 << i):
 					var yaw := deg_to_rad(90.0 - (60.0 * i + 30.0))
-					var b := Basis(Vector3.UP, yaw).scaled(Vector3(KK_SCALE, LEVEL_H, KK_SCALE * 0.5))
-					if not lists.has("building_bridge_A"):
-						lists["building_bridge_A"] = []
-					lists["building_bridge_A"].append(Transform3D(b, p + Hex.dir_world(i) * (Hex.SQ3 * Hex.R * 0.25)))
+					var b := Basis(Vector3.UP, yaw).scaled(Vector3(KK_SCALE, sy, KK_SCALE * 0.5))
+					lists["building_bridge_A"].append(Transform3D(b, p + lift + Hex.dir_world(i) * (Hex.SQ3 * Hex.R * 0.25)))
 	var y := top - LEVEL_H
 	while y > -LEVEL_H + 0.05:   # the island is one tile thick; raised ground stands on earth pieces
 		_kk_add(lists, "hex_grass_bottom", p + Vector3(0, y, 0), 0)
@@ -2613,6 +2620,42 @@ func _kk_material() -> Material:
 
 var _ground_mat: Material = null
 var _ground_mat_biome := "-"
+var _kk_ground: ShaderMaterial = null
+var _kk_ground_biome := "-"
+## The surface each biome's hex tops wear (shaders/kk_ground.gdshader): 0 grass, 1 snow, 2 leaf litter, 3 marsh grass.
+const GROUND_STYLE := {"greenvale": 0, "highlands": 1, "deepwood": 2, "lakelands": 3}
+static var _noise_tex: Texture2D = null
+
+
+## Seamless value noise for the ground patterns (made once, in code: no texture files).
+static func ground_noise() -> Texture2D:
+	if _noise_tex == null:
+		var fn := FastNoiseLite.new()
+		fn.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		fn.frequency = 0.02
+		fn.fractal_octaves = 3
+		fn.seed = 7
+		var img := fn.get_seamless_image(256, 256)
+		img.generate_mipmaps()
+		_noise_tex = ImageTexture.create_from_image(img)
+	return _noise_tex
+
+
+## The hex tiles' material: the pack's atlas in this biome's palette, patterned (grass, snow, leaves, marsh on top;
+## dirt and rock on the sides; gravel roads, rippled shore sand).
+func _kk_ground_mat() -> ShaderMaterial:
+	if _kk_ground_biome == biome_id and _kk_ground:
+		return _kk_ground
+	var base := _kk_material() as BaseMaterial3D
+	var m := ShaderMaterial.new()
+	m.shader = load("res://shaders/kk_ground.gdshader")
+	m.set_shader_parameter("atlas", base.albedo_texture)
+	m.set_shader_parameter("noise_tex", ground_noise())
+	m.set_shader_parameter("style", int(GROUND_STYLE.get(biome_id, 0)))
+	m.set_shader_parameter("use_instance_color", true)
+	_kk_ground = m
+	_kk_ground_biome = biome_id
+	return m
 
 
 ## The ground under a tower: the map tiles' own material (this biome's palette), so its hexes match the map around it.
@@ -2623,8 +2666,8 @@ func ground_material() -> Material:
 	_ground_mat_biome = biome_id
 	_ground_mat = null
 	if KayKit.available() and KayKit.hex_mesh("hex_grass")[0] != null:
-		var m := (_kk_material() as BaseMaterial3D).duplicate() as BaseMaterial3D
-		m.vertex_color_use_as_albedo = false   # (the tiles' per-hex shade rides on MultiMesh colors; a tower has none)
+		var m := _kk_ground_mat().duplicate() as ShaderMaterial
+		m.set_shader_parameter("use_instance_color", false)   # (the tiles' per-hex shade rides on MultiMesh colors; a tower has none)
 		_ground_mat = m
 	return _ground_mat
 
