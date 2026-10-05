@@ -188,7 +188,7 @@ func build_block_reason(c: Vector2i) -> String:
 	if path_cells.has(c):
 		return "that's road"
 	if not whole.has(c):
-		return "that's the edge of your land: lay the neighboring tile first" if height.has(c) else "that's outside your land"
+		return "that's outside your land"
 	match int(terrain.get(c, -1)):
 		T.TREE: return "trees are in the way"
 		T.ROCK: return "a rock is in the way"
@@ -1082,8 +1082,7 @@ func _stamp_hq(sides: Array) -> void:
 		var g: Vector2i = e["off"]
 		height[g] = 0
 		terrain[g] = T.GRASS
-		if e["mask"] == 63:
-			whole[g] = true
+		whole[g] = true
 	for c in Hex.disc(center, 1):
 		terrain[c] = T.CASTLE
 	for s in sides:
@@ -1480,12 +1479,6 @@ func plan_ground(plan: Dictionary) -> Dictionary:
 				"plateau": lv = mini(level + 1, MAX_LEVEL - 1)
 				"ley": pass
 				_: ok = false   # pond, tree, rock, neutral building
-		if ok:
-			for i in 6:
-				var wt := Hex.wedge_tile(g, i)
-				if wt != t and not placed.has(wt):
-					ok = false
-					break
 		out[g] = [ok, lv]
 	return out
 
@@ -1612,16 +1605,11 @@ func commit_tile(plan: Dictionary, wave := 0) -> Array:
 				var low := a if la < lb else b
 				var high := b if la < lb else a
 				ramps[low] = Hex.dir_index(high - low)
-	# whole cells (merged halves and corners become buildable ground)
+	# every hex of the tile is your ground, the ones on its edge too (2026-10-04: the island draws them as whole hexes,
+	# so they look buildable; a neighboring tile never changes them: its road only meets yours at a shared entrance,
+	# and its ponds, plateaus and trees stay on its own fresh hexes)
 	for e in _info:
-		var g: Vector2i = base + e["off"]
-		var ok := true
-		for i in 6:
-			if not placed.has(Hex.wedge_tile(g, i)):
-				ok = false
-				break
-		if ok:
-			whole[g] = true
+		whole[base + e["off"]] = true
 	# entrances: merged ones close, the rest open as new spawn points
 	var opened: Array = []
 	for side in plan["entrances"]:

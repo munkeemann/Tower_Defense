@@ -636,14 +636,22 @@ func _input_test() -> bool:
 	if tid == "" or placing != tid:
 		print("INPUTTEST FAIL hotkey 1 did not start placing '%s'" % tid)
 		return false
-	# a blocked spot says why: the edge of your land, and a road
+	# a blocked spot says why (a road); the hexes on your land's edge are buildable
 	var edge := Board.NONE
 	for c in board.height:
-		if not board.whole.has(c) and not board.path_cells.has(c):
+		var on_edge := false
+		for i in 6:
+			if not board.placed.has(Hex.wedge_tile(c, i)):
+				on_edge = true
+		if on_edge and board.can_build(c):
 			edge = c
 			break
+	print("INPUTTEST edge hex %s buildable=%s" % [edge, edge != Board.NONE])
+	if edge == Board.NONE:
+		print("INPUTTEST FAIL no buildable hex on the edge of the land")
+		ok = false
 	var road: Vector2i = board.path_cells.keys()[0]
-	for probe in [[edge, "edge of your land"], [road, "road"]]:
+	for probe in [[road, "road"]]:
 		if probe[0] == Board.NONE:
 			continue
 		hover_cell = probe[0]
