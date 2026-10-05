@@ -5,7 +5,7 @@ nearby enemies so they take more damage from everything.
 
 The hub holds a crypt whose dark doorway glows with two purple eyes. On the front cell a stone sarcophagus lies on a
 dais, its lid knocked askew and purple light leaking out, and over it floats the hex: a slowly turning ring of runes
-round a glowing hexagram. Headstones, candles, skull posts and a broken fence fill the side cells. It's an aura (it
+round a glowing seven-pointed sigil. Headstones, candles, skull posts and a broken fence fill the side cells. It's an aura (it
 doesn't turn). idle: the hex turns, the lid rattles now and then, the eyes pulse. fire (when the curse lands): the hex
 flares wide and the lid jolts.
 """
@@ -80,15 +80,16 @@ def build_head():
     rig_part("Head_Lid", bm, "stone_dark", rig, "lid", col, bevel=0, lo=0.1, hi=0.5)
     cm = glow_mat("hex_curse", CURSE, 1.0)
     bm = bmesh.new()
-    ring(bm, (0, 0, 0.95), 0.62, 0.55, -0.015, 0.015, seg=24)
-    for k in range(6):
-        a = math.radians(60 * k)
+    ring(bm, (0, 0, 0.95), 0.62, 0.55, -0.015, 0.015, seg=28)
+    ring(bm, (0, 0, 0.95), 0.2, 0.15, -0.015, 0.015, seg=16)
+    for k in range(7):                                      # seven rune stones round the ring
+        a = math.radians(360 * k / 7 + 90)
         p = Vector((math.cos(a) * 0.68, math.sin(a) * 0.68, 0.95))
-        bm_box(bm, (0.09, 0.09, 0.03), tuple(p), (0, 0, 60 * k + 45))
-    for tri in range(2):                                    # the hexagram: two triangles of thin bars
-        pts = [Vector((math.cos(math.radians(90 + 120 * k + 60 * tri)) * 0.5, math.sin(math.radians(90 + 120 * k + 60 * tri)) * 0.5, 0.95)) for k in range(3)]
-        for k in range(3):
-            bm_beam(bm, pts[k], pts[(k + 1) % 3], 0.035, 0.02)
+        bm_box(bm, (0.09, 0.09, 0.03), tuple(p), (0, 0, math.degrees(a) + 45))
+    # the sigil: a seven-pointed star (each point joined to the third one on), an arcane mark rather than a faith's
+    pts = [Vector((math.cos(math.radians(90 + 360 * k / 7)) * 0.52, math.sin(math.radians(90 + 360 * k / 7)) * 0.52, 0.95)) for k in range(7)]
+    for k in range(7):
+        bm_beam(bm, pts[k], pts[(k + 3) % 7], 0.03, 0.02)
     rig_part("Head_Hex", bm, None, rig, "hex", col, bevel=0, mat=cm)
     return rig
 
