@@ -109,7 +109,7 @@ Spend gold during a run on four talent paths, reacting to what's in front of you
 | Color | Economy | Arsenal | Keep |
 |---|---|---|---|
 | White | Royal Treasury: tithes, a bank, heralds, a mint | Order of the Spire: charters, drill, Consecration (+25% auras), Paladin Corps | Bastion: walls, keep ballista, Sanctuary repairs, Citadel |
-| Green | Grove Bounty: foragers, sacred groves, seed vaults, druid circles | Wildwood: thornbark, deep roots (+20% slows), venom glands (+35% poison), ancient growth (+15% range) | Living Wall: hedge, strangling vines (moat), heartwood repairs, a thornspitter keep |
+| Green | Grove Bounty: foragers, sacred groves, seed vaults, druid circles | Wildwood: thornbark, deep roots (+20% slows), venom glands (+35% poison), ancient growth (+10% range) | Living Wall: hedge, strangling vines (moat), heartwood repairs, a thornspitter keep |
 | Red | Mountain Hold: ore, a dwarven hoard (8% interest), tunnel crews, gold seams | Runesmiths: master smiths (-20% upgrades), black powder (+25% blast area), hot iron, runic engines | Iron Keep: iron walls, keep cannon, slag moat, forge citadel |
 | Blue | Tidal Trade: pearl divers, tide charts, sunken treasure, coral markets | Deep Lore: undertow, wave lore, riptide (water bonus, more ponds), abyssal pressure | Seawall: seawall, a 45% tidal moat, harpoon battery, lighthouse (sees camo) |
 | Black | Grave Tithes: grave robbers, soul tax, **blood price** (castle health for gold), death toll | Necromancy: rot, withering (execute below 8%), plague burst, lich pact | Ossuary: bone walls, grasping dead, bone ballista, soul siphon |
@@ -137,7 +137,7 @@ for you. The tile bar names it before you place it, a toast says what it does, a
 
 | Kind | Buildings |
 |---|---|
-| Empowers the towers next to it | **Ammo Depot** (+25% attack speed), **Relay Station** (+20% range), **Smithy** (+25% damage), **Scout Hideout** (detects camo within 4 tiles) |
+| Empowers the towers next to it | **Ammo Depot** (+25% attack speed), **Relay Station** (+15% range), **Smithy** (+25% damage), **Scout Hideout** (detects camo within 4 tiles) |
 | Resources after every wave | **Supply Point** (+15 gold), **Gold Mine** (+25 gold), **Rune Circle** (+1 Rune every other wave), **Lumber Mill** (a free Builder every 4 waves) |
 | Empowers your whole realm | **Old Chapel** (all towers +5% damage), **Barracks** (the castle repairs 2 a wave), **Tavern** (+10% kill gold) |
 
@@ -168,7 +168,10 @@ line on the horizon (with the KayKit terrain, which is on by default, the board 
 tiles over a dark floor; see Art). The biome (Greenvale, Highlands, Lakelands,
 Deepwood) changes how often tiles are raised and how many ponds they carry.
 
-- A tower gets **+15% range per level** of ground it stands on.
+- A tower gets **+10% range per level** of ground it stands on. Ranges are short on purpose (2026-10-04): ranged
+  towers reach 3-5 tiles and melee and aura towers 2-3, so where you build matters. The long guns (Trebuchet,
+  Siege Mortar, Doomsday Cannon) reach 7-8.5 tiles but can't hit anything within 2.5-3 tiles of them: build
+  them back from the road with a long stretch in view. The range display leaves their dead zone out.
 - **Builders** (B, or G) put up timber scaffolding that raises an empty hex, or every hex under a tower, by one
   level (max 3). **Diggers** (N) take one down a level. Both are items: you start with 2 Builders and 1 Digger
   and earn more from wave rewards (and the Treasury path).

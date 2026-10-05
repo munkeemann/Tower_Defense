@@ -490,6 +490,7 @@ func _cover_at(tid: String, wp: Vector3, f: int, r: float) -> float:
 	var arc := GameData.arc_of(tid)
 	var fd := Hex.dir_world(f)
 	var lw := float(d.get("line", 0.0)) * GameData.TILE
+	var mr := float(d.get("min_range", 0.0)) * GameData.TILE
 	var need := 30.0 * _hp_scale()   # the damage a stretch of road wants before more stops paying off
 	var s := 0.0
 	var sets: Array = []
@@ -506,7 +507,7 @@ func _cover_at(tid: String, wp: Vector3, f: int, r: float) -> float:
 				var along := dx * fd.x + dz * fd.z
 				if along < -0.5 or along > r or absf(dx * fd.z - dz * fd.x) > lw * 0.5:
 					continue
-			elif dx * dx + dz * dz > r * r:
+			elif dx * dx + dz * dz > r * r or dx * dx + dz * dz < mr * mr:
 				continue
 			elif arc < 359.0:
 				var v := Vector2(dx, dz)

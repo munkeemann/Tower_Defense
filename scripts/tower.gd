@@ -98,10 +98,13 @@ func setup(g: Game, tid: String, anchor: Vector2i, facing_ := 4) -> void:
 	_anim = randf() * 10.0
 
 
-## Is point p inside this tower's reach from a gun at `from` (range and firing arc)?
+## Is point p inside this tower's reach from a gun at `from` (range, firing arc, and the long guns' dead zone)?
 func reaches(p: Vector3, from: Vector3, r: float) -> bool:
 	var dx := p.x - from.x
 	var dz := p.z - from.z
+	var mr := min_range_world()
+	if mr > 0.0 and dx * dx + dz * dz < mr * mr:
+		return false   # artillery can't lob a shell onto what's right in front of it
 	if line_w > 0.0:
 		# a straight line ahead, line_w wide and r long
 		var fd0 := Hex.dir_world(facing)
@@ -139,6 +142,11 @@ func damage() -> float:
 	d *= 1.0 + float(game.masterwork.get(id, 0.0)) + game.hero_tower_bonus(id)
 	d *= (1.0 + water_bonus) * (1.0 + float(game.mods.get("dmg_all", 0.0)) + game.frenzy_bonus() + 0.05 * game.board.neutral_count("chapel"))
 	return d
+
+
+## The long guns (Trebuchet, Siege Mortar, Doomsday Cannon) can't hit anything closer than this (world units).
+func min_range_world() -> float:
+	return float(data.get("min_range", 0.0)) * GameData.TILE
 
 
 func range_world() -> float:

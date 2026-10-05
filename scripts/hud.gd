@@ -478,7 +478,8 @@ func tower_tooltip(tid: String) -> String:
 	if d["attack"] == "aura_buff":
 		s += "Range %.1f tiles" % float(d["range"])
 		return s
-	s += "Damage %d %s   Attacks/sec %.2f   Range %.1f tiles\n" % [d["dmg"], "magic" if d.get("dtype", "") == "magic" else "physical", d["rate"], d["range"]]
+	s += "Damage %d %s   Attacks/sec %.2f   Range %.1f tiles%s\n" % [d["dmg"], "magic" if d.get("dtype", "") == "magic" else "physical", d["rate"], d["range"],
+		("  (can't hit within %.1f)" % float(d["min_range"])) if d.has("min_range") else ""]
 	var hits: PackedStringArray = []
 	if d.get("ground", false): hits.append("ground")
 	if d.get("air", false): hits.append("air")

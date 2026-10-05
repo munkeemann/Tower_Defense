@@ -477,6 +477,17 @@ func _tower_test(tid: String) -> bool:
 	if blender and (t._rig == null or t._muzzle_nodes.is_empty()):
 		print("TOWERTEST FAIL Blender tower without its rig or muzzle")
 		ok = false
+	if t.min_range_world() > 0.0:
+		# the long guns' dead zone: nothing right in front, everything just past it (in the arc)
+		var fd := Hex.dir_world(t.facing)
+		var near := t.position + fd * (t.min_range_world() * 0.6)
+		var past := t.position + fd * (t.min_range_world() + 1.0)
+		var dz_ok := not t.reaches(near, t.position, t.range_world()) and t.reaches(past, t.position, t.range_world())
+		print("TOWERTEST dead zone %.1f: near=%s past=%s" % [t.min_range_world(), t.reaches(near, t.position, t.range_world()),
+			t.reaches(past, t.position, t.range_world())])
+		if not dz_ok:
+			print("TOWERTEST FAIL the dead zone doesn't hold")
+			ok = false
 	# its hexes wear the map's palette (the board's tile material)
 	var ground: Array = t._model.get_meta("ground", [])
 	var gmat := board.ground_material()
@@ -1034,7 +1045,7 @@ func _show_range(mi: MeshInstance3D, pos: Vector3, r: float, arc: float, facing:
 
 ## Range as the actual hexes a tower reaches on your tiles, measured from its footprint's centroid: road hexes
 ## (where enemies walk) bright, other ground faint. Towers with a firing arc only light the hexes in front.
-func _show_range_cells(key: String, center: Vector3, r: float, arc: float, facing: int, col: Color, line_w := 0.0) -> void:
+func _show_range_cells(key: String, center: Vector3, r: float, arc: float, facing: int, col: Color, line_w := 0.0, min_r := 0.0) -> void:
 	if key == _range_key:
 		return
 	_range_key = key
@@ -1049,7 +1060,7 @@ func _show_range_cells(key: String, center: Vector3, r: float, arc: float, facin
 			continue
 		var cw := Hex.to_world(c)
 		var v := Vector2(cw.x - center.x, cw.z - center.z)
-		if v.length() > r:
+		if v.length() > r or v.length() < min_r:
 			continue
 		if line_w > 0.0:
 			var along := v.x * fd.x + v.y * fd.z
@@ -2386,6 +2397,8 @@ func tower_stat_line(tid: String) -> String:
 		hits.append("air")
 	var s := "Tier %s. %d %s dmg, %.2f/s, range %.1f, hits %s" % [GameData.TIER_NAMES[GameData.tier_of(tid)], d["dmg"],
 		"magic" if d.get("dtype", "") == "magic" else "phys", d["rate"], d["range"], " + ".join(hits)]
+	if d.has("min_range"):
+		s += ", can't hit within %.1f" % float(d["min_range"])
 	if d.get("detect", false):
 		s += ", detects camo"
 	if d.get("shred", false):
@@ -2996,11 +3009,11 @@ func _update_ghost() -> void:
 		g.material_override = Models.mat(Color(0.4, 1.0, 0.5) if good else Color(1.0, 0.3, 0.3), 0.0, 0.45)
 	_show_outline(_ghost_outline, cells, col)
 	var d: Dictionary = GameData.TOWERS[placing]
-	var nb := 0.2 if "relay" in board.neutrals_near(cells) else 0.0
+	var nb := GameData.RELAY_RANGE if "relay" in board.neutrals_near(cells) else 0.0
 	var r: float = float(d["range"]) * GameData.TILE * mods["range"] * (1.0 + GameData.ELEVATION_RANGE * board.level_at(hover_cell)) * (1.0 + nb) \
 		+ GameData.reach_offset(placing)
 	_show_range_cells("g|%s|%s|%d|%s" % [placing, hover_cell, place_facing, ok], ctr, r, GameData.arc_of(placing), place_facing, col,
-		float(d.get("line", 0.0)) * GameData.TILE)
+		float(d.get("line", 0.0)) * GameData.TILE, float(d.get("min_range", 0.0)) * GameData.TILE)
 
 
 ## Raise Ground: like Tower Dominion's platforms. Works on empty tiles and under towers.
@@ -3161,7 +3174,7 @@ func _update_sel_range() -> void:
 		return
 	var t := selected
 	_show_range_cells("s|%d|%d|%d|%.2f" % [t.get_instance_id(), t.level, t.elevation, t.range_world()], t.position,
-		t.range_world(), t.arc, t.facing, Color(1.0, 0.9, 0.45), t.line_w)
+		t.range_world(), t.arc, t.facing, Color(1.0, 0.9, 0.45), t.line_w, t.min_range_world())
 	_show_outline(_sel_outline, t.cells)
 
 
@@ -3226,7 +3239,7 @@ func recompute_buffs() -> void:
 		if "ammo" in near:
 			t.buff_rate += 0.25
 		if "relay" in near:
-			t.nb_range += 0.2
+			t.nb_range += GameData.RELAY_RANGE
 		if "forge" in near:
 			t.buff_dmg += 0.25
 	for s in towers:
@@ -3568,11 +3581,12 @@ func _auto_build() -> void:
 				continue
 			var wp := footprint_center(cells)
 			var rr := r * (1.0 + GameData.ELEVATION_RANGE * board.level_at(c2)) + GameData.reach_offset(tid)
+			var mr := float(d.get("min_range", 0.0)) * GameData.TILE
 			var fd := Hex.dir_world(f)
 			var score := 0.0
 			for p in route:
 				var v := Vector2(p.x - wp.x, p.z - wp.z)
-				if v.length() <= rr and (arc >= 359.0 or v.length() < 0.1 or v.normalized().dot(Vector2(fd.x, fd.z)) >= cos(deg_to_rad(arc * 0.5))):
+				if v.length() <= rr and v.length() >= mr and (arc >= 359.0 or v.length() < 0.1 or v.normalized().dot(Vector2(fd.x, fd.z)) >= cos(deg_to_rad(arc * 0.5))):
 					score += 1.0
 			if score > best_score:
 				best_score = score
