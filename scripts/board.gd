@@ -181,6 +181,39 @@ func can_build(c: Vector2i) -> bool:
 	return t == T.GRASS or t == T.LEY
 
 
+## Why a hex can't take a tower, in a few words ("" if it can): the placement hint says it.
+func build_block_reason(c: Vector2i) -> String:
+	if towers.has(c):
+		return "another tower stands there"
+	if path_cells.has(c):
+		return "that's road"
+	if not whole.has(c):
+		return "that's the edge of your land: lay the neighboring tile first" if height.has(c) else "that's outside your land"
+	match int(terrain.get(c, -1)):
+		T.TREE: return "trees are in the way"
+		T.ROCK: return "a rock is in the way"
+		T.WATER: return "that's water"
+		T.BUILDING: return "a neutral building stands there"
+		T.POI, T.CASTLE: return "the castle stands there"
+		T.GRASS, T.LEY: return ""
+	return "you can't build there"
+
+
+## The level most of these cells share (ties: the lowest): the footprint's ground, for judging which hex is out of step.
+func common_level(cells: Array) -> int:
+	var count := {}
+	for c in cells:
+		if can_build(c):
+			count[level_at(c)] = int(count.get(level_at(c), 0)) + 1
+	var best := level_at(cells[0]) if not cells.is_empty() else 0
+	var best_n := 0
+	for l in count:
+		if int(count[l]) > best_n or (int(count[l]) == best_n and int(l) < best):
+			best_n = int(count[l])
+			best = int(l)
+	return best
+
+
 ## A multi-cell footprint needs every cell buildable and level.
 func can_build_all(cells: Array) -> bool:
 	if cells.is_empty():

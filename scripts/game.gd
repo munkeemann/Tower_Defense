@@ -103,6 +103,7 @@ var sig_buff := 0.0           # haste / frenzy: seconds left
 var sig_marks := 0            # "mark": enemies marked this wave
 var _wave_leaked := false
 var _neutral_hint := false    # the hint line is showing a hovered neutral building
+var _place_hint := false      # the hint line is saying why a tower can't go here
 var choice_options: Array = []
 var run_stats := {}
 var stats := {}
@@ -632,6 +633,23 @@ func _input_test() -> bool:
 	if tid == "" or placing != tid:
 		print("INPUTTEST FAIL hotkey 1 did not start placing '%s'" % tid)
 		return false
+	# a blocked spot says why: the edge of your land, and a road
+	var edge := Board.NONE
+	for c in board.height:
+		if not board.whole.has(c) and not board.path_cells.has(c):
+			edge = c
+			break
+	var road: Vector2i = board.path_cells.keys()[0]
+	for probe in [[edge, "edge of your land"], [road, "road"]]:
+		if probe[0] == Board.NONE:
+			continue
+		hover_cell = probe[0]
+		_update_ghost()
+		var said: String = hud.hint_lbl.text if hud.hint_panel.visible else ""
+		print("INPUTTEST blocked hint at %s: '%s'" % [probe[0], said])
+		if not String(probe[1]) in said:
+			print("INPUTTEST FAIL the placement hint didn't say '%s'" % probe[1])
+			ok = false
 	var f0 := place_facing
 	await _it_key(KEY_R)
 	var f1 := place_facing
@@ -2922,6 +2940,9 @@ func _update_ghost() -> void:
 	for g in _ghost_cells:
 		(g as Node3D).visible = false
 	if placing == "" or ground_mode or _ghost == null:
+		if _place_hint:
+			hud.hint_panel.visible = false
+			_place_hint = false
 		if selected == null:
 			_hide_range()
 		return
@@ -2937,8 +2958,25 @@ func _update_ghost() -> void:
 	_ghost.position = ctr
 	_ghost.rotation.y = Hex.dir_yaw(place_facing)
 	_ghost.scale = Vector3.ONE * (1.0 if _ghost.has_meta("fitted") else Tower.SIZE_SCALE[clampi(cells.size() - 1, 0, 6)])
-	# each hex says for itself whether it can take the tower: clear, buildable and level with the first hex
-	var lvl := board.level_at(cells[0])
+	# each hex says for itself whether it can take the tower: clear, buildable and level with the rest of the footprint
+	# (the level most of its hexes share, so the odd one out is the one that turns red)
+	var lvl := board.common_level(cells)
+	var why := ""
+	for c in cells:
+		var r := board.build_block_reason(c)
+		if r == "" and board.level_at(c) != lvl:
+			r = "the ground isn't level (a Builder raises a hex, a Digger lowers one)"
+		if r != "":
+			why = r
+			break
+	if why == "" and gold < tower_cost(placing):
+		why = "not enough gold (%d)" % tower_cost(placing)
+	if why != "":
+		hud.show_place_hint("Can't build here: " + why)
+		_place_hint = true
+	elif _place_hint:
+		hud.hint_panel.visible = false
+		_place_hint = false
 	for i in cells.size():
 		var g: MeshInstance3D = _ghost_cells[i]
 		var good: bool = board.can_build(cells[i]) and board.level_at(cells[i]) == lvl and gold >= tower_cost(placing)
@@ -3049,8 +3087,15 @@ func try_place(c: Vector2i) -> void:
 	var cost := tower_cost(placing)
 	var cells := GameData.footprint(placing, c, place_facing)
 	if not board.can_build_all(cells):
-		var n := cells.size()
-		hud.toast(("Needs %d clear, level hexes on your tiles (R turns it)" % n) if n > 1 else "Build on clear ground on your own tiles", Color(1, 0.5, 0.4))
+		var why := ""
+		var lvl := board.common_level(cells)
+		for cc in cells:
+			why = board.build_block_reason(cc)
+			if why == "" and board.level_at(cc) != lvl:
+				why = "the ground isn't level"
+			if why != "":
+				break
+		hud.toast("Can't build here: %s%s" % [why, " (R turns it)" if cells.size() > 1 else ""], Color(1, 0.5, 0.4))
 		return
 	if gold < cost:
 		hud.toast("Not enough gold", Color(1, 0.5, 0.4))
