@@ -19,11 +19,14 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
    **F** casts 1 **Rune** to reroll it. Tiles can carry high ground, ley crystals, trees, rocks and neutral buildings.
    - Each tile is a hexagon 3 small hexes along each edge (`Hex.K = 4`): 13 whole hexes plus a half hex in the
      middle of each side, where the road enters. When two tiles meet, their halves merge into whole hexes; only
-     those shared halves match, the rest of each tile keeps its own height. Tiles are often a level above or below
+     those shared halves match, the rest of each tile keeps its own height. Every hex of a placed tile is buildable,
+     the ones on the edge of your land too; if a spot won't take a tower, the hint line says why. Tiles are often a level above or below
      the road they join (3 levels in all) and often carry a raised patch, so the map climbs and dips; roads ramp
      between levels, only where they run straight (a ramp can't bend: a tile takes another height, or doesn't fit,
-     rather than turn its road on one). Tiles carry few trees and rocks so there's room for the bigger towers, and
-     ponds only cross a road where it runs straight (a bridge can't bend).
+     rather than turn its road on one). Tiles carry at most one tree or rock, small ponds and small plateaus, so
+     there's room for the bigger towers (lone pines and stumps are only clutter: building clears them), and ponds
+     only cross a road where it runs straight (a bridge can't bend). Blueprints for 4-5 hex towers that fit nowhere
+     on your map right now come up rarely.
    - Entrances sit at side midpoints. A tile has 2 to 6 of them, usually 2 (50% 2, 27% 3, 13% 4, 7% 5, 3% 6).
      Once you're holding several battlefronts, tiles that would only add more get rarer.
    - **Sides that touch placed tiles must match**: entrance to entrance, wall to wall.
@@ -42,7 +45,8 @@ You grow a hex map one terrain tile per wave, then defend every road end it open
    or selecting a tower, the **hexes it reaches light up** (road hexes brighter).
    - **Tiers**: towers are Tier I, II, III or IV. Later tiers cost a lot more and hit much harder. Tier II
      blueprints can be offered from wave 4, Tier III from wave 10 and Tier IV, each color's two legendary late-game
-     towers, from wave 16 (`GameData.TIER_WAVE`); your starting towers are always available.
+     towers, from wave 16 (`GameData.TIER_WAVE`); the first reward after that leads with a Tier IV blueprint. Your
+     starting towers are always available.
    - **Waves** arrive spread over a spawn window, 2 s for the smallest waves up to 10 s for the biggest, with the
      enemy types mixed (`WaveBuilder.SPAWN_WINDOW`). Enemies split evenly across road ends.
    - **Fliers ignore the road**: they fly straight from their road end to the castle, high over everything. The
@@ -91,7 +95,7 @@ The towers by color:
 
 | Color | Towers | Creatures | Tier IV (wave 16+) |
 |---|---|---|---|
-| White | Arcane Spire, Chapel of Dawn, War Banner, Gryphon Roost | **Seraph** (spears of light, +75% vs flyers, sees camo), **Archangel** (smites the strongest enemy: stun + splash, +50% vs bosses) | **Hall of Knights** (musters up to 4 knights onto the road ahead of the foe; each pins and cuts down two enemies), **Sunlance Lighthouse** (a beam that burns everything on a straight line, flyers too; sees camo) |
+| White | Arcane Spire, Chapel of Dawn, War Banner, Gryphon Roost | **Seraph** (spears of light, +75% vs flyers, sees camo), **Archangel** (smites the strongest enemy: stun + splash, +50% vs bosses) | **Hall of Knights** (musters up to 5 knights onto the road ahead of the foe; each pins and strikes three times), **Sunlance Lighthouse** (a beam that burns everything on a straight line, flyers too; sees camo) |
 | Green | Thornspitter, Spore Mound, Briar Thicket, Elder Treant, Stormcaller Oak, Wasp Hive, Moonwell, Rootbinder Shrine | **Dire Bear** (mauls and bleeds), **Ancient Mammoth** (stomps: damages and stuns everything around it) | **Heart of the Forest** (aura: +10% damage, +3% more for every wave it has stood, up to +55%) |
 | Red | Flame Belcher, Runic Hammer, Siege Mortar, Flak Battery | **Magma Golem** (burning boulders), **Fat Dragon** (too heavy to move: breathes fire in a straight line where it faces) | **Doomsday Cannon** (colossal range, huge stunning blasts), **Forge of Ages** (aura: +30% damage, and hits set enemies burning) |
 | Blue | Tide Spire, Coral Harpooner, Whirlpool Shrine, Siren Rock | **Snapjaw Crab** (two claws; cracked shells take +25% damage), **Kraken** (seizes and holds up to 3 enemies) | **Leviathan** (a piercing water jet that slows and washes walkers back), **Tidecaller Spire** (every toll freezes everything around it, then slows it) |
@@ -142,8 +146,10 @@ They stack: two Gold Mines pay twice. (The old map pickups claimed by tower rang
 ### Difficulty
 
 Normal, Hard and Brutal toughen and enlarge the waves, and open more roads out of the castle at the start: one,
-two or three, on neighbouring sides, each with its first tile laid and +100 gold for every road past the first.
-Holding out until you can join them into one chokepoint is half the game.
+two or three, on neighbouring sides, each with its first tile laid and +150 gold for every road past the first.
+Holding out until you can join them into one chokepoint is half the game. Hard and Brutal ease in: their extra health
+(x1.7 / x2.3) and wave size (x1.25 / x1.4) grow from nothing on wave 1 to full strength by wave 18
+(`GameData.DIFF_RAMP`), and their kills pay 10% / 15% more gold.
 
 ### War Council (between runs)
 
@@ -379,6 +385,25 @@ that its head turns, that every shot plays its `fire` animation and leaves from 
 the refund; exits 1 on failure).
 Test runs never write your save file.
 
-Bot results at the time of writing (Normal): Crown won all 30 waves; Verdant fell on wave 22 after a
-rough threat roll (two camo threats plus swift Frost Imps). The bot drafts counters to revealed threats but
-does not plan detection per battlefront the way a player can.
+**Playtest bots** (`scripts/playtest.gd`): `--skill=low|mid|high` picks how the autotest bot plays.
+- low plays like a newcomer: slow to react, random drafts, facings and tiles, few upgrades.
+- mid is the original bot: it builds near the least-defended road, upgrades sometimes and goes for long roads when
+  placing tiles.
+- high plays like a veteran. It searches every spot near the road for the most coverage of every route (weighted by
+  how likely enemies take it, with diminishing returns where the road is already defended) and values towers by
+  damage per gold (discounting overkill). It saves for better towers, picks the stronger specialization, raises its
+  best towers with Builders and guards the flight lines before fliers come. It plans tiles for its big blueprints:
+  it previews each placement's ground (`Board.plan_ground`), rerolls with Runes when nothing makes room, and levels
+  nearly-flat patches with Builders and Diggers.
+
+Add `--fresh` to ignore your saved profile (no War Council upgrades), and `--give=<tower>[:n]` / `--gold=N` to hand
+the bot blueprints or gold. Every run prints a `PLAYTEST {json}` line. `python tools/playtest_matrix.py <out>
+--seeds 1,2,3` runs every skill x color x difficulty in parallel headless processes, and
+`python tools/playtest_report.py <out>` summarizes win rates, what kills runs, who carries each color, damage per
+tower, Tier IV use, unplaceable blueprints and pacing (waves without damage, close calls, unspent gold, wave
+length).
+
+Playtest results (2026-10-04, 135 runs: every skill x color x difficulty, three seeds), win rates low / mid / high:
+Normal 67 / 93 / 80%, Hard 33 / 60 / 80%, Brutal 7 / 27 / 73%. That was before balance round 5 (boss health by
+type, Brutal gold, Hall of Knights) and buildable edge hexes, which haven't been measured yet. The baseline that
+started it: Normal 20 / 70 / 70%, Hard 10 / 10 / 50%, Brutal 0 / 0 / 0%.
