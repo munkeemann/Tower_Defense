@@ -49,7 +49,7 @@ const BIOMES := {
 const DIFFICULTIES := [
 	{"name": "Normal", "hp": 1.0, "count": 1.0, "exits": 1, "gold": 1.0, "desc": "The intended experience. One road leaves the castle."},
 	{"name": "Hard", "hp": 1.7, "count": 1.25, "exits": 2, "gold": 1.1, "desc": "Tougher, larger waves. Two roads leave the castle (+150 gold): join them into one chokepoint. Kills pay 10% more."},
-	{"name": "Brutal", "hp": 2.3, "count": 1.4, "exits": 3, "gold": 1.25, "desc": "For Tower Dominion veterans. Three roads leave the castle (+300 gold). Kills pay 25% more."},
+	{"name": "Brutal", "hp": 2.3, "count": 1.4, "exits": 3, "gold": 1.15, "desc": "For Tower Dominion veterans. Three roads leave the castle (+300 gold). Kills pay 15% more."},
 ]
 ## Hard and Brutal ease in: their health and size multipliers grow from 1.0 on wave 1 to full strength by this wave
 ## (playtests: with two or three roads to cover from the first wave, the full multipliers ended most runs by wave 5;
@@ -260,8 +260,8 @@ const TOWERS := {
 		"dtype": "magic", "air": true, "ground": true, "raise": {"max": 5, "life": 8.0, "grab": 0.3}, "color": Color(0.55, 0.85, 0.35),
 		"desc": "Dark bolts. Walkers that die in its reach rise as zombies (up to 5 at once) that shamble back down the road and grab the next enemy they meet: stunned and mauled for 30% of the zombie's old health."},
 	# ---- Tier IV (legendary, from wave 16): each color's late game
-	"knight_hall": {"name": "Hall of Knights", "tier": 4, "copies": 1, "cost": 440, "attack": "muster", "dmg": 240.0, "rate": 0.45, "range": 4.6,
-		"dtype": "phys", "air": false, "ground": true, "muster": {"max": 5, "life": 12.0, "stun": 1.6, "hits": 3}, "color": Color(0.95, 0.88, 0.6), "sfx": "shield",
+	"knight_hall": {"name": "Hall of Knights", "tier": 4, "copies": 1, "cost": 440, "attack": "muster", "dmg": 240.0, "rate": 0.6, "range": 4.6,
+		"dtype": "phys", "air": false, "ground": true, "muster": {"max": 5, "life": 14.0, "stun": 1.6, "hits": 3}, "color": Color(0.95, 0.88, 0.6), "sfx": "shield",
 		"desc": "Musters knights who march out onto the road ahead of the foe and pin it: stunned and cut down. Up to 5 knights at once, each fighting three times."},
 	"sunlance": {"name": "Sunlance Lighthouse", "tier": 4, "copies": 1, "cost": 420, "attack": "beam", "dmg": 160.0, "rate": 0.6, "range": 7.5,
 		"beam_w": 1.1, "dtype": "magic", "air": true, "ground": true, "detect": true, "color": Color(1.0, 0.92, 0.55), "sfx": "smite",

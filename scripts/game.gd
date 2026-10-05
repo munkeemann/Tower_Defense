@@ -15,6 +15,9 @@ const DIG := "__dig"       # placing mode: a Digger lowering ground
 const SPEEDS := [1.0, 2.0, 3.0]
 ## Boss health by wave, whichever boss this run rolled for that slot.
 const BOSS_HP := {10: 2600.0, 20: 20000.0, 30: 36000.0}   # (playtests: the old 6500 / 16000 bosses barely scratched a late defense)
+## Each boss's share of that: the Ember Dragon flies straight over the defense (it decided a third of the wave-30
+## fights in playtests), the Lich King walks the whole road (it was a non-event).
+const BOSS_TYPE_HP := {"dragon": 0.75, "troll": 1.0, "lich": 1.3}
 const BOSS_GOLD := {10: 120, 20: 250, 30: 500}
 const BOSS_LEAK := {10: 10, 20: 15, 30: 20}
 ## A new road out of the castle (another battlefront) opens before these waves. Empty on the hex map:
@@ -2530,7 +2533,7 @@ func spawn_enemy(type_id: String, r: PackedVector3Array, progress := 0.0) -> Ene
 		r = flight_route(r)
 	var mult := WaveBuilder.hp_mult(wave)
 	if d.get("boss", false):
-		mult = float(BOSS_HP.get(wave, float(d["hp"]) * (1.0 + 0.02 * wave))) / float(d["hp"])
+		mult = float(BOSS_HP.get(wave, float(d["hp"]) * (1.0 + 0.02 * wave))) * float(BOSS_TYPE_HP.get(type_id, 1.0)) / float(d["hp"])
 	mult *= diff_mult("hp", wave)
 	e.setup(self, type_id, r, mult, progress)
 	enemies.append(e)
