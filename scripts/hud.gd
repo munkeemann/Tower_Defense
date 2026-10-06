@@ -1949,7 +1949,7 @@ func _comp_tower_effects(d: Dictionary) -> Array:
 	var kinds := {"arrow": "Shoots homing arrows.", "bolt": "Fires bolts in a straight line.", "lob": "Lobs shots that land in an arc (ground only).",
 		"orb": "Fires slow homing orbs.", "chain": "Lightning that jumps between enemies.", "slam": "Slams the ground where its target stands.",
 		"aura_dmg": "Pulses damage around itself.", "aura_buff": "Boosts the towers around it.", "aura_curse": "Curses the enemies around it.",
-		"breath": "Breathes along a straight line where it faces.", "grasp": "Seizes several enemies at once.", "smite": "Calls down a pillar of light on its target."}
+		"breath": "Breathes along a straight line where it faces.", "grasp": "Seizes several enemies at once.", "smite": "Calls down a pillar of light on its target.", "swoop": "Flies out and strikes its target in person."}
 	if kinds.has(a):
 		out.append(kinds[a])
 	if d.has("splash"):

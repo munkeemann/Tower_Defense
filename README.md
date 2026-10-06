@@ -310,24 +310,24 @@ KayKit (Kay Lousberg, CC0, in `assets/kaykit`, wrapped by `scripts/kaykit.gd`) s
   and the Vampire's throne, the Spore Mound giant mushrooms, the Chapel a golden paladin statue. Towers can stand
   on a hex stone plinth spanning their footprint (`plinth`), and pieces can float, spin and bob (`Tower._spinners`).
   The other towers (gryphon, treant, hive, flak battery, whirlpool, siren and the creatures) keep their Meshy art.
-- **Blender-made towers** (`assets/towers/<id>.glb`) win over the KayKit composites and the Meshy art. Every
-  color's own towers have one (the shared Archer, Trebuchet and Royal Bombard don't yet), Tier IV included: the
-  Hall of Knights (a gatehouse whose doors swing open at every muster, a knight-commander on its battlements), the
-  Sunlance Lighthouse (a lens turning round a sun crystal), the Doomsday Cannon, the Forge of Ages (a trip hammer
-  beating an anvil), the Leviathan (a sea serpent in a canal), the Tidecaller Spire (a swinging bell and a frost
-  ring), the Bone Colossus, the Blood Altar and the Heart of the Forest. The Crown's:
-  - **Ballista**: a torsion ballista on a turning dais, a bolt store and a bolt rack.
-    - fire: the arms snap and the string releases.
-    - reload: the winch drags the string back and a new bolt drops in.
-  - **Arcane Spire**: a stone spire whose balcony cradles a floating crystal in gold rune rings; a mage reads at a
-    lectern behind it. fire: the crystal flares.
-  - **Chapel of Dawn**: a nave and a bell tower crowned by a sunburst. fire (every pulse): the bell swings and a ring
-    of light bursts outward.
-  - **War Banner**: a big rippling team flag with a drum, a brazier and a knight on guard.
-  - **Gryphon Roost**: a low-poly gryphon on a rocky aerie that turns, opens its wings and fires from both of them.
-  - **Seraph**: a KayKit paladin with Blender wings, a halo and a spear of light. It hovers, throws, and the spear
-    forms again in its hand.
-  - **Archangel**: a bigger angel with a greatsword before a sun arch. fire: it calls judgment (the Summon clip).
+- **Blender-made towers** (`assets/towers/<id>.glb`) win over the KayKit composites and the Meshy art. All 47 towers
+  have one (rebuilt in October 2026 to one design idea per tower: a single building, machine or creature that owns its
+  footprint, with the team color on top). A few of them:
+  - **Archer Tower**: a round stone tower with a timber hoarding and banners; the ranger stands in its open top.
+  - **Trebuchet** / **Royal Bombard**: a counterweight trebuchet in a palisaded yard; a clover-plan stone fort whose
+    two bombards sit on one turntable.
+  - **Gryphon Roost**: a stone eyrie with a nest deck. The gryphon and its rider take off and swoop on enemy after
+    enemy, then roost again.
+  - **Dire Bear**, **Snapjaw Crab**, **Bone Colossus**: the beast leaps out to its target, strikes it beside it and
+    comes home; the den, tidal flat or ossuary it leaves reads on its own.
+  - **Elder Treant**, **Runic Hammer**, **Kraken**, **Mammoth**, **Mass Grave**, **Briar Thicket**: roots, a spectral
+    hammer, a tentacle, rock spikes, grasping hands or thorn vines burst up under the enemy they hit.
+  - The rest, by color: the Crown's arcane spire, chapel, war banner, seraph and archangel shrines, hall of knights and
+    sunlance lighthouse; the Verdant thornspitter, spore mound, stormcaller oak, wasp hive, moonwell, rootbinder shrine
+    and heart of the forest; the Forge's flame belcher, siege mortar, flak battery, magma golem, fat dragon on its
+    hoard, doomsday cannon and forge of ages; the Tide's tide spire, coral harpooner, whirlpool shrine, siren rock,
+    leviathan and tidecaller; the Grave's bone crypt, plague cauldron, soul obelisk, hex tomb, necromancer and blood
+    altar.
 
   How it works:
   - Each GLB has a `Head` (it turns to aim), `Muzzle` markers (shots leave there) and an optional `Crew` marker
@@ -335,11 +335,37 @@ KayKit (Kay Lousberg, CC0, in `assets/kaykit`, wrapped by `scripts/kaykit.gd`) s
   - Its rig plays `idle`, plus `fire` (and `reload`) on every attack, sped up to fit between shots
     (`Tower._rig_act`).
   - The scripts in `tools/blender/` build them: `kk_helpers.py`, `angel_common.py` (KayKit characters turned into
-    angels: extra wing, halo and weapon bones, and the pack's clips baked with wing beats) and one `<id>_build.py`
-    per tower.
-  - `blender -b --factory-startup --python tools/blender/build_tower.py -- <id> [preview dir]` builds one in a
-    background Blender. It saves `assets/towers/src/<id>.blend`, exports the GLB and renders previews.
+    angels: extra wing, halo and weapon bones, and the pack's clips baked with wing beats), a `<name>_common.py` of
+    shared parts per family of towers (siege, castle, forge guns, tide spires, grave shrines...) and one
+    `<id>_build.py` per tower. Clips are keyed at 30 frames a second (`start_tower` sets the scene to it).
+  - `blender -b assets/towers/src/gallery.blend --python tools/blender/gallery_sync.py` adds any tower that isn't in
+    the gallery yet.
+  - `python tools/blender/build.py <id> [<id> ...] --out <preview dir>` builds them in a background Blender at low
+    priority (it runs `build_tower.py`, and prints `OK <id> tris=N` or the traceback). Each build saves
+    `assets/towers/src/<id>.blend`, exports the GLB and renders `<id>_sheet.png`: the three-quarter view, the game
+    camera's view, the back, a strip of animation frames, close-ups (`PREVIEW["extra"]`) and the strike's frames.
     `assets/towers/src/gallery.blend` links them all side by side.
+  - Before the export, `finalize_tower()` applies the bevels, cuts big faces smaller and bakes soft contact shade
+    into a vertex color attribute (`bake_ao`), which the materials multiply in. In game, `Models._atlas_mat(team,
+    shade)` and `Models.ground_mat_for()` read it wherever a surface carries vertex colors.
+  - `kk_helpers.py` ends with a modelling kit: `Kit` (geometry gathered by color: any atlas swatch, `"team!"`,
+    `"glow:r,g,b"`, `"ground"`), coursed stonework (`round_tower`, `bm_block_wall`, `bm_arch`, `bm_merlons`), tiled
+    roofs (`bm_tile_cone`, `bm_tile_slope`), plank decks, faceted rocks and foliage (`bm_boulder`, `bm_blob`),
+    lofted bodies and limbs with soft skinning for creatures (`bm_loft`, `oval`, `bm_tube`, `skin_soft`,
+    `paint_faces`), flags that wave (`flag_bones`, `flag_part`, `wave_flag`) and paving (`bm_flagstones`).
+    `dire_bear_build.py` and `gryphon_build.py` are the reference towers.
+  - **Melee towers reach their prey** (`GameData.STRIKES`, `Tower._sortie_*`, `scripts/strike.gd`): the blow lands
+    where the model lands.
+    - "lunge": the beast is the `Head`; it leaps out to its target, strikes it and comes home (clips `idle`, `run`,
+      `fire`): the Dire Bear, the Snapjaw Crab, the Bone Colossus.
+    - "fly": the Gryphon takes off with its rider, swoops on enemy after enemy, wheels overhead between blows and
+      goes home to roost (clip `fly`).
+    - "erupt": a model of its own bursts up under the enemy (`build_strike()` in the tower's script exports
+      `<id>_strike.glb` with a `strike` clip): the Elder Treant's roots, the Runic Hammer's spectral hammer, the
+      Kraken's tentacles, and for the auras the Mammoth's rock spikes, the Mass Grave's hands and the Briar's vines.
+    - A tower only does this once its GLB has the clips (or the strike file); until then it attacks as before.
+  - Shots look like what fired them (`Projectile.LOOKS`): wasps, thorns, spears of light, flak shells, bone bolts,
+    harpoons, the Leviathan's water jet.
   - `blender -b --factory-startup --python tools/blender/audit_normals.py -- <id> [<id> ...]` lists inside-out
     pieces (faces wound inward, which the game's single-sided materials cull, so you see the far side's inside).
   - The `.blend` files are git-ignored like all art, since they hold KayKit meshes. Tweak them in Blender and
@@ -384,8 +410,10 @@ late-game map, plus close-ups of a bridge, the castle and a lakeshore; add `--br
 and `--biome=<id>` to pick the biome), `--inputtest` (drives the mouse and keys through tile placement, hotkeys,
 click-to-build, select, upgrade, Builder, Digger and the castle; prints `INPUTTEST FAIL` lines and exits 1 on
 failure) and `--towertest=<id>` (builds that tower where it covers the most road, walks goblins into its arc, checks
-that its head turns, that every shot plays its `fire` animation and leaves from its muzzle, then sells it and checks
-the refund; exits 1 on failure).
+that its head turns, that every shot plays its `fire` animation and leaves from its muzzle, and for the melee
+towers that every blow lands beside its prey, then sells it and checks the refund; exits 1 on failure). Add
+`--ttshots=<dir>` to draw the tower, the enemies and any strike models at the telling moments of an attack into
+`<dir>/<id>_tt.png` with the software rasterizer (no window).
 Test runs never write your save file.
 
 **Playtest bots** (`scripts/playtest.gd`): `--skill=low|mid|high` picks how the autotest bot plays.

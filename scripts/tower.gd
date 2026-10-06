@@ -53,6 +53,26 @@ var _rig_back := 0.0          # seconds until the rig eases back into its idle
 var _muzzle_nodes: Array = [] # Blender towers: markers where shots leave
 var attacks := 0              # how many times it has attacked (shots, pulses, breaths...): tests read it
 var _curse_ticks := 0         # Hex Tomb: half-second curse ticks with someone in reach
+# Melee towers reach their prey (GameData.STRIKES): a beast charges out and back, a flier swoops, or a model of its
+# own bursts up under the enemy. The blow (damage, effects, sound) lands when the model does.
+var _strike := {}             # this tower's GameData.STRIKES entry
+var _sortie := ""             # "lunge" / "fly": the head leaves the tower to strike; "" = it stays put
+var _erupt := false           # its blows show as assets/towers/<id>_strike.glb under the enemy
+var _st := 0                  # sortie state: 0 home, 1 on its way to a blow, 2 striking, 3 going home, 4 circling (fliers)
+var _st_t := 0.0              # seconds left in the state
+var _st_dur := 1.0            # ... of how many
+var _st_rest := 0.0           # beasts: seconds of the strike left after the blow
+var _st_target: Enemy
+var _st_from := Vector3.ZERO  # where this dash began
+var _st_vel := Vector3.ZERO   # fliers: velocity
+var _st_blow := false         # a blow is still to land
+var _st_fired := false        # fliers: the strike clip has started for this pass
+var _st_idle := 0.0           # fliers: seconds with nothing to hunt
+var _st_roll := 0.0           # fliers: banking
+var _st_hop := 0.0            # beasts: how high this dash leaps
+var _home_pos := Vector3.ZERO # the head's own place on the tower
+var _home_rot := Vector3.ZERO
+var blows: Array = []         # tests: how far the head was from its prey when each blow landed
 
 
 const SIZE_SCALE := [1.0, 1.15, 1.3, 1.45, 1.55, 1.7, 1.85]
@@ -91,6 +111,15 @@ func setup(g: Game, tid: String, anchor: Vector2i, facing_ := 4) -> void:
 		_crew_idle = _model.get_meta("crew_idle")
 		_crew_attack = _model.get_meta("crew_attack")
 		_crew_cut = float(_model.get_meta("crew_cut", 1.0))
+	_strike = GameData.STRIKES.get(tid, {})
+	if _model.has_meta("blender") and _rig:
+		var kind := String(_strike.get("kind", ""))
+		if (kind == "lunge" and _rig.has_animation("run")) or (kind == "fly" and _rig.has_animation("fly")):
+			_sortie = kind
+			_home_pos = head.position
+			_home_rot = head.rotation
+			_rig.playback_default_blend_time = 0.12
+		_erupt = kind == "erupt" and Models.has_strike(tid)
 	_base_scale = 1.0 if _fitted else SIZE_SCALE[clampi(cells.size() - 1, 0, SIZE_SCALE.size() - 1)]
 	_model.scale = Vector3.ONE * _base_scale
 	_model.rotation.y = Hex.dir_yaw(facing)
@@ -298,6 +327,8 @@ func _process(delta: float) -> void:
 		if _rig_back <= 0.0 and _rig.has_animation("idle"):
 			_rig.speed_scale = 1.0
 			_rig.play("idle", 0.2)
+	if _sortie != "":
+		_sortie_update(delta)
 	var a := attack()
 	var kk := _model.has_meta("kaykit")
 	if a == "aura_buff":
@@ -347,14 +378,21 @@ func _process(delta: float) -> void:
 	var t := find_target()
 	if t == null:
 		return
-	if not data.get("static", false):
-		# each gun turns from where it stands (KayKit crews and turrets can sit off the footprint's middle)
+	if not data.get("static", false) and (_sortie == "" or _st == 0):
+		# each gun turns from where it stands (KayKit crews and turrets can sit off the footprint's middle);
+		# a beast that's out hunting steers itself
 		head.rotation.y = lerp_angle(head.rotation.y, _aim_yaw(head, t.position), min(1.0, delta * 12.0))
 		for tn in _turrets:
 			if tn != head:
 				(tn as Node3D).rotation.y = lerp_angle((tn as Node3D).rotation.y, _aim_yaw(tn, t.position), min(1.0, delta * 12.0))
 	if cooldown <= 0.0:
 		if a == "muster" and not _can_muster():
+			return
+		if _sortie != "":
+			if _st_blow:
+				return   # still on its way to the last blow
+			cooldown = 1.0 / fire_rate()
+			_sortie_begin(t)
 			return
 		cooldown = 1.0 / fire_rate()
 		_fire(t)
@@ -385,8 +423,12 @@ func _pulse() -> void:
 	attacks += 1
 	var r := range_world()
 	var pkt := make_packet()
+	var shown := 0
 	for e in game.enemies.duplicate():
 		if not e.dead and can_hit(e) and _in_aura(e, r):
+			if _erupt and shown < int(_strike.get("max", 6)):
+				shown += 1
+				Strike.spawn(self, e.ground_pos(), 0.0, Callable())
 			game.apply_hit(pkt, e)
 	if arc < 359.0:
 		# a cone of fire (Flame Belcher)
@@ -504,11 +546,25 @@ func _grasp(t: Enemy, r: float) -> void:
 		victims.append(e)
 	var pkt := make_packet()
 	for e in victims:
-		game.apply_hit(pkt, e)
-		VFX.splash(game.world, e.ground_pos() + Vector3(0, 0.3, 0), data["color"])
-		FX.ring(game.world, e.ground_pos() + Vector3(0, 0.1, 0), data["color"], 0.9, 0.35)
+		if _erupt:
+			# a tentacle bursts up under each one (and reaches up for fliers); the crush lands as it closes
+			var hit := float(_strike.get("hit", 0.25))
+			var at: Vector3 = e.predict(hit) if not e.flying else Vector3(e.position.x, position.y, e.position.z)
+			var s := Strike.spawn(self, at, hit, _grasp_land.bind(pkt, e))
+			if e.flying:
+				s.reach_up(e.position.y - at.y)
+		else:
+			_grasp_land(pkt, e)
 	_recoil = 1.0
 	game.sfx(attack_sfx(), global_position)
+
+
+func _grasp_land(pkt: Dictionary, e: Enemy) -> void:
+	if not is_instance_valid(e) or e.dead:
+		return
+	game.apply_hit(pkt, e)
+	VFX.splash(game.world, e.ground_pos() + Vector3(0, 0.3, 0), data["color"])
+	FX.ring(game.world, e.ground_pos() + Vector3(0, 0.1, 0), data["color"], 0.9, 0.35)
 
 
 ## Sunlance: a lance of light from the tower through the target to the end of its reach, burning everything on that line.
@@ -557,11 +613,11 @@ func _fire_at(t: Enemy, from: Vector3) -> void:
 	var pkt := make_packet()
 	var col: Color = data["color"]
 	match attack():
-		"arrow":
+		"arrow", "swoop":   # (a swooper whose model can't fly, the pre-Blender gryphon, shoots as it used to)
 			var p := Projectile.new()
 			var spd := 34.0 if id != "hive" else 26.0
 			game.world.add_child(p)
-			p.setup_homing(game, pkt, from, t, spd, "arrow" if id != "hive" and id != "thorn" else "dart", col)
+			p.setup_homing(game, pkt, from, t, spd, Projectile.look(id, "arrow"), col)
 		"orb":
 			var p := Projectile.new()
 			game.world.add_child(p)
@@ -587,10 +643,219 @@ func _fire_at(t: Enemy, from: Vector3) -> void:
 			VFX.smite(game.world, t.ground_pos(), col)
 			FX.ring(game.world, t.ground_pos() + Vector3(0, 0.15, 0), col, maxf(pkt["splash"], 1.0), 0.4)
 		"slam":
-			var gp := t.ground_pos()
-			for e in game.enemies.duplicate():
-				if not e.dead and can_hit(e) and _flat_dist(e.position, gp) <= pkt["splash"]:
-					game.apply_hit(pkt, e)
-			FX.ring(game.world, gp + Vector3(0, 0.15, 0), Color(0.6, 0.45, 0.3), pkt["splash"], 0.3)
-			VFX.stomp(game.world, gp, pkt["splash"])
+			if _erupt:
+				# the blow bursts up where the target will be standing when it lands
+				var hit := float(_strike.get("hit", 0.25))
+				var gp := t.predict(hit)
+				Strike.spawn(self, gp, hit, _slam.bind(gp, pkt))
+			else:
+				_slam(t.ground_pos(), pkt)
 	_recoil = 1.0
+
+
+## A slam lands on the ground at gp: everything within its splash is hit.
+func _slam(gp: Vector3, pkt: Dictionary) -> void:
+	for e in game.enemies.duplicate():
+		if not e.dead and can_hit(e) and _flat_dist(e.position, gp) <= pkt["splash"]:
+			game.apply_hit(pkt, e)
+	FX.ring(game.world, gp + Vector3(0, 0.15, 0), Color(0.6, 0.45, 0.3), pkt["splash"], 0.3)
+	VFX.stomp(game.world, gp, pkt["splash"])
+
+
+# ------------------------------------------------------------------ sorties: beasts that charge, fliers that swoop
+
+func _rig_play(clip: String, blend := 0.12, speed := 1.0, restart := false) -> void:
+	if _rig == null or not _rig.has_animation(clip):
+		return
+	_rig.clear_queue()
+	_rig.speed_scale = speed
+	_rig.play(clip, blend)
+	if restart:
+		_rig.seek(0.0, true)
+
+
+func _home_world() -> Vector3:
+	return (head.get_parent() as Node3D).global_transform * _home_pos
+
+
+## Where a sortie is headed: beside its prey on the ground (a beast), or right on it (a flier).
+func _sortie_goal(e: Enemy) -> Vector3:
+	var tp := e.aim_pos() if _sortie == "fly" else e.ground_pos()
+	var pos := head.global_position
+	var away := Vector3(pos.x - tp.x, 0.0, pos.z - tp.z)
+	if away.length() < 0.05:
+		away = -Hex.dir_world(facing)
+	# (bigger prey is met further out)
+	return tp + away.normalized() * (float(_strike.get("reach", 0.9)) + 0.4 * maxf(0.0, float(e.data.get("size", 0.6)) - 0.6))
+
+
+## The head sets off for target t; the blow lands when it gets there (a fraction of the time between attacks, however
+## fast it has to go: the attack rate is the tower's, not the legs').
+func _sortie_begin(t: Enemy) -> void:
+	_st_target = t
+	_st_from = head.global_position
+	var gap := 1.0 / maxf(fire_rate(), 0.05)
+	var dist := _st_from.distance_to(_sortie_goal(t))
+	_st_dur = clampf(dist / float(_strike.get("speed", 10.0)), 0.14, gap * 0.45)
+	_st_t = _st_dur
+	# a long dash is a leap (over its own den, the towers and trees between), a short one a bound
+	_st_hop = minf(dist * float(_strike.get("hop", 0.2)), float(_strike.get("hop_max", 1.4)))
+	_st = 1
+	_st_blow = true
+	_st_fired = false
+	_st_idle = 0.0
+	_rig_play("fly" if _sortie == "fly" else "run", 0.1, 1.0 if _sortie == "fly" else clampf(0.5 / _st_dur, 1.0, 2.5))
+
+
+func _sortie_update(delta: float) -> void:
+	if _st == 0:
+		return
+	var pos := head.global_position
+	match _st:
+		1:   # on its way to a blow
+			var e := _st_target
+			if not is_instance_valid(e) or e.dead:
+				# its prey is gone: the next one in reach, or home with the blow unspent
+				e = find_target()
+				_st_target = e
+				if e == null:
+					_st_blow = false
+					cooldown = 0.0
+					_sortie_home()
+					return
+			var goal := _sortie_goal(e)
+			var k := minf(1.0, delta / maxf(_st_t, 0.0001))
+			_st_t -= delta
+			var s := clampf(1.0 - _st_t / _st_dur, 0.0, 1.0)
+			var next := pos.lerp(goal, k)
+			if _sortie == "fly":
+				# a swoop: up and over, then down onto it
+				next.y = lerpf(_st_from.y, goal.y, s) + minf(1.6, _st_from.distance_to(goal) * 0.22) * sin(PI * s) * (1.0 - s * 0.5)
+				_st_vel = (next - pos) / maxf(delta, 0.0001)
+				_face_flight(_st_vel, delta)
+				var lead := float(_strike.get("hit", 0.12))
+				if not _st_fired and _st_t <= lead:
+					_st_fired = true
+					_rig_play("fire", 0.05, 1.0, true)
+					_rig.queue("fly")   # (and back into its wingbeat once the talons have struck)
+			else:
+				next.y = lerpf(_st_from.y, goal.y, s) + _st_hop * 4.0 * s * (1.0 - s)
+				head.rotation = Vector3(0.0, _aim_yaw(head, e.position), 0.0)
+			head.global_position = next
+			if _st_t <= 0.0:
+				if _sortie == "fly":
+					_blow()
+					_st = 4
+				else:
+					# beside its prey: the strike, and the blow lands partway into it
+					var gap := 1.0 / maxf(fire_rate(), 0.05)
+					var hit := float(_strike.get("hit", 0.2))
+					var spd := clampf(hit / (gap * 0.18), 1.0, 3.0)
+					_rig_play("fire", 0.04, spd, true)
+					_st = 2
+					_st_t = hit / spd
+					_st_rest = maxf(0.05, (_rig.get_animation("fire").length - hit) / spd)
+		2:   # striking
+			_st_t -= delta
+			if is_instance_valid(_st_target) and not _st_target.dead:
+				if _st_blow:
+					# its prey keeps walking while it rears: stay beside it, facing it, until the blow lands
+					var goal := _sortie_goal(_st_target)
+					head.global_position = pos.move_toward(goal, float(_strike.get("speed", 10.0)) * delta)
+					head.rotation.y = _aim_yaw(head, _st_target.position)
+				else:
+					head.rotation.y = lerp_angle(head.rotation.y, _aim_yaw(head, _st_target.position), minf(1.0, delta * 5.0))
+			if _st_blow and _st_t <= 0.0:
+				_blow()
+				_st_t = _st_rest
+			elif not _st_blow and _st_t <= 0.0:
+				_sortie_home()
+		3:   # going home
+			var home := _home_world()
+			var k := minf(1.0, delta / maxf(_st_t, 0.0001))
+			_st_t -= delta
+			var next := pos.lerp(home, k)
+			if _sortie == "fly":
+				var s := clampf(1.0 - _st_t / _st_dur, 0.0, 1.0)
+				next.y = lerpf(_st_from.y, home.y, s) + 0.8 * sin(PI * s)
+				_st_vel = (next - pos) / maxf(delta, 0.0001)
+				_face_flight(_st_vel, delta)
+			else:
+				var s := clampf(1.0 - _st_t / _st_dur, 0.0, 1.0)
+				next.y = lerpf(_st_from.y, home.y, s) + _st_hop * 4.0 * s * (1.0 - s)
+				if Vector2(home.x - pos.x, home.z - pos.z).length() > 0.05:
+					head.rotation = Vector3(0.0, atan2(-(home.x - pos.x), -(home.z - pos.z)) - _model.rotation.y, 0.0)
+			head.global_position = next
+			if _st_t <= 0.0:
+				_st = 0
+				head.position = _home_pos
+				head.rotation = _home_rot
+				_rig_play("idle", 0.25)
+		4:   # a flier between blows: climbing back up and wheeling over whatever it hunts next (or its roost)
+			var e2 := find_target()
+			_st_idle = 0.0 if e2 else _st_idle + delta
+			if _st_idle > 0.7:
+				_sortie_home()
+				return
+			var home := _home_world()
+			var focus: Vector3 = e2.position if e2 else home
+			if _flat_dist(pos, position) > range_world() + 1.5:
+				focus = home   # (it never strays far past its tower's reach)
+			focus.y = home.y + float(_strike.get("alt", 2.2))
+			var to := focus - pos
+			var flat := Vector3(to.x, 0.0, to.z)
+			var want := to.normalized()
+			if flat.length() < 2.2:
+				# close: wheel round it rather than hover on top of it
+				want = (Vector3(-flat.z, 0.0, flat.x).normalized() + Vector3(0.0, clampf(to.y, -1.0, 1.0) * 0.6, 0.0)).normalized()
+			var cruise := float(_strike.get("speed", 10.0)) * 0.6
+			_st_vel = _st_vel.lerp(want * cruise, 1.0 - exp(-4.5 * delta))
+			if _st_vel.length() > cruise * 1.6:
+				_st_vel = _st_vel.normalized() * cruise * 1.6
+			head.global_position = pos + _st_vel * delta
+			_face_flight(_st_vel, delta)
+
+
+## The sortie is over: back to its place on the tower.
+func _sortie_home() -> void:
+	_st = 3
+	_st_from = head.global_position
+	var dist := _st_from.distance_to(_home_world())
+	_st_dur = clampf(dist / (float(_strike.get("speed", 10.0)) * 0.55), 0.2, 2.5)
+	_st_t = _st_dur
+	_st_hop = minf(dist * float(_strike.get("hop", 0.2)), float(_strike.get("hop_max", 1.4)))
+	_rig_play("fly" if _sortie == "fly" else "run", 0.2)
+
+
+## A flier points along its flight: nose up or down with its climb, banking into its turns.
+func _face_flight(v: Vector3, delta: float) -> void:
+	if v.length() < 0.2:
+		return
+	var yaw := atan2(-v.x, -v.z) - _model.rotation.y
+	var turn := angle_difference(head.rotation.y, yaw)
+	_st_roll = lerpf(_st_roll, clampf(-turn * 3.0, -0.7, 0.7), minf(1.0, delta * 6.0))
+	var pitch := clampf(asin(clampf(v.y / v.length(), -1.0, 1.0)), -1.0, 0.9)
+	head.rotation = Vector3(lerp_angle(head.rotation.x, pitch, minf(1.0, delta * 10.0)),
+		lerp_angle(head.rotation.y, yaw, minf(1.0, delta * 12.0)), _st_roll)
+
+
+## A sortie's blow lands: on the prey it reached (and whatever its splash covers).
+func _blow() -> void:
+	_st_blow = false
+	attacks += 1
+	var e: Enemy = _st_target if is_instance_valid(_st_target) and not _st_target.dead else null
+	var pkt := make_packet()
+	var at: Vector3 = e.ground_pos() if e else head.global_position
+	if e:
+		blows.append(_flat_dist(head.global_position, e.position))
+	if attack() == "slam":
+		for i in muzzles.size():
+			_slam(at, pkt)
+	else:
+		if e:
+			game.apply_hit(pkt, e)
+			if float(pkt["splash"]) > 0.0:
+				game.apply_splash(pkt, at, e)
+			FX.burst(game.world, e.aim_pos(), data["color"], 0.5, 0.18)
+	_recoil = 1.0
+	game.sfx(attack_sfx(), at)

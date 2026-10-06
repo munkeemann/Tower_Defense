@@ -491,7 +491,7 @@ func _tower_test(tid: String) -> bool:
 	# its hexes wear the map's palette (the board's tile material)
 	var ground: Array = t._model.get_meta("ground", [])
 	var gmat := board.ground_material()
-	var off_palette := ground.filter(func(g): return (g[0] as MeshInstance3D).get_surface_override_material(int(g[1])) != gmat)
+	var off_palette := ground.filter(func(g): return (g[0] as MeshInstance3D).get_surface_override_material(int(g[1])) != Models.ground_mat_for(g[0], int(g[1]), gmat))
 	print("TOWERTEST ground: %d surfaces, biome %s, palette %s" % [ground.size(), board.biome_id, Board.KK_PALETTE.get(board.biome_id, "default")])
 	if blender and ground.is_empty():
 		print("TOWERTEST FAIL Blender tower without ground surfaces (rebuild it: its plinth predates kk_ground)")
@@ -546,16 +546,61 @@ func _tower_test(tid: String) -> bool:
 	var yaw0 := t.head.rotation.y
 	var turned := false
 	var t0 := Time.get_ticks_msec()
+	# --ttshots=<dir>: draw the tower and its prey (tools/snap.gd: no window) at the telling moments of its attack
+	var shot_dir := ""
+	for x in OS.get_cmdline_user_args():
+		if String(x).begins_with("--ttshots="):
+			shot_dir = String(x).substr(10)
+	var shots := {}
+	var far := 0.0   # the farthest its head got from its place on the tower
+	var home := t.head.global_position
 	while Time.get_ticks_msec() - t0 < 25000 and (fires < 4 or t.attacks < 4):
 		await get_tree().process_frame
 		if absf(angle_difference(t.head.rotation.y, yaw0)) > 0.02:
 			turned = true
+		far = maxf(far, t.head.global_position.distance_to(home))
 		if t._rig:
 			var cur := t._rig.current_animation
 			if cur == "fire" and last_anim != "fire":
 				fires += 1
 			last_anim = cur
+		if shot_dir != "":
+			var label := ""
+			if t._sortie != "":
+				if t._st == 1 and t._st_t < t._st_dur * 0.5:
+					label = "1 on its way"
+				elif t._st == 2 and not t._st_blow:
+					label = "2 the blow"
+				elif t._st == 3 and t._st_t < t._st_dur * 0.5:
+					label = "3 going home"
+				elif t._st == 4:
+					label = "2 after the blow"
+			else:
+				for n in world.get_children():
+					if n is Strike:
+						label = "2 strike landed" if (n as Strike)._landed else "1 strike rising"
+				if label == "" and t._rig and t._rig.current_animation == "fire":
+					label = "0 fire"
+			if label != "" and not shots.has(label):
+				shots[label] = _tt_snap(t, best_route)
+	if shot_dir != "" and not shots.is_empty():
+		var snap = load("res://tools/snap.gd")
+		var keys: Array = shots.keys()
+		keys.sort()
+		var imgs: Array = keys.map(func(k): return shots[k])
+		snap.sheet(imgs, imgs.size()).save_png(shot_dir.path_join(tid + "_tt.png"))
+		print("TOWERTEST shots: %s -> %s" % [keys, shot_dir.path_join(tid + "_tt.png")])
 	Engine.time_scale = 1.0
+	if t._sortie != "":
+		var worst_blow := 0.0
+		for b in t.blows:
+			worst_blow = maxf(worst_blow, float(b))
+		var reach_max := float(t._strike.get("reach", 0.9)) + 0.7
+		print("TOWERTEST sortie %s: %d blows, its head within %.2f of its prey at the worst (limit %.2f), ranged %.1f from home" % [
+			t._sortie, t.blows.size(), worst_blow, reach_max, far])
+		if t.blows.is_empty() or worst_blow > reach_max or far < 1.0:
+			print("TOWERTEST FAIL its blows didn't land beside its prey")
+			ok = false
 	world.child_entered_tree.disconnect(_tt_note)
 	var worst := 0.0
 	var muzzle := (t._muzzle_nodes[0] as Node3D) if not t._muzzle_nodes.is_empty() else null
@@ -596,6 +641,33 @@ func _tower_test(tid: String) -> bool:
 		ok = false
 	print("TOWERTEST %s %s" % ["PASS" if ok else "FAIL", tid])
 	return ok
+
+
+## The tower, the enemies, any strikes and the stretch of road, drawn as the game camera sees them (no window).
+func _tt_snap(t: Tower, route: PackedVector3Array) -> Image:
+	var snap = load("res://tools/snap.gd")
+	var tris: Array = snap.triangles(t)
+	for e in enemies:
+		if not e.dead:
+			tris.append_array(snap.triangles(e))
+	for n in world.get_children():
+		if n is Strike:
+			tris.append_array(snap.triangles(n))
+	for i in range(1, route.size()):
+		var a := route[i - 1]
+		var b := route[i]
+		if a.distance_to(t.position) > 9.0 and b.distance_to(t.position) > 9.0:
+			continue
+		var side := Vector3(-(b.z - a.z), 0.0, b.x - a.x).normalized() * 0.5
+		var col := Color(0.62, 0.5, 0.36)
+		tris.append([a - side, b - side, b + side, col])
+		tris.append([a - side, b + side, a + side, col])
+	# (centered between the tower and wherever its head is, or its strike, so the blow stays in frame)
+	var focus := t.head.global_position
+	for n in world.get_children():
+		if n is Strike:
+			focus = (n as Strike).position
+	return snap.draw_tris(tris, 640, Vector3(0.0, 0.84, 0.545), 62.0, t.position.lerp(focus, 0.6) + Vector3(0, 0.6, 0))
 
 
 func _tt_note(n: Node) -> void:

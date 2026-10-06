@@ -133,7 +133,7 @@ static func run_towers(fid: String) -> Array:
 
 ## attack kinds: arrow (homing), bolt (straight, pierces), lob (arc, ground only),
 ## orb (slow homing), chain (instant lightning), slam (instant splash at target),
-## aura_dmg (pulses around tower), aura_buff (boosts nearby towers)
+## aura_dmg (pulses around tower), aura_buff (boosts nearby towers), swoop (one target, struck in person: see STRIKES)
 const TOWERS := {
 	# ---------------- Aurelian Crown ----------------
 	"archer": {"name": "Archer Tower", "tier": 1, "copies": 3, "cost": 60, "attack": "arrow", "dmg": 10.0, "rate": 1.6, "range": 3.2,
@@ -154,9 +154,9 @@ const TOWERS := {
 	"banner": {"name": "War Banner", "tier": 2, "copies": 2, "cost": 160, "attack": "aura_buff", "dmg": 0.0, "rate": 0.0, "range": 2.6,
 		"buff": {"dmg": 0.35}, "color": Color(0.85, 0.2, 0.2),
 		"desc": "Nearby towers deal +35% damage (scales with level)."},
-	"gryphon": {"name": "Gryphon Roost", "tier": 3, "copies": 1, "cost": 260, "attack": "arrow", "dmg": 50.0, "rate": 1.3, "range": 4.8,
-		"dtype": "phys", "air": true, "ground": true, "air_bonus": 2.5, "detect": true, "color": Color(0.9, 0.75, 0.45),
-		"desc": "Anti-air specialist: 2.5x damage to flying enemies, and it still strikes the ground."},
+	"gryphon": {"name": "Gryphon Roost", "tier": 3, "copies": 1, "cost": 260, "attack": "swoop", "dmg": 50.0, "rate": 1.3, "range": 4.8,
+		"dtype": "phys", "air": true, "ground": true, "air_bonus": 2.5, "detect": true, "color": Color(0.9, 0.75, 0.45), "sfx": "claw",
+		"desc": "Its gryphon takes wing and swoops on enemy after enemy, talons first. Anti-air specialist: 2.5x damage to flying enemies, and it still strikes the ground."},
 	"bombard": {"name": "Royal Bombard", "tier": 3, "copies": 1, "cost": 320, "attack": "lob", "dmg": 140.0, "rate": 0.4, "range": 4.0,
 		"dtype": "phys", "air": false, "ground": true, "splash": 1.1, "stun": [0.25, 0.7], "color": Color(0.3, 0.3, 0.35),
 		"desc": "Short-range cannon. Big splash, may stun."},
@@ -663,6 +663,31 @@ const SHAPES := {
 	"battery5": {"name": "5, two front guns", "cells": [[0, 0], [-1, 0], [0, -1], [1, -1], [0, 1]], "muzzles": [[1, -1], [-1, 0]]},
 	"fan5": {"name": "5, fan", "cells": [[0, 0], [-1, 0], [0, -1], [1, -1], [1, 0]], "muzzles": [[0, 0]]},
 }
+## Melee towers reach their prey, and the blow lands where the model lands (Tower's sortie code and Strike; Blender
+## towers only, and only once their model has the clips / strike file, so the rest attack as before). kind:
+##   "lunge"  the beast (the tower's Head, with a "run" clip) charges out to its target, strikes it ("fire") and comes
+##            home. speed: world units a second (it goes faster if it must: the attack rate is the tower's); reach:
+##            it stops this far from its prey; hop: how high it leaps for each unit it has to cover (so a long dash
+##            clears its own den and the towers between), up to hop_max; hit: seconds into "fire" when the blow lands.
+##   "fly"    the same on the wing (a "fly" clip): it takes off, swoops on enemy after enemy, wheels overhead between
+##            blows and goes home to roost when there's nothing left. alt: how high it wheels above its roost; hit:
+##            how long before it arrives its "fire" clip starts.
+##   "erupt"  a model of its own (assets/towers/<id>_strike.glb, clip "strike", built by the tower's Blender script's
+##            build_strike) bursts up under the enemy. hit: seconds into the clip when the blow lands (auras: 0, the
+##            pulse lands at once); max: the most an aura shows per pulse; scale: draws the model bigger.
+const STRIKES := {
+	"dire_bear": {"kind": "lunge", "speed": 11.0, "reach": 0.95, "hop": 0.26, "hop_max": 1.5, "hit": 0.2},
+	"snapjaw_crab": {"kind": "lunge", "speed": 10.0, "reach": 1.25, "hop": 0.1, "hop_max": 0.5, "hit": 0.15},
+	"bone_colossus": {"kind": "lunge", "speed": 9.0, "reach": 1.4, "hop": 0.4, "hop_max": 2.4, "hit": 0.3},
+	"gryphon": {"kind": "fly", "speed": 13.0, "reach": 0.5, "alt": 2.2, "hit": 0.12},
+	"treant": {"kind": "erupt", "hit": 0.3},
+	"dwarf_hammer": {"kind": "erupt", "hit": 0.25},
+	"kraken": {"kind": "erupt", "hit": 0.25},
+	"mammoth": {"kind": "erupt", "hit": 0.0, "max": 8},
+	"mass_grave": {"kind": "erupt", "hit": 0.0, "max": 6, "scale": 1.5},
+	"briar": {"kind": "erupt", "hit": 0.0, "max": 6},
+}
+
 ## tower -> [shape, firing arc in degrees (360 = all round)]. No tower covers more than 5 hexes: map tiles are 3 hexes
 ## along each edge (13 whole hexes, a road through the middle), so the big towers fit where neighboring tiles leave a
 ## clear, level patch together, and 6-7 hex shapes would hardly ever find one. Those shapes stay in SHAPES.

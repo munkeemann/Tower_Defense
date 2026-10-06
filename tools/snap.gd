@@ -53,6 +53,8 @@ static func triangles(root: Node) -> Array:
 				img = _tex_image(shm.get_shader_parameter("atlas"))   # (patterned ground: drawn without its pattern)
 				base = Color.WHITE
 			var vcols = arr[Mesh.ARRAY_COLOR] if (mat and mat.vertex_color_use_as_albedo) else null
+			if shm and shm.get_shader_parameter("use_instance_color") == true:
+				vcols = arr[Mesh.ARRAY_COLOR]   # (a tower's hexes: the ground shader multiplies in the baked shade)
 			var uv_scale := Vector2(mat.uv1_scale.x, mat.uv1_scale.y) if mat else Vector2.ONE
 			var uv_off := Vector2(mat.uv1_offset.x, mat.uv1_offset.y) if mat else Vector2.ZERO
 			var wv := PackedVector3Array()
@@ -81,8 +83,10 @@ static func triangles(root: Node) -> Array:
 					var uv := (uvs[i0] + uvs[i1] + uvs[i2]) / 3.0 * uv_scale + uv_off
 					uv = Vector2(fposmod(uv.x, 1.0), fposmod(uv.y, 1.0))
 					col = base * img.get_pixel(clampi(int(uv.x * img.get_width()), 0, img.get_width() - 1), clampi(int(uv.y * img.get_height()), 0, img.get_height() - 1))
-				if vcols != null and (vcols as PackedColorArray).size() > i0:
-					col = col * vcols[i0]
+				if vcols != null and (vcols as PackedColorArray).size() > i2:
+					# vertex colors are linear and multiply in linear light (the triangle takes its corners' average)
+					var vc: Color = ((vcols[i0] as Color) + (vcols[i1] as Color) + (vcols[i2] as Color)) / 3.0
+					col = (col.srgb_to_linear() * vc).linear_to_srgb()
 				out.append([wv[i0], wv[i1], wv[i2], col])
 	return out
 

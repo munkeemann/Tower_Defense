@@ -12,7 +12,7 @@ const GEAR := ROOT + "gear/"
 
 ## Animation files merged into one library per rig (the T-Pose clips are skipped).
 const LIB_FILES := {
-	"Medium": ["MovementBasic", "General", "CombatMelee", "CombatRanged", "Special"],
+	"Medium": ["MovementBasic", "General", "CombatMelee", "CombatRanged", "Special", "Simulation", "Tools"],
 	"Large": ["MovementBasic", "General", "CombatMelee", "Special"],
 }
 ## Clips that loop (everything else plays once).

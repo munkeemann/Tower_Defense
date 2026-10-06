@@ -825,11 +825,16 @@ const BLENDER_DIR := "res://assets/towers/"
 static var blender_towers := true
 ## The KayKit character a Blender tower stands at its Crew marker: like KK_TOWER crews (char, gear, idle, attack, cut, h).
 const BLENDER_CREW := {
+	"archer": {"char": "Ranger.glb", "gear": [["bow_withString", "l"]], "idle": "Ranged_Bow_Aiming_Idle", "attack": "Ranged_Bow_Release",
+		"cut": 0.4, "h": 1.15},
+	"trebuchet": {"char": "Engineer.glb", "gear": [["engineer_Wrench", "r"]], "idle": "Idle_A", "attack": "Interact", "h": 1.15},
+	"bombard": {"char": "Engineer.glb", "gear": [["engineer_Wrench", "r"]], "idle": "Idle_A", "attack": "Use_Item", "h": 1.15},
 	"ballista": {"char": "Engineer.glb", "idle": "Idle_A", "attack": "Interact", "h": 1.15},
 	"arcane": {"char": "Mage.glb", "gear": [["staff", "r"]], "idle": "Idle_A", "attack": "Ranged_Magic_Shoot", "h": 1.1},
 	"chapel": {"char": "Paladin.glb", "gear": [["sword_1handed", "r"], ["shield_badge_color", "l"]], "idle": "Idle_A",
 		"attack": "Ranged_Magic_Raise", "h": 1.15},
 	"banner": {"char": "Knight.glb", "gear": [["halberd", "r"]], "idle": "Idle_B", "h": 1.15},
+	"gryphon": {"char": "Knight.glb", "gear": [["spear_A", "r"], ["shield_badge_color", "l"]], "idle": "Sit_Chair_Idle", "h": 1.0},   # its rider
 	"moonwell": {"char": "Druid.glb", "gear": [["druid_staff", "r"]], "idle": "Idle_B", "h": 1.1},
 	"spore": {"char": "Druid.glb", "gear": [["druid_staff", "r"]], "idle": "Idle_A", "attack": "Throw", "h": 1.1},
 	"storm": {"char": "Druid.glb", "gear": [["druid_staff", "r"]], "idle": "Idle_A", "attack": "Ranged_Magic_Raise", "h": 1.1},
@@ -854,17 +859,26 @@ static func has_blender_tower(id: String) -> bool:
 
 
 ## The hex pack's own atlas material (so Blender parts shade exactly like KayKit pieces), or a copy slid to a team color.
-static func _atlas_mat(team_name: String) -> Material:
-	if not _atlas_mats.has(team_name):
+## shade: a copy that multiplies in the mesh's vertex colors (the contact shade baked in Blender, kk_helpers.bake_ao).
+static func _atlas_mat(team_name: String, shade := false) -> Material:
+	var key := team_name + ("|shade" if shade else "")
+	if not _atlas_mats.has(key):
 		var mesh: Mesh = KayKit.hex_mesh("barrel")[0]
 		var base: Material = mesh.surface_get_material(0) if mesh else null
-		if team_name == "" or base == null:
-			_atlas_mats[team_name] = base
+		if base == null or (team_name == "" and not shade):
+			_atlas_mats[key] = base
 		else:
 			var m := base.duplicate() as BaseMaterial3D
-			m.uv1_offset = Vector3(float(TEAM_COLUMN.get(team_name, 0)) / 8.0, 0.0, 0.0)
-			_atlas_mats[team_name] = m
-	return _atlas_mats[team_name]
+			if team_name != "":
+				m.uv1_offset = Vector3(float(TEAM_COLUMN.get(team_name, 0)) / 8.0, 0.0, 0.0)
+			m.vertex_color_use_as_albedo = shade
+			_atlas_mats[key] = m
+	return _atlas_mats[key]
+
+
+## Does surface s of this mesh carry vertex colors (baked shade)?
+static func has_shade(mi: MeshInstance3D, s: int) -> bool:
+	return (mi.mesh.surface_get_format(s) & Mesh.ARRAY_FORMAT_COLOR) != 0
 
 
 ## Hex-pack surfaces under `n` join root's "ground" list, so the tower can take the map's palette on them.
@@ -885,7 +899,64 @@ static func set_ground(root: Node3D, mat: Material) -> void:
 	if mat == null:
 		return
 	for g in root.get_meta("ground", []):
-		(g[0] as MeshInstance3D).set_surface_override_material(int(g[1]), mat)
+		(g[0] as MeshInstance3D).set_surface_override_material(int(g[1]), ground_mat_for(g[0], int(g[1]), mat))
+
+
+static var _ground_shade := {}   # a board ground material -> its copy that also multiplies in vertex colors
+
+
+## The board's ground material for one surface: the material itself, or (when the surface carries baked shade) a copy
+## that reads it. The tiles' shader takes a per-hex shade from COLOR; on a tower's hexes COLOR is the baked shade.
+static func ground_mat_for(mi: MeshInstance3D, s: int, mat: Material) -> Material:
+	if not (mat is ShaderMaterial) or not has_shade(mi, s):
+		return mat
+	if not _ground_shade.has(mat):
+		var c := mat.duplicate() as ShaderMaterial
+		c.set_shader_parameter("use_instance_color", true)
+		_ground_shade[mat] = c
+	return _ground_shade[mat]
+
+
+## Gives a Blender-made scene the game's own materials: the hex pack's atlas (so its parts shade like KayKit pieces),
+## the team color on "kk_team" surfaces, and the baked contact shade where the mesh carries it. Returns its ground
+## surfaces ([mesh instance, surface]), which take the map's palette (set_ground).
+static func _dress_blender(scene: Node3D) -> Array:
+	var ground := []
+	for node in scene.find_children("*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(s)
+			if mat == null:
+				continue
+			var shade := has_shade(mi, s)
+			if mat.resource_name == "kk_team":
+				mi.set_surface_override_material(s, _atlas_mat(team, shade))
+			elif mat.resource_name == "hexagons_medieval":
+				mi.set_surface_override_material(s, _atlas_mat("", shade))
+			elif mat.resource_name == "kk_ground":
+				mi.set_surface_override_material(s, _atlas_mat("", shade))
+				ground.append([mi, s])
+	return ground
+
+
+static func has_strike(id: String) -> bool:
+	return blender_towers and KayKit.available() and ResourceLoader.exists(BLENDER_DIR + id + "_strike.glb")
+
+
+## A melee tower's strike model (see Strike): {"root": Node3D with meta "ground", "ap": its AnimationPlayer}, or {}.
+static func strike_model(id: String) -> Dictionary:
+	if not has_strike(id):
+		return {}
+	var ps := KayKit.scene(BLENDER_DIR + id + "_strike.glb")
+	if ps == null:
+		return {}
+	var scene := ps.instantiate() as Node3D
+	var ground := _dress_blender(scene)
+	if not ground.is_empty():
+		scene.set_meta("ground", ground)
+	for node in scene.find_children("*", "MeshInstance3D", true, false):
+		(node as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	return {"root": scene, "ap": scene.find_child("AnimationPlayer", true, false) as AnimationPlayer}
 
 
 ## Builds a Blender tower under root and returns its head (null if there is none). Root metas: "fitted", "kaykit",
@@ -903,26 +974,15 @@ static func _blender_tower(id: String, root: Node3D) -> Node3D:
 		scene.free()
 		return null
 	root.add_child(scene)
-	var ground := []
-	for node in scene.find_children("*", "MeshInstance3D", true, false):
-		var mi := node as MeshInstance3D
-		for s in mi.mesh.get_surface_count():
-			var mat := mi.mesh.surface_get_material(s)
-			if mat == null:
-				continue
-			if mat.resource_name == "kk_team":
-				mi.set_surface_override_material(s, _atlas_mat(team))
-			elif mat.resource_name == "hexagons_medieval":
-				mi.set_surface_override_material(s, _atlas_mat(""))
-			elif mat.resource_name == "kk_ground":
-				mi.set_surface_override_material(s, _atlas_mat(""))
-				ground.append([mi, s])
+	var ground := _dress_blender(scene)
 	if not ground.is_empty():
 		root.set_meta("ground", ground)
 	var ap := scene.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	if ap:
+		for clip in ["idle", "run", "fly"]:   # the clips that loop (run / fly: beasts and fliers out on a sortie)
+			if ap.has_animation(clip):
+				ap.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
 		if ap.has_animation("idle"):
-			ap.get_animation("idle").loop_mode = Animation.LOOP_LINEAR
 			ap.play("idle")
 			ap.seek(randf() * ap.current_animation_length, true)
 		root.set_meta("rig_ap", ap)
