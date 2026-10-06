@@ -7,7 +7,9 @@ Run in Blender after kk_helpers.py:
 
 Hierarchy (what the game reads):
     Ballista                 root, on the footprint's centroid at ground level
-      Base_*                 static stone plinth, deck, dais, props
+      Base_*                 static: the plinth, the turntable's bed (a ring of coursed masonry bristling with
+                             sharpened stakes), the plank deck with its kerb, props; Prop_*: the bolt store (a
+                             pavilion roofed in team-colored tiles), the bolt rack, barrels
       Head                   turns to aim (the game sets its yaw); +Y is forward
         Rig                  armature: root, stock, arm.L/R, string.L/R, nock, slider, bolt, winch, rope, flag.*
         Head_* meshes        rigid-skinned to Rig's bones
@@ -16,14 +18,16 @@ Hierarchy (what the game reads):
 Animations on Rig: idle (loops), fire (the arms snap, the string releases, the bolt leaves), reload (winch cranks,
 the slider drags the string back, a new bolt drops in). The rest pose is cocked and loaded (= idle).
 """
-import bpy, bmesh, math
+import bpy, bmesh, math, os, random
 from mathutils import Vector, Matrix, Quaternion, Euler
+
+exec(open(os.path.join(REPO, "tools", "blender", "siege_common.py"), encoding="utf-8").read())
 
 TID = "ballista"
 CELLS = [(0, 0), (0, 1), (0, 2)]
 MID = footprint_mid(CELLS)
 FRONT = hex_to_world(0, 0, MID)          # front cell center (0, 2.078)
-HEAD_Z = 0.53                            # dais + track top
+HEAD_Z = 0.68                            # the masonry bed + track top
 
 # ---- head layout (head-local, +Y forward)
 PIVOT_Z = 0.64          # stock pin
@@ -93,11 +97,42 @@ def build_base():
             for li in p.loop_indices:
                 uv[li].uv = (uv[li].uv[0], uv[li].uv[1] - 0.03)
 
-    bm = bmesh.new(); bm_cyl(bm, 1.0, 1.0, 0.2, (FRONT.x, FRONT.y, 0.40), seg=16)
-    o = paint(mesh_obj("Base_Dais", bm, col, root), "stone", lo=0.05, hi=0.5)
-    b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.03; b.segments = 1; b.limit_method = "ANGLE"
-    bm = bmesh.new(); ring(bm, (FRONT.x, FRONT.y, 0), 0.95, 0.83, 0.50, HEAD_Z, seg=24)
+    # the turntable's bed: two courses of masonry over a dark core, an iron track on top
+    rnd = random.Random(3)
+    k = Kit()
+    F = Vector((FRONT.x, FRONT.y, 0))
+    bm_course(k["stone:0.2:0.9"], rnd, F, 0.96, 0.32, 0.13, 13, depth=0.28, inner=False)
+    bm_course(k["stone:0.2:0.9"], rnd, F, 0.92, 0.44, 0.125, 12, depth=0.26, phase=0.5, inner=False)
+    bm_course(k["stone:0.0:0.6"], rnd, F, 0.9, 0.555, 0.1, 13, depth=0.26, phase=0.25, inner=False)
+    bm_drum(k["stone_dark:0.3:0.9"], F, 0.8, 0.8, 0.34, HEAD_Z - 0.03, seg=16)
+    k.emit("Base_Dais", col, root, vary=0.08)
+    bm_box(k["wood:0.25:0.8"], (0.62, 0.24, 0.14), (F.x, F.y - 1.06, 0.47))           # the step up from the deck
+    for sx in (-1, 1):
+        bm_box(k["wood_dark:0.2:0.8"], (0.07, 0.28, 0.2), (F.x + sx * 0.33, F.y - 1.06, 0.46))
+    k.emit("Base_Step", col, root, bevel=0.01)
+    bm = bmesh.new(); ring(bm, (FRONT.x, FRONT.y, 0), 0.88, 0.76, HEAD_Z - 0.03, HEAD_Z, seg=20)
     paint(mesh_obj("Base_Track", bm, col, root), "iron")
+    # a fraise: sharpened stakes wedged between the courses, bristling outward round the front and the flanks
+    for i in range(19):
+        a = -45.0 + 15.0 * i + rnd.uniform(-2.5, 2.5)
+        o = radial(a)
+        d = (o * 0.62 + Vector((0, 0, 0.78)) + radial(a + 90) * rnd.uniform(-0.06, 0.06)).normalized()
+        bm_stake(k["wood:0.15:0.9"], F + o * 0.86 + Vector((0, 0, 0.4)), d, rnd.uniform(0.44, 0.52), r=rnd.uniform(0.05, 0.06), n=5)
+    k.emit("Base_Fraise", col, root, vary=0.1)
+    for a in (40, 90, 140):
+        o = radial(a)
+        bm_shield(k, F + o * 1.08 + Vector((0, 0, 0.67)), o + Vector((0, 0, 0.5)), w=0.3, h=0.35)
+    k.emit("Base_Shields", col, root)
+    # the deck's kerb: timbers along both sides of the middle and back cells, a post at every corner
+    loop = outline(CELLS, 0.17)
+    for i, a in enumerate(loop):
+        b = loop[(i + 1) % len(loop)]
+        if max(a.y, b.y) > FRONT.y - 0.55:
+            continue
+        bm_beam(k["wood_dark:0.2:0.8"], (a.x, a.y, 0.39), (b.x, b.y, 0.39), 0.1, 0.13)
+        bm_box(k["wood_dark:0.2:0.8"], (0.13, 0.13, 0.26), (a.x, a.y, 0.45), (0, 0, 30))
+        bm_cyl(k["gold:0.1:0.55"], 0.07, 0.0, 0.07, (a.x, a.y, 0.615), rot=(0, 0, 75), seg=4)
+    k.emit("Base_Kerb", col, root)
     head = empty("Head", col, root, (FRONT.x, FRONT.y, HEAD_Z), 0.5, "SINGLE_ARROW")
     head.rotation_mode = "XYZ"
     head.rotation_euler = (0, 0, 0)
@@ -192,9 +227,11 @@ def build_head():
     S = HEAD_SCALE
 
     # ---- turntable and trestles (root bone: they only turn with the head). The turntable keeps its real size.
-    bm = bmesh.new(); bm_cyl(bm, 0.9 / S, 0.9 / S, 0.1 / S, (0, 0, 0.05 / S), seg=16)
-    part("Head_Turntable", bm, "wood", "root", lo=0.45, hi=0.8)
-    bm = bmesh.new(); ring(bm, (0, 0, 0), 0.92 / S, 0.84 / S, 0.015 / S, 0.085 / S, seg=20)
+    TR = 0.85
+    bm = bmesh.new()
+    bm_deck(bm, random.Random(4), (0, 0, 0), circle_half(TR / S), -TR / S, TR / S, 0.1 / S, pw=0.17 / S, th=0.1 / S, gap=0.014 / S, turn=90, jit=0.004)
+    vary_shade(part("Head_Turntable", bm, "wood", "root", lo=0.35, hi=0.85, bevel=0), 0.08, 5)
+    bm = bmesh.new(); ring(bm, (0, 0, 0), (TR + 0.02) / S, (TR - 0.06) / S, 0.015 / S, 0.108 / S, seg=20)
     part("Head_TurntableBand", bm, "iron", "root", bevel=0)
     tt = 0.1 / S          # turntable top
     bm = bmesh.new()
@@ -347,6 +384,7 @@ def build_head():
     crew = empty("Crew", col, head, tuple(spot), 0.3, "SINGLE_ARROW")
     to = crank - spot
     crew.rotation_euler = (0, 0, math.atan2(-to.x, to.y))   # its +Y (the character's front) faces the crank
+    mannequin(col, crew, 1.15, "engineer")
     return rig
 
 
@@ -396,38 +434,22 @@ def build_props():
     o = paint(mesh_obj("Prop_StoreFrame", bm, col, root), "wood", lo=0.25, hi=0.8)
     b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.015; b.segments = 1; b.limit_method = "ANGLE"
 
-    # roof: six thick triangular panels, each split into planks running down the slope
+    # roof: six slopes of tiles in the team's color over a dark lining
     apex = back + Vector((0, 0, 2.08))
-    roof_r, roof_z, th = 1.13, eave - 0.07, 0.07
-    bm = bmesh.new()
-    planks = 3
+    roof_r, roof_z, th = 1.13, eave - 0.07, 0.05
+    k = Kit()
+    rnd = random.Random(8)
+    lin = k["wood_dark:0.5:0.9"]
+    lv = [lin.verts.new(back + c * (roof_r - 0.02) + Vector((0, 0, roof_z - 0.03))) for c in corners]
+    lt = lin.verts.new(apex + Vector((0, 0, -0.03)))
+    fs = [lin.faces.new(list(reversed(lv)))]
     for i in range(6):
         a = back + corners[i] * roof_r + Vector((0, 0, roof_z))
         c = back + corners[(i + 1) % 6] * roof_r + Vector((0, 0, roof_z))
-        for k in range(planks):
-            e0, e1 = a.lerp(c, k / planks), a.lerp(c, (k + 1) / planks)
-            gap = (e1 - e0) * 0.04
-            e0, e1 = e0 + gap, e1 - gap
-            t0, t1 = apex.lerp(e0, 0.06), apex.lerp(e1, 0.06)
-            n = (e1 - e0).cross(apex - e0).normalized()
-            if n.z < 0:
-                n = -n
-            top = [bm.verts.new(v + n * th) for v in (e0, e1, t1, t0)]
-            bot = [bm.verts.new(v) for v in (e0, e1, t1, t0)]
-            bm.faces.new(top)
-            bm.faces.new(list(reversed(bot)))
-            for j in range(4):
-                jj = (j + 1) % 4
-                bm.faces.new((bot[j], bot[jj], top[jj], top[j]))
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
-    o = mesh_obj("Prop_StoreRoof", bm, col, root)
-    paint(o, "team", team=True, lo=0.08, hi=0.8)
-    me = o.data
-    uv = me.uv_layers.active.data
-    for p in me.polygons:
-        if (p.index // 6) % 2 == 1:            # every other plank a shade darker
-            for li in p.loop_indices:
-                uv[li].uv = (uv[li].uv[0], uv[li].uv[1] - 0.03)
+        bm_tile_slope(k["team!:0.08:0.75"], rnd, a, c, apex, apex, rows=4, cols=3, th=0.045)
+        fs.append(lin.faces.new((lv[i], lv[(i + 1) % 6], lt)))
+    bmesh.ops.recalc_face_normals(lin, faces=fs)
+    k.emit("Prop_StoreRoof", col, root, vary=0.08)
     bm = bmesh.new()
     for i in range(6):
         a = back + corners[i] * (roof_r + 0.02) + Vector((0, 0, roof_z + th))
@@ -435,9 +457,9 @@ def build_props():
     bm_cyl(bm, 0.09, 0.07, 0.22, tuple(apex + Vector((0, 0, 0.12))), seg=6)                    # finial
     o = paint(mesh_obj("Prop_StoreHips", bm, col, root), "wood_red", lo=0.2, hi=0.6)
     bm = bmesh.new()
-    bm_cyl(bm, 0.06, 0.0, 0.32, tuple(apex + Vector((0, 0, 0.38))), seg=4)
-    bm_cyl(bm, 0.1, 0.1, 0.05, tuple(apex + Vector((0, 0, 0.235))), seg=8)
-    paint(mesh_obj("Prop_StoreSpike", bm, col, root), "iron")
+    bm_cyl(bm, 0.05, 0.0, 0.3, tuple(apex + Vector((0, 0, 0.4))), seg=5)
+    bm_ellipsoid(bm, tuple(apex + Vector((0, 0, 0.27))), (0.085, 0.085, 0.085), u=7, v=5)
+    paint(mesh_obj("Prop_StoreSpike", bm, col, root), "gold", lo=0.05, hi=0.55)
 
     # spare bolts: stacked on bearers inside the store (along X), and on a rack on the middle cell (along Y)
     bms = (bmesh.new(), bmesh.new(), bmesh.new())
@@ -467,7 +489,6 @@ def build_props():
         ("hex/barrel", (0.78, midc.y + 0.0, DECK_Z), 75, 2.1),
         ("hex/bucket_arrows", (0.45, midc.y - 0.42, DECK_Z), 10, 2.4),
         ("hex/crate_A_small", (-0.62, midc.y + 0.72, DECK_Z), 15, 2.6),
-        ("hex/sack", (0.25, midc.y + 0.72, DECK_Z), 40, 2.4),
     ]
     for i, (rel, loc, rot, sc) in enumerate(kk):
         for o in kk_import(rel, col, root, loc, rot, sc, name="Prop_KK_%d_%s" % (i, rel.split("/")[1])):
@@ -604,8 +625,16 @@ def build_anims():
     bpy.context.scene.frame_set(0)
 
 
+PREVIEW = {"target": (0, 0, 1.0), "dist": 11.5, "yaw": 150, "pitch": 20, "anim_target": (FRONT.x, FRONT.y - 0.2, 1.45), "anim_dist": 6.0,
+           "frames": [("idle", 0), ("fire", 2), ("fire", 6), ("reload", 20), ("reload", 36)],
+           "extra": [{"yaw": 160, "pitch": 14, "dist": 5.0, "target": (FRONT.x, FRONT.y, 1.0)},
+                     {"yaw": 0, "pitch": 57, "dist": 7.5, "target": (0, 0.3, 0.8)},
+                     {"yaw": 40, "pitch": 22, "dist": 5.5, "target": (0, -1.6, 0.9)}]}
+
+
 def build_all():
     build_base()
     build_head()
     build_props()
     build_anims()
+    tri_report("Ballista")
