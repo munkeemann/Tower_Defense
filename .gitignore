@@ -6,3 +6,6 @@ assets/**
 !assets/CREDITS.md
 !assets/custom/manifest.json
 tools/__pycache__/
+# Blender tower previews (tools/blender/build.py)
+.preview/
+tools/blender/__pycache__/
