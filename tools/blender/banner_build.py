@@ -1,187 +1,183 @@
-"""Builds the War Banner (footprint "single": one hex). A support aura: nothing aims, nothing fires.
+"""Builds the War Banner (footprint "single": one hex), the Crown's support standard: nothing aims, it only ever idles.
 
-    blender -b --factory-startup --python tools/blender/build_tower.py -- banner <preview dir>
+    python tools/blender/build.py banner --out <preview dir>
 
-A tall pole on a stepped stone block flies a big team-colored war flag with a gold crown emblem, rigged as a chain so it
-ripples. Around it: a weapon rack, a war drum, a brazier and a knight on guard (the game's Crew, with a halberd).
-idle: the flag ripples and flutters (it's the only clip; the tower never attacks).
+One royal standard owning the hex: two octagonal steps of kerb stones carry a square dais of coursed stone (quoins, a
+coping, corner posts with gilt balls, heater shields on its faces, an iron brazier built into its back with glowing
+coals); the knight's step is at the front (Crew). From the dais a tall gold-banded mast with a crossbar carries one big
+swallow-tailed gonfalon in the team color with a gold crown; two pennants fly from the mast above it; a gilded crown
+finial on top; the war drums sit on the dais either side of the mast. Rig under the root: idle only (the gonfalon
+rolls and sways, the pennants flutter out of phase, the brazier's flames flicker and its coals pulse).
 """
-import bpy, bmesh, math
+import bpy, bmesh, math, random, os
 from mathutils import Vector, Matrix, Quaternion, Euler
+
+exec(open(os.path.join(REPO, "tools", "blender", "castle_common.py"), encoding="utf-8").read())
 
 TID = "banner"
 CELLS = [(0, 0)]
 MID = footprint_mid(CELLS)
 TOP = 0.34
-POLE_X, POLE_Y = -0.18, 0.12
-POLE_TOP = 3.25
-FLAG_TOP = 3.05
-FLAG_H = 0.78
-FLAG_LEN = 1.25
-SEGS = 4
+Z1 = TOP + 0.14                 # the first step's top
+Z2 = Z1 + 0.16                  # the second step's top: the knight's step
+DAIS = 0.92                     # the dais's side
+Z_DAIS = Z2 + 0.46              # the dais's top
+Z_BAR = TOP + 2.4               # the crossbar
+Z_TOP = TOP + 2.95              # the mast's top (the finial's foot)
+BAN_W, BAN_L = 1.0, 1.15        # the gonfalon: wide, long
+PEN = [((0.07, 0.0, Z_BAR + 0.22), (1.0, -0.3, 0.0), 0.72, 0.16), ((0.07, 0.0, Z_BAR + 0.46), (1.0, -0.2, 0.0), 0.58, 0.13)]
+BRAZ = Vector((0.0, -0.52, Z_DAIS + 0.06))     # the brazier bowl's middle
+FIRE = "glow:1.0,0.5,0.12,0.85"
+EMBER = "glow:1.0,0.4,0.1,0.8"
 
 
 def build_base():
     col = collection("Banner")
     root = empty("Banner", col, None, (0, 0, 0), 0.6, "ARROWS")
-    plinth(CELLS, col, root, TOP)
-    # stepped stone block, pole, crossbar and finial
-    bm = bmesh.new()
-    bm_box(bm, (0.62, 0.62, 0.16), (POLE_X, POLE_Y, TOP + 0.08), (0, 0, 15))
-    bm_box(bm, (0.42, 0.42, 0.16), (POLE_X, POLE_Y, TOP + 0.24), (0, 0, 15))
-    o = paint(mesh_obj("Banner_Block", bm, col, root), "stone", lo=0.1, hi=0.6)
-    b = o.modifiers.new("Bevel", "BEVEL"); b.width = 0.02; b.segments = 1; b.limit_method = "ANGLE"
-    bm = bmesh.new()
-    bm_cyl(bm, 0.06, 0.05, POLE_TOP - TOP - 0.3, (POLE_X, POLE_Y, (TOP + 0.3 + POLE_TOP) / 2), seg=8)
-    paint(mesh_obj("Banner_Pole", bm, col, root), "wood_dark", lo=0.2, hi=0.7)
-    bm = bmesh.new()
-    bm_cyl(bm, 0.09, 0.09, 0.08, (POLE_X, POLE_Y, POLE_TOP), seg=8)
-    bm_cyl(bm, 0.08, 0.0, 0.26, (POLE_X, POLE_Y, POLE_TOP + 0.17), seg=6)
-    for z in (TOP + 0.36, 1.7):
-        bm_cyl(bm, 0.075, 0.075, 0.06, (POLE_X, POLE_Y, z), seg=8)
-    paint(mesh_obj("Banner_Fittings", bm, col, root), "gold", lo=0.1, hi=0.5)
-
-    # war drum: a squat barrel drum on three legs, with sticks
-    D = Vector((0.55, -0.35, TOP))
-    bm = bmesh.new()
-    for k in range(3):
-        a = math.radians(120 * k + 20)
-        bm_beam(bm, D + Vector((math.cos(a) * 0.3, math.sin(a) * 0.3, 0)), D + Vector((math.cos(a) * 0.18, math.sin(a) * 0.18, 0.32)),
-                0.05, 0.05)
-    bm_cyl(bm, 0.28, 0.28, 0.3, tuple(D + Vector((0, 0, 0.47))), seg=12)
-    paint(mesh_obj("Drum_Body", bm, col, root), "wood_red", lo=0.3, hi=0.7)
-    bm = bmesh.new()
-    bm_cyl(bm, 0.25, 0.25, 0.02, tuple(D + Vector((0, 0, 0.63))), seg=12)
-    paint(mesh_obj("Drum_Skin", bm, col, root), "cream", lo=0.1, hi=0.3)
-    bm = bmesh.new()
-    for z in (0.34, 0.6):
-        ring(bm, tuple(D + Vector((0, 0, 0))), 0.295, 0.27, z - 0.015, z + 0.015, seg=12)
-    bm_beam(bm, D + Vector((0.12, 0.05, 0.66)), D + Vector((0.28, 0.32, 0.8)), 0.035, 0.035)
-    bm_beam(bm, D + Vector((-0.05, 0.12, 0.66)), D + Vector((-0.02, 0.42, 0.74)), 0.035, 0.035)
-    paint(mesh_obj("Drum_Bands", bm, col, root), "team", team=True, lo=0.2, hi=0.5)
-    # brazier
-    Z = Vector((-0.62, -0.42, TOP))
-    bm = bmesh.new()
-    bm_cyl(bm, 0.07, 0.1, 0.42, tuple(Z + Vector((0, 0, 0.21))), seg=6)
-    bm_cyl(bm, 0.24, 0.14, 0.14, tuple(Z + Vector((0, 0, 0.48))), seg=8)
-    paint(mesh_obj("Brazier", bm, col, root), "iron", lo=0.1, hi=0.5)
-    import random
-    rnd = random.Random(2)
-    bm = bmesh.new()
-    fc = Z + Vector((0, 0, 0.54))
-    for k in range(5):
-        a = math.radians(72 * k + rnd.uniform(-12, 12))
-        d = 0.0 if k == 0 else 0.09
-        c = fc + Vector((math.cos(a) * d, math.sin(a) * d, 0))
-        h = 0.36 if k == 0 else rnd.uniform(0.18, 0.28)
-        top = bm.verts.new(c + Vector((0, 0, h)))
-        ms = [bm.verts.new(c + Vector((math.cos(math.radians(90 * j + 45)) * 0.07, math.sin(math.radians(90 * j + 45)) * 0.07, 0)))
-              for j in range(4)]
-        for j in range(4):
-            bm.faces.new((ms[j], ms[(j + 1) % 4], top))
-    o = mesh_obj("Brazier_Flame", bm, col, root)
-    o.data.materials.append(glow_mat("brazier_fire", (1.0, 0.55, 0.15), 1.6))
-    kk = [
-        ("hex/weaponrack", (0.62, 0.42, TOP), 230, 2.4),
-        ("hex/shield_{t}".replace("{t}", "blue_full"), (-0.72, 0.3, TOP + 0.12), 100, 2.6),
-        ("hex/crate_A_small", (0.18, -0.72, TOP), 25, 2.4),
-    ]
-    for i, (rel, loc, rot, sc) in enumerate(kk):
-        for o in kk_import(rel, col, root, loc, rot, sc, name="Prop_KK_%d_%s" % (i, rel.split("/")[1])):
-            for c in [o] + list(o.children_recursive):
-                if c.type == "MESH":
-                    teamify(c)
-    crew = empty("Crew", col, root, (0.12, 0.62, TOP), 0.3, "SINGLE_ARROW")   # on guard at the front, facing out
-    empty("Head", col, root, (0, 0, 0), 0.5, "SINGLE_ARROW")
+    T = plinth(CELLS, col, root, TOP)
+    rnd = random.Random(7)
+    k = Kit()
+    # ---- the podium: two octagonal steps of kerb stones, then the square dais in coursed blocks with quoins and a coping
+    bm_block_course(k[STONE_FOOT], rnd, (0, 0, 0), 0.92, T, Z1 - T, 8, depth=0.26, phase=-0.5, jit=0.006)
+    bm_cyl(k[CORE], 0.68, 0.68, Z1 - T - 0.01, (0, 0, (T + Z1) / 2), rot=(0, 0, 22.5), seg=8)
+    bm_block_course(k[STONE], rnd, (0, 0, 0), 0.78, Z1, Z2 - Z1, 8, depth=0.24, phase=-0.5, jit=0.006)
+    bm_cyl(k[CORE], 0.56, 0.56, Z2 - Z1 - 0.01, (0, 0, (Z1 + Z2) / 2), rot=(0, 0, 22.5), seg=8)
+    stone_box(k, rnd, (0, 0), DAIS, DAIS, Z2, Z_DAIS - 0.06, quoins=STONE_LIGHT, course=0.2, block=0.3)
+    bm_box(k[STONE_LIGHT], (DAIS + 0.1, DAIS + 0.1, 0.06), (0, 0, Z_DAIS - 0.03))                   # the coping slab
+    for sx in (-1, 1):                                                                              # corner posts with gilt balls
+        for sy in (-1, 1):
+            bm_box(k[STONE_LIGHT], (0.16, 0.16, Z_DAIS + 0.22 - Z1), (sx * 0.5, sy * 0.5, (Z1 + Z_DAIS + 0.22) / 2))
+            bm_box(k[STONE_LIGHT], (0.2, 0.2, 0.05), (sx * 0.5, sy * 0.5, Z_DAIS + 0.245))
+            bm_ellipsoid(k[GOLD], (sx * 0.5, sy * 0.5, Z_DAIS + 0.33), (0.065, 0.065, 0.065), u=8, v=5)
+    k.emit("Podium", col, root, vary=0.07)
+    for c, out, kind in (((0.465, 0.0), (1, 0, 0), "cross"), ((-0.465, 0.0), (-1, 0, 0), "cross"), ((0.0, 0.465), (0, 1, 0), "boss"),
+                         ((0.3, -0.465), (0, -1, 0), "chevron"), ((-0.3, -0.465), (0, -1, 0), "chevron")):
+        shield(k, (c[0], c[1], Z2 + 0.22), out, w=0.24, h=0.3, kind=kind)
+    k.emit("Shields", col, root)
+    # ---- the brazier built into the dais's back: an iron bowl on a bracket (its coals and flames are on the rig)
+    bm_cyl(k[IRON], 0.13, 0.25, 0.2, tuple(BRAZ), seg=10)
+    ring(k[IRON], (BRAZ.x, BRAZ.y, 0), 0.27, 0.22, BRAZ.z + 0.08, BRAZ.z + 0.12, seg=10)
+    for sx in (-1, 1):
+        bm_beam(k[IRON], (sx * 0.18, -0.45, Z_DAIS - 0.3), (sx * 0.12, BRAZ.y, BRAZ.z - 0.08), 0.04, 0.04)
+    bm_beam(k[IRON], (-0.2, -0.45, Z_DAIS - 0.32), (0.2, -0.45, Z_DAIS - 0.32), 0.04, 0.05)
+    k.emit("Brazier", col, root)
+    # ---- the war drums either side of the mast: red-painted shells, team hoops, gold lacing, cream skins, sticks on one
+    for sx in (-1, 1):
+        D = Vector((sx * 0.3, 0.04, Z_DAIS))
+        bm_cyl(k["wood_red:0.25:0.7"], 0.155, 0.155, 0.28, (D.x, D.y, D.z + 0.14), seg=10)
+        bm_cyl(k["cream:0.05:0.35"], 0.165, 0.165, 0.03, (D.x, D.y, D.z + 0.285), seg=10)
+        for z in (0.04, 0.25):
+            ring(k["team!:0.1:0.5"], (D.x, D.y, 0), 0.172, 0.15, D.z + z - 0.02, D.z + z + 0.02, seg=10)
+        for i in range(8):
+            a0, a1 = math.radians(45 * i), math.radians(45 * i + 45)
+            bm_beam(k[GOLD], (D.x + math.cos(a0) * 0.165, D.y + math.sin(a0) * 0.165, D.z + 0.06),
+                    (D.x + math.cos(a1) * 0.165, D.y + math.sin(a1) * 0.165, D.z + 0.23), 0.02, 0.02)
+    D = Vector((0.3, 0.04, Z_DAIS + 0.31))
+    bm_beam(k["wood:0.2:0.6"], (D.x - 0.12, D.y - 0.1, D.z), (D.x + 0.14, D.y + 0.12, D.z + 0.02), 0.025, 0.025)
+    bm_beam(k["wood:0.2:0.6"], (D.x - 0.1, D.y + 0.12, D.z), (D.x + 0.15, D.y - 0.08, D.z + 0.04), 0.025, 0.025)
+    k.emit("Drums", col, root)
+    # ---- the mast: a dark pole in a gilt collar, gold bands and team sleeves up it, the crossbar, the crown finial
+    bm_cyl(k[GOLD], 0.15, 0.1, 0.14, (0, 0, Z_DAIS + 0.07), seg=8)
+    bm_cyl(k[TIMBER], 0.075, 0.055, Z_TOP - Z_DAIS, (0, 0, (Z_DAIS + Z_TOP) / 2), seg=8)
+    for i in range(1, 5):
+        z = Z_DAIS + 0.4 * i
+        bm_cyl(k[GOLD], 0.088 - 0.004 * i, 0.088 - 0.004 * i, 0.06, (0, 0, z), seg=8)
+    for z in (Z_DAIS + 0.6, Z_DAIS + 1.4):
+        bm_cyl(k["team!:0.15:0.6"], 0.082, 0.078, 0.34, (0, 0, z), seg=8)
+    bm_beam(k[TIMBER], (-0.62, 0, Z_BAR), (0.62, 0, Z_BAR), 0.07, 0.07)
+    bm_cyl(k[GOLD], 0.1, 0.1, 0.12, (0, 0, Z_BAR), seg=8)
+    for sx in (-1, 1):
+        bm_ellipsoid(k[GOLD], (sx * 0.66, 0, Z_BAR), (0.055, 0.055, 0.055), u=8, v=5)
+    bm_ellipsoid(k[GOLD], (0, 0, Z_TOP + 0.06), (0.085, 0.085, 0.085), u=8, v=5)
+    ring(k[GOLD], (0, 0, 0), 0.12, 0.085, Z_TOP + 0.13, Z_TOP + 0.22, seg=8)
+    for i in range(6):
+        a = math.radians(60 * i)
+        base = Vector((math.cos(a) * 0.105, math.sin(a) * 0.105, Z_TOP + 0.21))
+        bm_crystal(k[GOLD], base, base + Vector((math.cos(a) * 0.03, math.sin(a) * 0.03, 0.14)), 0.028, n=4, shoulder=0.35)
+    bm_cyl(k[GOLD], 0.03, 0.0, 0.34, (0, 0, Z_TOP + 0.36), seg=6)
+    k.emit("Mast", col, root)
+    empty("Crew", col, root, (0, 0.6, Z2), 0.3, "SINGLE_ARROW")
+    crew_dummy(col, bpy.data.objects["Crew"], 1.12, "halberd")
+    head = empty("Head", col, root, (0, 0, Z_TOP), 0.5, "SINGLE_ARROW")
+    empty("Muzzle", col, head, (0, 0, 0.1), 0.25, "SPHERE")
     return root
 
 
-def _flag_bones():
-    bones = {"root": ((0, 0, 0), (0, 0, 0.3), None),
-             "pole": ((POLE_X, POLE_Y, FLAG_TOP - FLAG_H), (POLE_X, POLE_Y, FLAG_TOP), "root")}
-    prev = "pole"
-    step = FLAG_LEN / SEGS
-    for k in range(SEGS):
-        name = "flag.%d" % (k + 1)
-        x0 = POLE_X + 0.05 + step * k
-        bones[name] = ((x0, POLE_Y, FLAG_TOP), (x0 + step, POLE_Y, FLAG_TOP - 0.02 * (k + 1)), prev)
-        prev = name
-    return bones
+BONES = {"root": ((0, 0, 0), (0, 0, 0.2), None),
+         "flame": (tuple(BRAZ + UP * 0.1), tuple(BRAZ + UP * 0.3), "root"),
+         "ember": (tuple(BRAZ + UP * 0.09), tuple(BRAZ + UP * 0.15), "root")}
+flag_bones(BONES, "ban", (0, 0, Z_BAR - 0.04), (0, 0, -1), BAN_L, segs=4)
+for _n, (_top, _d, _l, _h) in zip(("pen1", "pen2"), PEN):
+    flag_bones(BONES, _n, _top, _d, _l, segs=3)
 
 
-BONES = None
-
-
-def build_head():
-    global BONES
-    BONES = _flag_bones()
+def build_rig(root):
     col = collection("Banner")
-    head = bpy.data.objects["Head"]
-    for o in [o for o in col.objects if o.name.startswith("Head_")]:
-        bpy.data.objects.remove(o, do_unlink=True)
-    rig = make_rig(col, head, BONES)
-    step = FLAG_LEN / SEGS
-    for k in range(SEGS):
-        x0 = POLE_X + 0.05 + step * k
-        x1 = x0 + step
-        h0 = FLAG_H
-        h1 = FLAG_H
-        bm = bmesh.new()
-        z_top0 = FLAG_TOP - 0.02 * k
-        z_top1 = FLAG_TOP - 0.02 * (k + 1)
-        last = k == SEGS - 1
-        pts = [Vector((x0, POLE_Y, z_top0)), Vector((x1, POLE_Y, z_top1))]
-        if last:   # swallowtail
-            pts += [Vector((x1, POLE_Y, z_top1 - h1)), Vector((x1 - step * 0.6, POLE_Y, z_top1 - h1 * 0.5)), Vector((x1, POLE_Y, z_top1 - h1 * 0.0 - h1)),
-                    Vector((x0, POLE_Y, z_top0 - h0))]
-            pts = [pts[0], pts[1], Vector((x1, POLE_Y, z_top1 - h1 * 0.02)), Vector((x1 - step * 0.55, POLE_Y, z_top1 - h1 * 0.5)),
-                   Vector((x1, POLE_Y, z_top1 - h1)), Vector((x0, POLE_Y, z_top0 - h0))]
-            pts = [pts[0], pts[1], pts[3], pts[4], pts[5]]
-        else:
-            pts += [Vector((x1, POLE_Y, z_top1 - h1)), Vector((x0, POLE_Y, z_top0 - h0))]
-        for side in (1, -1):
-            vs = [bm.verts.new(p + Vector((0, side * 0.006, 0))) for p in pts]
-            bm.faces.new(vs if side < 0 else list(reversed(vs)))
-        rig_part("Head_Flag.%d" % (k + 1), bm, "team", rig, "flag.%d" % (k + 1), col, team=True, bevel=0, lo=0.15, hi=0.7)
-    # the emblem: a gold crown on both faces, on the second segment
-    bm = bmesh.new()
-    cx = POLE_X + 0.05 + step * 1.45
-    cz = FLAG_TOP - FLAG_H * 0.5
-    crown = [(-0.2, -0.13), (0.2, -0.13), (0.22, 0.12), (0.11, 0.0), (0.0, 0.16), (-0.11, 0.0), (-0.22, 0.12)]
-    for side in (1, -1):
-        vs = [bm.verts.new((cx + x, POLE_Y + side * 0.012, cz + z)) for x, z in crown]
-        bm.faces.new(vs if side < 0 else list(reversed(vs)))
-    rig_part("Head_Emblem", bm, "gold", rig, "flag.2", col, bevel=0, lo=0.1, hi=0.45)
-    empty("Muzzle", col, head, (POLE_X, POLE_Y, POLE_TOP + 0.2), 0.25, "SPHERE")
+    rig = make_rig(col, root, BONES)
+    k = Kit()
+    crown = stamp(CROWN, 0.25, 0.6, 0.25, 0.75, key=GOLD, across=True)
+
+    def color(u, v):
+        if u < 0.06 or v < 0.06 or v > 0.94:
+            return GOLD
+        return crown(u, v)
+    cloth_grid(k, (0, 0, Z_BAR - 0.04), (0, 0, -1), (1, 0, 0), BAN_L, BAN_W, nu=14, nv=14, tail="swallow", notch=0.75,
+               tail_from=0.76, color=color, center=True)
+    k.emit("Gonfalon", col, rig=rig, bones=["ban.%d" % (i + 1) for i in range(4)])
+    for n, (top, d, L, H) in zip(("pen1", "pen2"), PEN):
+        cloth_grid(k, top, d, (0, 0, -1), L, H, nu=6, nv=2, tail="point", color=lambda u, v: GOLD if u > 0.72 else None)
+        k.emit(n.capitalize(), col, rig=rig, bones=["%s.%d" % (n, i + 1) for i in range(3)])
+    for i, (dx, dy, h) in enumerate(((0, 0, 0.3), (0.09, 0.05, 0.2), (-0.08, -0.05, 0.22), (0.03, -0.1, 0.17), (-0.05, 0.09, 0.16))):
+        bm_flame(k[FIRE], (BRAZ.x + dx, BRAZ.y + dy, BRAZ.z + 0.08), 0.1 if i == 0 else 0.065, h, n=6)
+    k.emit("Flames", col, rig=rig, bone="flame")
+    bm_cyl(k[EMBER], 0.21, 0.21, 0.025, (BRAZ.x, BRAZ.y, BRAZ.z + 0.105), seg=10)
+    k.emit("Embers", col, rig=rig, bone="ember")
     return rig
 
 
-IDLE_LEN = 72
+IDLE_LEN = 120
+
+
+def pose(rig, t):
+    """The standard at one moment of its loop (t 0..1): the gonfalon rolls front and back down its chain with a sideways
+    sway over it, the pennants flutter and flap out of phase, the flames flicker, the coals pulse."""
+    pb = rig.pose.bones
+    rest_pose(rig)
+    q = arm_space_quat
+    w = 2 * math.pi * t
+    for i in range(4):
+        b = pb["ban.%d" % (i + 1)]
+        b.rotation_quaternion = q(b, (1, 0, 0), (4.0 + 3.5 * i) * math.sin(2 * w - 0.9 * i) + 2.5 * math.sin(w - 0.4 * i)) \
+            @ q(b, (0, 1, 0), (2.0 + 2.0 * i) * math.sin(w + 1.1 - 0.7 * i))
+    for n, ph, amp in (("pen1", 0.0, 1.3), ("pen2", 2.3, 1.1)):
+        for i in range(3):
+            b = pb["%s.%d" % (n, i + 1)]
+            b.rotation_quaternion = q(b, (0, 0, 1), (6.0 + 6.0 * i) * amp * math.sin(3 * w - 1.0 * i + ph)) \
+                @ q(b, (0, 1, 0), (4.0 + 5.0 * i) * amp * math.sin(4 * w - 1.2 * i + ph + 0.8))
+    f = pb["flame"]
+    f.scale = (1.0 + 0.1 * math.sin(11 * w), 1.0 + 0.1 * math.sin(13 * w + 1), 1.0 + 0.28 * math.sin(9 * w) * math.sin(5 * w + 0.7) + 0.1 * math.sin(14 * w))
+    f.rotation_quaternion = q(f, (1, 0, 0), 7 * math.sin(7 * w)) @ q(f, (0, 1, 0), 7 * math.sin(8 * w + 2))
+    s = 1.0 + 0.06 * math.sin(3 * w)
+    pb["ember"].scale = (s, s, 1.0)
 
 
 def build_anims():
     rig = bpy.data.objects["Rig"]
-    pb = rig.pose.bones
     new_action(rig, "idle", IDLE_LEN)
     for f in range(0, IDLE_LEN + 1, 2):
-        t = f / IDLE_LEN
-        rest_pose(rig)
-        for k in range(SEGS):
-            ph = 2 * math.pi * (t * 2 - k * 0.18)
-            yaw = (6 + 5 * k) * math.sin(ph)
-            name = "flag.%d" % (k + 1)
-            # yaw about each segment's leading edge only: the edges stay joined (a droop would open gaps)
-            pb[name].rotation_quaternion = arm_space_quat(pb[name], (0, 0, 1), yaw)
+        pose(rig, f / IDLE_LEN)
         key_pose(rig, f)
     rig.animation_data.action = bpy.data.actions["idle"]
     bpy.context.scene.frame_set(0)
 
 
-PREVIEW = {"target": (0, 0, 1.4), "dist": 7.5, "yaw": 150, "pitch": 22, "anim_target": (0.2, 0.1, 2.6), "anim_dist": 4.5,
-           "frames": [("idle", 0), ("idle", 18), ("idle", 36)]}
+PREVIEW = {"target": (0, 0, 1.7), "dist": 8.0, "yaw": 150, "pitch": 22, "anim_target": (0, 0, Z_BAR - 0.45), "anim_dist": 4.6,
+           "frames": [("idle", 0), ("idle", 30), ("idle", 60), ("idle", 90)],
+           "extra": [{"yaw": 15, "pitch": 24, "dist": 3.4, "target": (0, -0.3, Z_DAIS + 0.1)},
+                     {"yaw": 195, "pitch": 18, "dist": 3.6, "target": (0, 0.3, Z2 + 0.6)}]}
 
 
 def build_all():
-    build_base()
-    build_head()
+    root = build_base()
+    build_rig(root)
     build_anims()
